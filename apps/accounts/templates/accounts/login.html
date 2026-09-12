@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Connexion{% endblock %}
+{% block content %}
+<div class="page bracket" style="max-width:380px; margin-top:80px; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:32px;">
+  <span class="tl"></span><span class="tr"></span><span class="bl"></span><span class="br"></span>
+  <h1 class="section" style="margin:0 0 20px;">Connexion</h1>
+  <form method="post">
+    {% csrf_token %}
+    {% for field in form %}
+      <div style="margin-bottom:14px;">
+        <label style="display:block; font-size:11px; text-transform:uppercase; color:var(--text-faint); margin-bottom:4px;">{{ field.label }}</label>
+        {{ field }}
+        {% for error in field.errors %}<div style="color:#FF6B6B; font-size:11.5px; margin-top:4px;">{{ error }}</div>{% endfor %}
+      </div>
+    {% endfor %}
+    {% for error in form.non_field_errors %}<div style="color:#FF6B6B; font-size:11.5px; margin-bottom:12px;">{{ error }}</div>{% endfor %}
+    <button type="submit" style="width:100%; padding:9px; background:var(--accent); border:none; border-radius:5px; color:#fff; font-weight:600; cursor:pointer;">Se connecter</button>
+  </form>
+  <a href="{% url 'accounts:password_reset' %}" style="display:block; margin-top:14px; font-size:11.5px; color:var(--text-faint);">Mot de passe oublié ?</a>
+</div>
+<style>
+  input[type=text], input[type=password]{
+    width:100%; padding:8px 10px; background:var(--bg); border:1px solid var(--border);
+    border-radius:5px; color:var(--text); font-family:inherit; font-size:13px;
+  }
+</style>
+{% endblock %}

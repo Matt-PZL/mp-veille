@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Actualités{% endblock %}
+{% block nav_actualites %}active{% endblock %}
+{% block extra_head %}
+<style>
+  .news-row{ display:grid; grid-template-columns:100px 1fr 140px 80px; gap:12px; align-items:baseline; padding:11px 16px; border-bottom:1px solid var(--border); font-size:12.5px; }
+  .news-row .src{ color:var(--accent); font-size:10.5px; text-transform:uppercase; }
+  .news-row .date{ color:var(--text-faint); font-size:11.5px; text-align:right; }
+  .wrap{ background:var(--surface); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+</style>
+{% endblock %}
+{% block content %}
+<h1 class="section">03 · Actualités</h1>
+<p style="max-width:920px; margin:0 auto 16px; color:var(--text-faint); font-size:12px;">Flux complet de la base de connaissance, non filtré sur vos actifs déclarés.</p>
+<div class="page">
+<div class="wrap bracket">
+  <span class="tl"></span><span class="tr"></span><span class="bl"></span><span class="br"></span>
+  {% for item in items %}
+    <div class="news-row">
+      <span class="src mono">{{ item.source }}</span>
+      <span>{{ item.titre }}</span>
+      <span class="mono" style="color:var(--text-faint); font-size:11px;">{{ item.taxonomie_editeur|default:item.taxonomie_referentiel }}</span>
+      <span class="date mono">{{ item.decouvert_le|timesince }}</span>
+    </div>
+  {% empty %}
+    <div style="padding:32px 16px; color:var(--text-faint);">Aucune actualité pour le moment.</div>
+  {% endfor %}
+</div>
+</div>
+{% endblock %}

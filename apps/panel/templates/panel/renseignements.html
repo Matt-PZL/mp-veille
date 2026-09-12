@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% load panel_extras %}
+{% block title %}Renseignements{% endblock %}
+{% block nav_renseignements %}active{% endblock %}
+{% block extra_head %}
+<style>
+  .wrap{ background:var(--surface); border:1px solid var(--border); border-radius:8px; overflow:hidden; display:grid; grid-template-columns:280px 1fr; min-height:420px; }
+  .left{ border-right:1px solid var(--border); }
+  .left-head{ padding:12px 16px; border-bottom:1px solid var(--border); font-weight:600; font-size:13px; }
+  .item-row{ display:flex; justify-content:space-between; align-items:center; padding:11px 16px; border-bottom:1px solid var(--border); color:var(--text-muted); text-decoration:none; }
+  .item-row:hover{ background:rgba(255,255,255,0.02); color:var(--text); }
+  .item-row.sel{ background:var(--accent-dim); border-left:3px solid var(--accent); padding-left:13px; color:var(--text); }
+  .item-row.all{ font-weight:600; color:var(--text); }
+  .item-row .badge{ background:var(--border); color:var(--text-muted); font-size:11px; padding:2px 8px; border-radius:10px; }
+  .item-row .ver{ color:var(--text-faint); font-size:11.5px; margin-left:6px; }
+
+  .right{ display:flex; flex-direction:column; }
+  .right-head{ padding:12px 16px; border-bottom:1px solid var(--border); background:rgba(255,255,255,0.015); }
+  .right-head .count{ font-weight:700; font-size:17px; color:var(--text); }
+  .right-head .sub{ font-weight:400; color:var(--text-faint); font-size:12px; display:block; margin-top:2px; }
+  .toolbar{ display:grid; grid-template-columns:1fr 150px 60px; align-items:center; padding:9px 16px; border-bottom:1px solid var(--border); font-size:10.5px; text-transform:uppercase; color:var(--text-faint); font-weight:600; letter-spacing:0.03em; }
+
+  .r-head{ display:grid; grid-template-columns:1fr 150px 60px; align-items:center; padding:11px 16px; border-bottom:1px solid var(--border); font-size:12.5px; cursor:pointer; }
+  .r-head:hover{ background:rgba(255,255,255,0.02); }
+  .r-head .t{ display:flex; align-items:center; gap:8px; color:var(--text); }
+  .chev{ color:var(--text-faint); font-size:10px; margin-right:4px; display:inline-block; transition:transform .12s ease; }
+  .chev.open{ transform:rotate(90deg); color:var(--accent); }
+  .dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; background:var(--text-muted); }
+  .dot.critique{ background:#EDEAE2; } .dot.elevee{ background:var(--text-muted); } .dot.moyenne, .dot.faible{ background:var(--text-faint); }
+  .status-pill{ font-size:11px; padding:2px 8px; border-radius:10px; background:var(--border); color:var(--text-muted); width:fit-content; }
+  .status-pill.a_traiter{ background:none; border:1px dashed var(--accent); color:var(--accent); }
+  .status-pill.en_cours{ background:rgba(255,255,255,0.06); color:#C9CBCE; }
+  .status-pill.clos{ background:rgba(255,255,255,0.04); color:var(--text-faint); }
+  .status-pill.non_applicable{ background:rgba(255,255,255,0.04); color:#B8B49A; }
+  .date{ color:var(--text-faint); font-size:11.5px; }
+  .just{ display:block; font-size:10.5px; color:var(--text-faint); font-style:italic; margin-top:2px; }
+
+  .r-detail{ max-height:0; overflow:hidden; background:rgba(0,0,0,0.15); transition:max-height .18s ease; }
+  .r-detail.open{ max-height:360px; }
+  .r-detail-inner{ padding:14px 16px 16px 34px; }
+  .r-field{ margin-bottom:12px; }
+  .r-field .lbl{ font-size:10px; text-transform:uppercase; color:var(--text-faint); font-weight:600; letter-spacing:0.04em; margin-bottom:3px; }
+  .r-field .val{ font-size:12.5px; color:var(--text-muted); line-height:1.5; }
+  .r-side{ display:flex; gap:28px; }
+  .r-side .r-field{ flex:1; }
+</style>
+{% endblock %}
+{% block content %}
+<h1 class="section">01 · Renseignements sur les actifs</h1>
+<div class="page">
+<div class="wrap bracket">
+  <span class="tl"></span><span class="tr"></span><span class="bl"></span><span class="br"></span>
+  <div class="left">
+    <div class="left-head">Actifs</div>
+    <a href="?" class="item-row all {% if not request.GET.actif %}sel{% endif %}"><span>Tous les actifs</span><span class="badge">{{ actifs.count }}</span></a>
+    {% for actif in actifs %}
+      <a href="?actif={{ actif.pk }}" class="item-row {% if request.GET.actif == actif.pk|stringformat:'s' %}sel{% endif %}">
+        <span>{{ actif }}{% if actif.version %}<span class="ver mono">{{ actif.version }}</span>{% endif %}</span>
+        <span class="badge">{{ actif.traitements.count }}</span>
+      </a>
+    {% empty %}
+      <div class="item-row" style="color:var(--text-faint); cursor:default;">Aucun actif déclaré — voir Organisation</div>
+    {% endfor %}
+  </div>
+  <div class="right">
+    <div class="right-head"><span class="count">{{ items.count }} Renseignement{{ items.count|pluralize }}</span><span class="sub">Tous les actifs</span></div>
+    <div class="toolbar"><span>Renseignement</span><span>Traitement</span><span>Date</span></div>
+    <div>
+      {% for item in items %}
+        {% with t=traitements_par_id|get_item:item.id_renseignement_bdp %}
+        <div class="r-group">
+          <div class="r-head" onclick="toggleDetail(this)">
+            <span class="t"><span class="chev">▸</span><span class="dot {{ item.criticite }}"></span>{{ item.reference_externe|default:item.source }} — {{ item.titre }}</span>
+            {% if t %}
+              <span><span class="status-pill {{ t.statut }}">{{ t.get_statut_display }}</span>{% if t.justificatif %}<span class="just">justif. : {{ t.justificatif }}</span>{% endif %}</span>
+            {% else %}
+              <span class="status-pill a_traiter">+ Traitement</span>
+            {% endif %}
+            <span class="date mono">{{ item.decouvert_le|timesince }}</span>
+          </div>
+          <div class="r-detail"><div class="r-detail-inner">
+            <div class="r-field"><div class="lbl">Description</div><div class="val">{{ item.description }}</div></div>
+            <div class="r-side">
+              <div class="r-field"><div class="lbl">Sources</div><div class="val">{{ item.source }}</div></div>
+              <div class="r-field"><div class="lbl">Découvert le</div><div class="val mono">{{ item.decouvert_le|date:"d/m/Y H:i" }}</div></div>
+            </div>
+          </div></div>
+        </div>
+        {% endwith %}
+      {% empty %}
+        <div style="padding:32px 16px; color:var(--text-faint);">Aucun renseignement pour le moment — l'ingestion n'a pas encore tourné.</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+</div>
+<script>
+  function toggleDetail(head){
+    head.querySelector('.chev').classList.toggle('open');
+    head.nextElementSibling.classList.toggle('open');
+  }
+</script>
+{% endblock %}

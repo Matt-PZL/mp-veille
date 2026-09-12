@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Profil{% endblock %}
+{% block nav_profil %}active{% endblock %}
+{% block content %}
+<h1 class="section">Gestion du profil</h1>
+<div class="page" style="max-width:480px;">
+  <div class="bracket" style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:24px;">
+    <span class="tl"></span><span class="tr"></span><span class="bl"></span><span class="br"></span>
+    <div style="margin-bottom:16px;">
+      <div style="font-size:10px; text-transform:uppercase; color:var(--text-faint); margin-bottom:4px;">Compte</div>
+      <div>{{ user.email|default:user.username }}</div>
+    </div>
+    <div style="margin-bottom:16px;">
+      <div style="font-size:10px; text-transform:uppercase; color:var(--text-faint); margin-bottom:4px;">Seuil de criticité des notifications</div>
+      <div class="mono">{{ prefs.get_seuil_criticite_display }}</div>
+    </div>
+    <div>
+      <div style="font-size:10px; text-transform:uppercase; color:var(--text-faint); margin-bottom:4px;">Fréquence des alertes</div>
+      <div class="mono">{{ prefs.get_frequence_display }}</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

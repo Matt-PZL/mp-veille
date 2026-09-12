@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% load panel_extras %}
+{% block title %}Traitement{% endblock %}
+{% block nav_traitement %}active{% endblock %}
+{% block extra_head %}
+<style>
+  .wrap{ background:var(--surface); border:1px solid var(--border); border-radius:8px; overflow:hidden; display:grid; grid-template-columns:220px 1fr; min-height:420px; }
+  .left{ border-right:1px solid var(--border); }
+  .left-head{ padding:12px 16px; border-bottom:1px solid var(--border); font-weight:600; font-size:13px; }
+  .item-row{ display:flex; justify-content:space-between; align-items:center; padding:11px 16px; border-bottom:1px solid var(--border); color:var(--text-muted); text-decoration:none; }
+  .item-row:hover{ background:rgba(255,255,255,0.02); color:var(--text); }
+  .item-row.sel{ background:var(--accent-dim); border-left:3px solid var(--accent); padding-left:13px; color:var(--text); }
+  .item-row.all{ font-weight:600; color:var(--text); }
+  .item-row .badge{ background:var(--border); color:var(--text-muted); font-size:11px; padding:2px 8px; border-radius:10px; }
+  .sdot{ width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:8px; }
+  .sdot.dashed{ border:1px dashed var(--text-faint); }
+  .sdot.solid{ background:var(--text-faint); }
+
+  .right{ display:flex; flex-direction:column; }
+  .right-head{ padding:12px 16px; border-bottom:1px solid var(--border); background:rgba(255,255,255,0.015); }
+  .right-head .count{ font-weight:700; font-size:17px; color:var(--text); }
+  .right-head .sub{ font-weight:400; color:var(--text-faint); font-size:12px; display:block; margin-top:2px; }
+  .toolbar{ display:grid; grid-template-columns:200px 1fr; align-items:center; padding:9px 16px; border-bottom:1px solid var(--border); font-size:10.5px; text-transform:uppercase; color:var(--text-faint); font-weight:600; letter-spacing:0.03em; }
+
+  .r-head{ display:grid; grid-template-columns:200px 1fr; align-items:center; padding:11px 16px; border-bottom:1px solid var(--border); font-size:12.5px; cursor:pointer; }
+  .r-head:hover{ background:rgba(255,255,255,0.02); }
+  .r-head .asset{ font-weight:500; color:var(--text); display:flex; align-items:center; gap:8px; }
+  .chev{ color:var(--text-faint); font-size:10px; margin-right:4px; display:inline-block; transition:transform .12s ease; }
+  .chev.open{ transform:rotate(90deg); color:var(--accent); }
+  .status-pill{ font-size:11px; padding:2px 8px; border-radius:10px; background:var(--border); color:var(--text-muted); width:fit-content; }
+  .status-pill.a_traiter{ background:none; border:1px dashed var(--accent); color:var(--accent); }
+  .status-pill.en_cours{ background:rgba(255,255,255,0.06); color:#C9CBCE; }
+  .status-pill.clos{ background:rgba(255,255,255,0.04); color:var(--text-faint); }
+  .status-pill.non_applicable{ background:rgba(255,255,255,0.04); color:#B8B49A; }
+
+  .r-detail{ max-height:0; overflow:hidden; background:rgba(0,0,0,0.15); transition:max-height .18s ease; }
+  .r-detail.open{ max-height:420px; }
+  .r-detail-inner{ padding:14px 16px 16px 34px; }
+  .r-field{ margin-bottom:12px; }
+  .r-field .lbl{ font-size:10px; text-transform:uppercase; color:var(--text-faint); font-weight:600; letter-spacing:0.04em; margin-bottom:3px; }
+  .r-field .val{ font-size:12.5px; color:var(--text-muted); line-height:1.5; }
+
+  .hist{ border-left:2px solid var(--border); padding-left:12px; margin-top:4px; }
+  .hist-row{ font-size:11.5px; color:var(--text-faint); padding:3px 0; position:relative; }
+  .hist-row::before{ content:''; position:absolute; left:-16px; top:8px; width:6px; height:6px; border-radius:50%; background:var(--text-faint); }
+  .hist-row b{ color:var(--text-muted); }
+
+  .actions{ display:flex; gap:8px; margin-top:14px; align-items:center; }
+  .btn{ font-size:11.5px; border:1px solid var(--accent); color:var(--accent); padding:7px 13px; border-radius:5px; background:none; cursor:pointer; font-family:inherit; }
+  .btn.ghost{ border-color:var(--border); color:var(--text-muted); }
+  .link-out{ font-size:11.5px; color:var(--text-faint); text-decoration:underline; cursor:pointer; margin-left:auto; }
+</style>
+{% endblock %}
+{% block content %}
+<h1 class="section">02 · Traitement</h1>
+<div class="page">
+<div class="wrap bracket">
+  <span class="tl"></span><span class="tr"></span><span class="bl"></span><span class="br"></span>
+  <div class="left">
+    <div class="left-head">Traitement</div>
+    <a href="?" class="item-row all {% if not request.GET.statut %}sel{% endif %}"><span>Tous</span><span class="badge">{{ traitements.count }}</span></a>
+    {% for code, label in traitements.model.STATUT_CHOICES %}
+      <a href="?statut={{ code }}" class="item-row {% if request.GET.statut == code %}sel{% endif %}">
+        <span><span class="sdot {% if code == 'a_traiter' %}dashed{% else %}solid{% endif %}"></span>{{ label }}</span>
+        <span class="badge">{{ compteurs|get_item:code }}</span>
+      </a>
+    {% endfor %}
+  </div>
+  <div class="right">
+    <div class="right-head"><span class="count">{{ traitements.count }} Renseignement{{ traitements.count|pluralize }}</span><span class="sub">Tous les statuts</span></div>
+    <div class="toolbar"><span>Actif</span><span>Renseignement</span></div>
+    <div>
+      {% for t in traitements %}
+        {% with r=renseignements_par_id|get_item:t.id_renseignement_bdp %}
+        <div class="r-group2">
+          <div class="r-head" onclick="toggleDetail(this)">
+            <span class="asset"><span class="chev">▸</span>{{ t.actif|default:"—" }}</span>
+            <span class="renseignement">{{ r.titre|default:"Renseignement retiré de la BDP" }}</span>
+          </div>
+          <div class="r-detail"><div class="r-detail-inner">
+            <div class="r-field"><div class="lbl">Statut</div><div class="val"><span class="status-pill {{ t.statut }}">{{ t.get_statut_display }}</span></div></div>
+            {% if t.justificatif %}
+              <div class="r-field"><div class="lbl">Justificatif</div><div class="val">{{ t.justificatif }}</div></div>
+            {% endif %}
+            <div class="r-field"><div class="lbl">Historique</div><div class="hist">
+              {% for h in t.historique.all %}
+                <div class="hist-row"><b>{{ h.evenement }}</b> — {{ h.horodatage|date:"d/m/Y H:i" }}</div>
+              {% endfor %}
+            </div></div>
+            <form method="post" action="{% url 'panel:marquer_traitement' t.pk %}" class="actions">
+              {% csrf_token %}
+              {% if t.statut == 'a_traiter' %}
+                <button class="btn" name="statut" value="en_cours">Marquer traité</button>
+              {% elif t.statut == 'en_cours' %}
+                <button class="btn" name="statut" value="clos">Clôturer</button>
+              {% endif %}
+              <span class="btn ghost" onclick="event.stopPropagation()">Exporter en PDF</span>
+              {% if r %}<a class="link-out" href="{% url 'panel:renseignements' %}">Voir le renseignement →</a>{% endif %}
+            </form>
+          </div></div>
+        </div>
+        {% endwith %}
+      {% empty %}
+        <div style="padding:32px 16px; color:var(--text-faint);">Aucun traitement pour le moment.</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+</div>
+<script>
+  function toggleDetail(head){
+    head.querySelector('.chev').classList.toggle('open');
+    head.nextElementSibling.classList.toggle('open');
+  }
+</script>
+{% endblock %}
