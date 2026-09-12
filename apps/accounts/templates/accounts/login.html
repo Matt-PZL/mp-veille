@@ -1,8 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Connexion{% endblock %}
 {% block content %}
-<div class="page bracket" style="max-width:380px; margin-top:80px; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:32px;">
-  <span class="tl"></span><span class="tr"></span><span class="bl"></span><span class="br"></span>
+<div class="page" style="max-width:380px; margin:80px auto 0; background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:32px;">
   <h1 class="section" style="margin:0 0 20px;">Connexion</h1>
   <form method="post">
     {% csrf_token %}
