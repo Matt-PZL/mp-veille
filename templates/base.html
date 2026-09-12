@@ -9,7 +9,7 @@
 <style>
   :root{
     --sidebar-bg:#000000;
-    --bg:#17191D; --surface:#212429; --surface-2:#282C32; --border:#33373E;
+    --bg:#0A0A0A; --surface:#000000; --surface-2:#121212; --border:#2A2A2E;
     --text:#FFFFFF; --text-muted:#C7CBD1; --text-faint:#8A909A;
     --accent:#3B6FE0; --accent-dim:rgba(59,111,224,0.14); --accent-dim2:rgba(59,111,224,0.22);
     --sev-critique:#F0555C; --sev-elevee:#F0954A; --sev-moyenne:#E0C24E; --sev-faible:#8A909A;
@@ -17,10 +17,15 @@
     --good:#3FBE7E; --warn:#F0954A; --info:#3B6FE0; --danger:#F0555C; --violet:#9B7BE0;
     --font-display:'Archivo',sans-serif; --font-body:'IBM Plex Sans',sans-serif; --font-mono:'IBM Plex Mono',monospace;
   }
+  html[data-theme="bleu"]{ --accent:#0050FF; --accent-dim:rgba(0,80,255,0.15); --accent-dim2:rgba(0,80,255,0.24); --st-encours:#0050FF; }
+  html[data-theme="vert"]{ --accent:#00E08A; --accent-dim:rgba(0,224,138,0.15); --accent-dim2:rgba(0,224,138,0.24); --st-encours:#00E08A; }
+  html[data-theme="violet"]{ --accent:#9B4DFF; --accent-dim:rgba(155,77,255,0.15); --accent-dim2:rgba(155,77,255,0.24); --st-encours:#9B4DFF; }
+
   *{box-sizing:border-box; margin:0; padding:0;}
   body{ background:var(--bg); color:var(--text); font-family:var(--font-body); font-size:13.5px; line-height:1.5; min-height:100vh; }
   .mono{ font-family:var(--font-mono); font-variant-numeric:tabular-nums; }
   a{ color:inherit; }
+  svg.ico{ width:15px; height:15px; flex-shrink:0; stroke:currentColor; stroke-width:1.7; fill:none; stroke-linecap:round; stroke-linejoin:round; }
 
   .app{ display:flex; min-height:100vh; align-items:stretch; }
 
@@ -30,13 +35,31 @@
   .nav-group{ display:flex; flex-direction:column; gap:2px; }
   .nav-group + .nav-group{ margin-top:18px; }
   .nav-group-label{ font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-faint); padding:0 12px; margin-bottom:6px; }
-  .nav-group a{ padding:9px 12px; border-radius:6px; font-size:12.5px; color:var(--text-muted); text-decoration:none; }
-  .nav-group a:hover{ color:var(--text); background:rgba(255,255,255,0.03); }
+  .nav-group a{ display:flex; align-items:center; gap:9px; padding:8px 12px; border-radius:6px; font-size:12.5px; color:var(--text-muted); text-decoration:none; }
+  .nav-group a:hover{ color:var(--text); background:rgba(255,255,255,0.05); }
   .nav-group a.active{ color:var(--accent); background:var(--accent-dim); border-left:2px solid var(--accent); padding-left:10px; }
   .sidenav .user-menu{ margin-top:auto; padding:14px 12px 0; border-top:1px solid var(--border); font-size:11.5px; color:var(--text-faint); line-height:1.8; }
   .sidenav .user-menu a{ color:var(--text-faint); text-decoration:underline; }
 
-  .stage{ flex:1; min-width:0; padding:36px 32px 72px; }
+  .stage{ flex:1; min-width:0; display:flex; flex-direction:column; }
+
+  .topbar{ display:flex; align-items:center; gap:16px; padding:14px 32px; border-bottom:1px solid var(--border); }
+  .topbar .crumb{ font-size:13px; font-weight:600; color:var(--text); font-family:var(--font-display); }
+  .search-trigger{ flex:1; max-width:420px; display:flex; align-items:center; gap:9px; padding:8px 12px; background:var(--surface); border:1px solid var(--border); border-radius:7px; color:var(--text-faint); font-size:12.5px; cursor:pointer; font-family:inherit; text-align:left; }
+  .search-trigger:hover{ border-color:var(--text-faint); }
+  .search-trigger span{ flex:1; }
+  .search-trigger kbd{ font-family:var(--font-mono); font-size:10px; color:var(--text-faint); border:1px solid var(--border); border-radius:4px; padding:1px 6px; }
+  .topbar-actions{ margin-left:auto; display:flex; align-items:center; gap:6px; position:relative; }
+  .icon-btn{ width:32px; height:32px; display:flex; align-items:center; justify-content:center; border-radius:7px; background:none; border:1px solid transparent; color:var(--text-muted); cursor:pointer; }
+  .icon-btn:hover{ background:var(--surface); color:var(--text); border-color:var(--border); }
+
+  .theme-menu{ position:absolute; top:40px; right:0; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:6px; min-width:170px; box-shadow:0 8px 24px rgba(0,0,0,0.4); z-index:40; }
+  .theme-menu button{ display:flex; align-items:center; gap:9px; width:100%; padding:8px 10px; background:none; border:none; border-radius:6px; color:var(--text-muted); font-size:12px; cursor:pointer; font-family:inherit; text-align:left; }
+  .theme-menu button:hover{ background:rgba(255,255,255,0.05); color:var(--text); }
+  .theme-menu button.active{ color:var(--text); background:rgba(255,255,255,0.06); }
+  .theme-swatch{ width:11px; height:11px; border-radius:50%; flex-shrink:0; }
+
+  .content{ flex:1; padding:32px 32px 72px; }
 
   a, button, input, select, textarea{ transition:border-color .12s ease, background-color .12s ease, color .12s ease, filter .12s ease; }
   a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible{
@@ -46,40 +69,143 @@
   button:not(:disabled):active, .btn:active, .btn-ghost:active, .btn-primary:active{ filter:brightness(0.94); }
   h1.section{ max-width:960px; margin:0 auto 16px; font-size:12.5px; font-family:var(--font-display); font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.07em; }
   .page{ max-width:960px; margin:0 auto 48px; }
+
+  /* ---- Palette de commandes (Ctrl+K) ---- */
+  .cmdk-overlay{
+    position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:100;
+    display:flex; justify-content:center; padding-top:12vh;
+    opacity:0; pointer-events:none; transition:opacity .12s ease;
+  }
+  .cmdk-overlay.open{ opacity:1; pointer-events:auto; }
+  .cmdk-box{
+    width:100%; max-width:560px; height:fit-content; max-height:70vh; display:flex; flex-direction:column;
+    background:var(--surface); border:1px solid var(--border); border-radius:10px;
+    box-shadow:0 20px 60px rgba(0,0,0,0.5); transform:translateY(-8px) scale(0.98); transition:transform .14s ease;
+  }
+  .cmdk-overlay.open .cmdk-box{ transform:translateY(0) scale(1); }
+  .cmdk-input-row{ display:flex; align-items:center; gap:10px; padding:14px 16px; border-bottom:1px solid var(--border); flex-shrink:0; }
+  .cmdk-input-row svg{ color:var(--text-faint); }
+  .cmdk-input-row input{ flex:1; background:none; border:none; color:var(--text); font-size:14px; font-family:inherit; outline:none; }
+  .cmdk-input-row input::placeholder{ color:var(--text-faint); }
+  .cmdk-input-row kbd{ font-family:var(--font-mono); font-size:10px; color:var(--text-faint); border:1px solid var(--border); border-radius:4px; padding:2px 6px; }
+  .cmdk-label{ font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-faint); font-weight:600; padding:12px 16px 6px; }
+  .cmdk-list{ overflow-y:auto; padding:0 8px 8px; }
+  .cmdk-item{ display:flex; align-items:center; gap:11px; padding:10px 10px; border-radius:7px; color:var(--text); text-decoration:none; font-size:13px; font-weight:600; }
+  .cmdk-item svg{ color:var(--text-muted); }
+  .cmdk-item.active{ background:var(--accent-dim); }
+  .cmdk-item.active svg{ color:var(--accent); }
+  .cmdk-item[hidden]{ display:none; }
+  .cmdk-footer{ display:flex; gap:16px; padding:10px 16px; border-top:1px solid var(--border); font-size:11px; color:var(--text-faint); flex-shrink:0; }
 </style>
 {% block extra_head %}{% endblock %}
 </head>
 <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
 <div class="app">
-{% if user.is_authenticated %}
-<aside class="sidenav">
+<aside class="sidenav" {% if not user.is_authenticated %}hidden{% endif %}>
   <div class="brand">veille<b>_</b></div>
 
   <div class="nav-group">
     <div class="nav-group-label">Vue d'ensemble</div>
-    <a href="{% url 'panel:dashboard' %}" class="{% block nav_dashboard %}{% endblock %}">Tableau de bord</a>
+    <a href="{% url 'panel:dashboard' %}" class="{% block nav_dashboard %}{% endblock %}">
+      <svg class="ico" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+      Tableau de bord
+    </a>
   </div>
 
   <div class="nav-group">
     <div class="nav-group-label">Surveillance</div>
-    <a href="{% url 'panel:renseignements' %}" class="{% block nav_renseignements %}{% endblock %}">Renseignements</a>
-    <a href="{% url 'panel:traitement' %}" class="{% block nav_traitement %}{% endblock %}">Traitement</a>
-    <a href="{% url 'panel:actualites' %}" class="{% block nav_actualites %}{% endblock %}">Actualités</a>
+    <a href="{% url 'panel:renseignements' %}" class="{% block nav_renseignements %}{% endblock %}">
+      <svg class="ico" viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/></svg>
+      Renseignements
+    </a>
+    <a href="{% url 'panel:traitement' %}" class="{% block nav_traitement %}{% endblock %}">
+      <svg class="ico" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 3h6v3H9z"/><path d="M9 12l2 2 4-4"/></svg>
+      Traitement
+    </a>
+    <a href="{% url 'panel:actualites' %}" class="{% block nav_actualites %}{% endblock %}">
+      <svg class="ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="1.5"/><path d="M7 9h6M7 12.5h10M7 16h10"/></svg>
+      Actualités
+    </a>
   </div>
 
   <div class="nav-group">
     <div class="nav-group-label">Gestion</div>
-    <a href="{% url 'panel:organisation' %}" class="{% block nav_organisation %}{% endblock %}">Organisation</a>
-    <a href="{% url 'panel:profil' %}" class="{% block nav_profil %}{% endblock %}">Profil</a>
+    <a href="{% url 'panel:organisation' %}" class="{% block nav_organisation %}{% endblock %}">
+      <svg class="ico" viewBox="0 0 24 24"><rect x="4" y="3" width="10" height="18"/><rect x="14" y="9" width="6" height="12"/><path d="M7 7h1M10 7h1M7 11h1M10 11h1M7 15h1M10 15h1"/></svg>
+      Organisation
+    </a>
+    <a href="{% url 'panel:profil' %}" class="{% block nav_profil %}{% endblock %}">
+      <svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/></svg>
+      Profil
+    </a>
   </div>
 
   <div class="user-menu">{{ user.username }}<br><a href="{% url 'accounts:logout' %}">déconnexion</a></div>
 </aside>
-{% endif %}
+
 <main class="stage">
-{% block content %}{% endblock %}
+  <div class="topbar" {% if not user.is_authenticated %}hidden{% endif %}>
+    <span class="crumb">{% block page_title %}{% endblock %}</span>
+    <button class="search-trigger" onclick="openCmdk()">
+      <svg class="ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <span>Rechercher...</span>
+      <kbd>Ctrl K</kbd>
+    </button>
+    <div class="topbar-actions">
+      <button class="icon-btn" title="Changer de thème" onclick="toggleThemeMenu(event)">
+        <svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+      <div class="theme-menu" id="theme-menu" hidden>
+        <button onclick="setTheme('bleu')" data-theme-opt="bleu"><span class="theme-swatch" style="background:#0050FF"></span>Bleu 0050FF</button>
+        <button onclick="setTheme('vert')" data-theme-opt="vert"><span class="theme-swatch" style="background:#00E08A"></span>Vert terminal</button>
+        <button onclick="setTheme('violet')" data-theme-opt="violet"><span class="theme-swatch" style="background:#9B4DFF"></span>Violet</button>
+      </div>
+    </div>
+  </div>
+  <div class="content">
+  {% block content %}{% endblock %}
+  </div>
 </main>
 </div>
+
+<div class="cmdk-overlay" id="cmdk-overlay" onclick="if(event.target===this) closeCmdk()">
+  <div class="cmdk-box">
+    <div class="cmdk-input-row">
+      <svg class="ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input type="text" id="cmdk-input" placeholder="Rechercher une page, un actif, une action…" oninput="filterCmdk()">
+      <kbd>Esc</kbd>
+    </div>
+    <div class="cmdk-label">Navigation</div>
+    <div class="cmdk-list" id="cmdk-list">
+      <a href="{% url 'panel:dashboard' %}" class="cmdk-item" data-kw="tableau de bord accueil dashboard vue d'ensemble">
+        <svg class="ico" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Tableau de bord
+      </a>
+      <a href="{% url 'panel:renseignements' %}" class="cmdk-item" data-kw="renseignements cve actifs">
+        <svg class="ico" viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/></svg>
+        Renseignements
+      </a>
+      <a href="{% url 'panel:traitement' %}" class="cmdk-item" data-kw="traitement statut suivi">
+        <svg class="ico" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 3h6v3H9z"/><path d="M9 12l2 2 4-4"/></svg>
+        Traitement
+      </a>
+      <a href="{% url 'panel:actualites' %}" class="cmdk-item" data-kw="actualites feed flux articles">
+        <svg class="ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="1.5"/><path d="M7 9h6M7 12.5h10M7 16h10"/></svg>
+        Actualités
+      </a>
+      <a href="{% url 'panel:organisation' %}" class="cmdk-item" data-kw="organisation actifs referentiels ajouter">
+        <svg class="ico" viewBox="0 0 24 24"><rect x="4" y="3" width="10" height="18"/><rect x="14" y="9" width="6" height="12"/><path d="M7 7h1M10 7h1M7 11h1M10 11h1M7 15h1M10 15h1"/></svg>
+        Organisation
+      </a>
+      <a href="{% url 'panel:profil' %}" class="cmdk-item" data-kw="profil compte preferences notifications">
+        <svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/></svg>
+        Profil
+      </a>
+    </div>
+    <div class="cmdk-footer"><span>↑↓ Naviguer</span><span>↵ Ouvrir</span></div>
+  </div>
+</div>
+
 <script>
   function getCookie(name){
     const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
@@ -88,6 +214,70 @@
   function postJSON(url){
     return fetch(url, {method:'POST', headers:{'X-CSRFToken': getCookie('csrftoken')}});
   }
+
+  // ---- Palette de commandes ----
+  function openCmdk(){
+    const ov = document.getElementById('cmdk-overlay');
+    ov.classList.add('open');
+    const input = document.getElementById('cmdk-input');
+    input.value = '';
+    filterCmdk();
+    setTimeout(() => input.focus(), 10);
+  }
+  function closeCmdk(){
+    document.getElementById('cmdk-overlay').classList.remove('open');
+  }
+  function filterCmdk(){
+    const q = document.getElementById('cmdk-input').value.trim().toLowerCase();
+    const items = Array.from(document.querySelectorAll('.cmdk-item'));
+    let firstVisible = null;
+    items.forEach(it => {
+      const hay = (it.dataset.kw + ' ' + it.textContent).toLowerCase();
+      const show = !q || hay.includes(q);
+      it.hidden = !show;
+      it.classList.remove('active');
+      if (show && !firstVisible) firstVisible = it;
+    });
+    if (firstVisible) firstVisible.classList.add('active');
+  }
+  function cmdkVisible(){ return Array.from(document.querySelectorAll('.cmdk-item')).filter(it => !it.hidden); }
+  document.addEventListener('keydown', function(e){
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      const ov = document.getElementById('cmdk-overlay');
+      ov.classList.contains('open') ? closeCmdk() : openCmdk();
+      return;
+    }
+    const ov = document.getElementById('cmdk-overlay');
+    if (!ov.classList.contains('open')) return;
+    if (e.key === 'Escape') { closeCmdk(); return; }
+    const visible = cmdkVisible();
+    if (!visible.length) return;
+    let idx = visible.findIndex(it => it.classList.contains('active'));
+    if (e.key === 'ArrowDown') { e.preventDefault(); idx = (idx + 1) % visible.length; visible.forEach(it=>it.classList.remove('active')); visible[idx].classList.add('active'); visible[idx].scrollIntoView({block:'nearest'}); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); idx = (idx - 1 + visible.length) % visible.length; visible.forEach(it=>it.classList.remove('active')); visible[idx].classList.add('active'); visible[idx].scrollIntoView({block:'nearest'}); }
+    else if (e.key === 'Enter') { e.preventDefault(); if (idx >= 0) window.location = visible[idx].getAttribute('href'); }
+  });
+
+  // ---- Theme ----
+  function setTheme(name){
+    document.documentElement.setAttribute('data-theme', name);
+    try{ localStorage.setItem('veille-theme', name); }catch(e){}
+    document.querySelectorAll('[data-theme-opt]').forEach(b => b.classList.toggle('active', b.dataset.themeOpt === name));
+    document.getElementById('theme-menu').hidden = true;
+  }
+  function toggleThemeMenu(e){
+    e.stopPropagation();
+    const menu = document.getElementById('theme-menu');
+    menu.hidden = !menu.hidden;
+  }
+  document.addEventListener('click', function(){ document.getElementById('theme-menu').hidden = true; });
+  (function(){
+    try{
+      const saved = localStorage.getItem('veille-theme');
+      if (saved) setTheme(saved);
+    }catch(e){}
+  })();
 </script>
 {% block extra_scripts %}{% endblock %}
 </body>
