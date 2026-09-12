@@ -19,6 +19,12 @@
   .right-head{ padding:12px 16px; border-bottom:1px solid var(--border); }
   .right-head .count{ font-weight:700; font-size:16px; color:var(--text); font-family:var(--font-mono); }
   .right-head .sub{ font-weight:400; color:var(--text-faint); font-size:12px; display:block; margin-top:2px; }
+
+  .date-filter{ display:flex; align-items:center; gap:8px; padding:9px 16px; border-bottom:1px solid var(--border); font-size:11.5px; color:var(--text-faint); }
+  .date-filter input[type=date]{ background:var(--bg); border:1px solid var(--border); border-radius:4px; color:var(--text); font-family:inherit; font-size:11.5px; padding:4px 6px; }
+  .date-filter button{ font-size:11px; border:1px solid var(--border); color:var(--text-muted); padding:4px 10px; border-radius:4px; background:none; cursor:pointer; font-family:inherit; }
+  .date-filter a.clear{ color:var(--text-faint); text-decoration:underline; margin-left:2px; }
+
   .toolbar{ display:grid; grid-template-columns:200px 1fr; align-items:center; padding:9px 16px; border-bottom:1px solid var(--border); font-size:10px; text-transform:uppercase; color:var(--text-faint); font-weight:600; letter-spacing:0.05em; font-family:var(--font-mono); }
 
   .r-head{ display:grid; grid-template-columns:200px 1fr; align-items:center; padding:11px 16px; border-bottom:1px solid var(--border); font-size:12.5px; cursor:pointer; }
@@ -31,6 +37,7 @@
   .status-pill.en_cours{ background:rgba(59,111,224,0.15); color:var(--st-encours); }
   .status-pill.clos{ background:rgba(76,154,115,0.15); color:var(--st-clos); }
   .status-pill.non_applicable{ background:rgba(255,255,255,0.05); color:var(--st-na); }
+  .retard-tag{ font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; color:var(--sev-critique); border:1px solid var(--sev-critique); padding:1px 6px; border-radius:4px; margin-left:6px; }
 
   .r-detail{ display:none; background:rgba(0,0,0,0.16); }
   .r-detail.open{ display:block; }
@@ -38,6 +45,9 @@
   .r-field{ margin-bottom:12px; }
   .r-field .lbl{ font-size:10px; text-transform:uppercase; color:var(--text-faint); font-weight:600; letter-spacing:0.05em; margin-bottom:3px; font-family:var(--font-mono); }
   .r-field .val{ font-size:12.5px; color:var(--text-muted); line-height:1.55; }
+  .echeance-form{ display:flex; align-items:center; gap:8px; }
+  .echeance-form input[type=date]{ background:var(--bg); border:1px solid var(--border); border-radius:4px; color:var(--text); font-family:inherit; font-size:12px; padding:5px 7px; }
+  .echeance-form button{ font-size:11px; border:1px solid var(--border); color:var(--text-muted); padding:5px 10px; border-radius:4px; background:none; cursor:pointer; font-family:inherit; }
 
   .hist{ border-left:2px solid var(--border); padding-left:12px; margin-top:4px; }
   .hist-row{ font-size:11.5px; color:var(--text-faint); padding:3px 0; position:relative; }
@@ -75,6 +85,15 @@
   </div>
   <div class="right">
     <div class="right-head"><span class="count">{{ traitements|length }} Renseignement{{ traitements|length|pluralize }}</span><span class="sub">{% if statut_filtre %}Filtré{% else %}Tous les statuts{% endif %}</span></div>
+    <form method="get" class="date-filter">
+      {% if statut_filtre %}<input type="hidden" name="statut" value="{{ statut_filtre }}">{% endif %}
+      <span>Du</span>
+      <input type="date" name="date_debut" value="{{ date_debut }}">
+      <span>au</span>
+      <input type="date" name="date_fin" value="{{ date_fin }}">
+      <button type="submit">Filtrer</button>
+      {% if date_debut or date_fin %}<a class="clear" href="?{% if statut_filtre %}statut={{ statut_filtre }}{% endif %}">Réinitialiser</a>{% endif %}
+    </form>
     <div class="toolbar"><span>Actif</span><span>Renseignement</span></div>
     <div>
       {% for t in traitements %}
@@ -82,13 +101,23 @@
         <div class="r-group2">
           <div class="r-head" onclick="toggleDetail(this)">
             <span class="asset"><span class="chev">▸</span>{{ t.actif|default:"—" }}</span>
-            <span class="renseignement">{{ r.titre|default:"Renseignement retiré de la BDP" }}</span>
+            <span class="renseignement">{{ r.titre|default:"Renseignement retiré de la BDP" }}{% if t.en_retard %}<span class="retard-tag">En retard</span>{% endif %}</span>
           </div>
           <div class="r-detail"><div class="r-detail-inner">
             <div class="r-field"><div class="lbl">Statut</div><div class="val"><span class="status-pill {{ t.statut }}">{{ t.get_statut_display }}</span></div></div>
             {% if t.justificatif %}
               <div class="r-field"><div class="lbl">Justificatif</div><div class="val">{{ t.justificatif }}</div></div>
             {% endif %}
+            <div class="r-field">
+              <div class="lbl">Délai de traitement prévisionnel</div>
+              <form method="post" action="{% url 'panel:definir_echeance' t.pk %}" class="echeance-form" onclick="event.stopPropagation()">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <input type="date" name="echeance" value="{{ t.echeance|date:'Y-m-d' }}">
+                <button type="submit">Enregistrer</button>
+                {% if t.en_retard %}<span class="retard-tag">Dépassée</span>{% endif %}
+              </form>
+            </div>
             <div class="r-field"><div class="lbl">Historique</div><div class="hist">
               {% for h in t.historique.all %}
                 <div class="hist-row"><b>{{ h.evenement }}</b> — {{ h.horodatage|date:"d/m/Y H:i" }}</div>

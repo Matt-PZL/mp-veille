@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from celery.schedules import crontab
 from decouple import Csv, config
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -89,7 +90,7 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 LOGIN_URL = "accounts:login"
-LOGIN_REDIRECT_URL = "panel:renseignements"
+LOGIN_REDIRECT_URL = "panel:dashboard"
 LOGOUT_REDIRECT_URL = "accounts:login"
 
 # --- Celery ---
@@ -98,6 +99,13 @@ CELERY_RESULT_BACKEND = "django-db"
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
+# Cycle d'ingestion automatique (brief section 2 : boucle ~12h).
+CELERY_BEAT_SCHEDULE = {
+    "cycle-ingestion-12h": {
+        "task": "apps.ingestion.tasks.cycle_ingestion",
+        "schedule": crontab(hour="*/12", minute=0),
+    },
+}
 
 # --- Chiffrement BDC ---
 # Cle Fernet dediee aux champs sensibles de la BDC (justificatifs, commentaires...).

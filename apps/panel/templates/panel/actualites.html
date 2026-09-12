@@ -7,12 +7,25 @@
   .news-row .src{ color:var(--accent); font-size:10.5px; text-transform:uppercase; }
   .news-row .date{ color:var(--text-faint); font-size:11.5px; text-align:right; }
   .wrap{ background:var(--surface); border:1px solid var(--border); border-radius:6px; overflow:hidden; }
+  .filters{ display:flex; gap:10px; align-items:center; margin-bottom:14px; }
+  .filters input[type=text]{ flex:1; max-width:320px; padding:8px 10px; background:var(--surface); border:1px solid var(--border); border-radius:5px; color:var(--text); font-family:inherit; font-size:12.5px; }
+  .filters a{ font-size:11.5px; padding:6px 12px; border:1px solid var(--border); border-radius:5px; color:var(--text-muted); text-decoration:none; }
+  .filters a.active{ color:var(--accent); border-color:var(--accent); background:var(--accent-dim); }
+  .filters button{ padding:8px 14px; background:var(--accent); border:none; border-radius:5px; color:#fff; font-weight:600; font-size:12px; cursor:pointer; font-family:inherit; }
 </style>
 {% endblock %}
 {% block content %}
 <h1 class="section">Actualités</h1>
-<p style="max-width:920px; margin:0 0 16px; color:var(--text-faint); font-size:12px;">Flux complet de la base de connaissance, non filtré sur vos actifs déclarés.</p>
+<p style="max-width:960px; margin:0 auto 16px; color:var(--text-faint); font-size:12px;">Flux complet de la base de connaissance, non filtré sur vos actifs déclarés.</p>
 <div class="page">
+<form method="get" class="filters">
+  <a href="?" class="{% if not type_filtre %}active{% endif %}">Tous</a>
+  <a href="?type=technique" class="{% if type_filtre == 'technique' %}active{% endif %}">Technique</a>
+  <a href="?type=normatif" class="{% if type_filtre == 'normatif' %}active{% endif %}">Normatif</a>
+  {% if type_filtre %}<input type="hidden" name="type" value="{{ type_filtre }}">{% endif %}
+  <input type="text" name="q" value="{{ q }}" placeholder="Rechercher un titre, une source…">
+  <button type="submit">Rechercher</button>
+</form>
 <div class="wrap">
   {% for item in items %}
     <div class="news-row">
@@ -22,7 +35,7 @@
       <span class="date mono">{{ item.decouvert_le|timesince }}</span>
     </div>
   {% empty %}
-    <div style="padding:32px 16px; color:var(--text-faint);">Aucune actualité pour le moment.</div>
+    <div style="padding:32px 16px; color:var(--text-faint);">Aucune actualité{% if q %} pour « {{ q }} »{% endif %}.</div>
   {% endfor %}
 </div>
 </div>

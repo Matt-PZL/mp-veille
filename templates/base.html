@@ -40,8 +40,8 @@
   }
   button:not(:disabled):hover, .btn:hover, .btn-ghost:hover, .btn-primary:hover{ filter:brightness(1.12); }
   button:not(:disabled):active, .btn:active, .btn-ghost:active, .btn-primary:active{ filter:brightness(0.94); }
-  h1.section{ margin:0 0 16px; font-size:12.5px; font-family:var(--font-display); font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.07em; }
-  .page{ max-width:960px; margin:0 0 48px; }
+  h1.section{ max-width:960px; margin:0 auto 16px; font-size:12.5px; font-family:var(--font-display); font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.07em; }
+  .page{ max-width:960px; margin:0 auto 48px; }
 </style>
 {% block extra_head %}{% endblock %}
 </head>
@@ -51,6 +51,7 @@
 <aside class="sidenav">
   <div class="brand">veille<b>_</b></div>
   <nav class="sidenav-links">
+    <a href="{% url 'panel:dashboard' %}" class="{% block nav_dashboard %}{% endblock %}">Vue d'ensemble</a>
     <a href="{% url 'panel:renseignements' %}" class="{% block nav_renseignements %}{% endblock %}">Renseignements</a>
     <a href="{% url 'panel:traitement' %}" class="{% block nav_traitement %}{% endblock %}">Traitement</a>
     <a href="{% url 'panel:actualites' %}" class="{% block nav_actualites %}{% endblock %}">Actualités</a>
@@ -64,5 +65,15 @@
 {% block content %}{% endblock %}
 </main>
 </div>
+<script>
+  function getCookie(name){
+    const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+    return m ? m.pop() : '';
+  }
+  function postJSON(url){
+    return fetch(url, {method:'POST', headers:{'X-CSRFToken': getCookie('csrftoken')}});
+  }
+</script>
+{% block extra_scripts %}{% endblock %}
 </body>
 </html>

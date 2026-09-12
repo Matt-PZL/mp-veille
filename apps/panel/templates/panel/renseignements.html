@@ -5,7 +5,7 @@
 {% block extra_head %}
 <style>
   .wrap{ background:var(--surface); border:1px solid var(--border); border-radius:6px; overflow:hidden; display:grid; grid-template-columns:280px 1fr; }
-  .left{ border-right:1px solid var(--border); }
+  .left{ border-right:1px solid var(--border); overflow-y:auto; }
   .left-head{ padding:12px 16px; border-bottom:1px solid var(--border); font-weight:600; font-size:13px; }
   .item-row{ display:flex; justify-content:space-between; align-items:center; padding:11px 16px; border-bottom:1px solid var(--border); color:var(--text-muted); text-decoration:none; }
   .item-row:hover{ background:rgba(255,255,255,0.025); color:var(--text); }
@@ -14,11 +14,24 @@
   .item-row .badge{ background:var(--border); color:var(--text-muted); font-size:11px; padding:2px 8px; border-radius:4px; font-family:var(--font-mono); }
   .item-row .ver{ color:var(--text-faint); font-size:11.5px; margin-left:6px; }
 
+  .tree-group{ border-bottom:1px solid var(--border); }
+  .tree-head{ display:flex; justify-content:space-between; align-items:center; padding:9px 16px; color:var(--text-muted); text-decoration:none; font-size:11.5px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; cursor:pointer; }
+  .tree-head:hover{ background:rgba(255,255,255,0.02); }
+  .tree-head.sel{ color:var(--accent); }
+  .tree-head .fchev{ display:inline-block; transition:transform .12s ease; margin-right:6px; font-size:9px; color:var(--text-faint); }
+  .tree-head .fchev.closed{ transform:rotate(-90deg); }
+  .tree-children{ }
+  .tree-children.collapsed{ display:none; }
+  .tree-children .item-row{ padding-left:28px; }
+  .tree-children .item-row.sel{ padding-left:26px; }
+
   .right{ display:flex; flex-direction:column; }
   .right-head{ padding:12px 16px; border-bottom:1px solid var(--border); }
   .right-head .count{ font-weight:700; font-size:16px; color:var(--text); font-family:var(--font-mono); }
   .right-head .sub{ font-weight:400; color:var(--text-faint); font-size:12px; display:block; margin-top:2px; }
   .toolbar{ display:grid; grid-template-columns:1fr 150px 60px; align-items:center; padding:9px 16px; border-bottom:1px solid var(--border); font-size:10px; text-transform:uppercase; color:var(--text-faint); font-weight:600; letter-spacing:0.05em; font-family:var(--font-mono); }
+  .toolbar a{ color:inherit; text-decoration:none; }
+  .toolbar a.active{ color:var(--accent); }
 
   .r-head{ display:grid; grid-template-columns:1fr 150px 60px; align-items:center; padding:11px 16px; border-bottom:1px solid var(--border); font-size:12.5px; cursor:pointer; }
   .r-head:hover{ background:rgba(255,255,255,0.02); }
@@ -28,6 +41,7 @@
   .dot{ width:7px; height:7px; border-radius:50%; flex-shrink:0; }
   .dot.critique{ background:var(--sev-critique); } .dot.elevee{ background:var(--sev-elevee); }
   .dot.moyenne{ background:var(--sev-moyenne); } .dot.faible{ background:var(--sev-faible); }
+  .badge-nouveau{ font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:var(--accent-ink,#06101F); background:var(--accent); padding:1px 6px; border-radius:3px; margin-left:6px; }
   .status-pill{ font-size:10.5px; padding:2px 9px; border-radius:4px; background:var(--border); color:var(--text-muted); width:fit-content; font-weight:600; }
   .status-pill.a_traiter{ background:none; border:1.5px dashed var(--accent); color:var(--accent); }
   .status-pill.en_cours{ background:rgba(59,111,224,0.15); color:var(--st-encours); }
@@ -45,13 +59,11 @@
   .r-side{ display:flex; gap:28px; }
   .r-side .r-field{ flex:1; }
 
-  .status-pill.a_traiter-btn{ border:1.5px dashed var(--accent); background:none; color:var(--accent); font-size:10.5px; font-weight:600; padding:2px 9px; border-radius:4px; cursor:pointer; font-family:inherit; }
-  .status-pill.a_traiter-btn:hover{ background:var(--accent-dim); }
+  .a_traiter-btn{ border:1.5px dashed var(--accent); background:none; color:var(--accent); font-size:10.5px; font-weight:600; padding:2px 9px; border-radius:4px; cursor:pointer; font-family:inherit; }
+  .a_traiter-btn:hover{ background:var(--accent-dim); }
   .sort-toggle{ display:flex; border:1px solid var(--border); border-radius:5px; overflow:hidden; font-size:10.5px; }
   .sort-toggle a{ padding:4px 9px; color:var(--text-faint); font-family:var(--font-mono); text-decoration:none; }
   .sort-toggle a.active{ background:var(--accent); color:#fff; }
-  .toolbar a{ color:inherit; text-decoration:none; }
-  .toolbar a.active{ color:var(--accent); }
 </style>
 {% endblock %}
 {% block content %}
@@ -65,18 +77,42 @@
         <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri_actifs=nb" class="{% if tri_actifs == 'nb' %}active{% endif %}">Nb.</a>
       </div>
     </div>
-    <a href="?tri_actifs={{ tri_actifs }}" class="item-row all {% if not actif_selectionne %}sel{% endif %}"><span>Tous les actifs</span><span class="badge">{{ actifs|length }}</span></a>
-    {% for actif in actifs %}
-      <a href="?actif={{ actif.pk }}&tri_actifs={{ tri_actifs }}" class="item-row {% if actif_selectionne.pk == actif.pk %}sel{% endif %}">
-        <span>{{ actif }}{% if actif.version %}<span class="ver mono">{{ actif.version }}</span>{% endif %}</span>
-        <span class="badge">{{ actif.traitements.count }}</span>
+    <a href="?tri_actifs={{ tri_actifs }}" class="item-row all {% if not actif_selectionne and not type_selectionne %}sel{% endif %}"><span>Tous les actifs</span><span class="badge">{{ nb_actifs }}</span></a>
+
+    <div class="tree-group">
+      <a href="?type=technique&tri_actifs={{ tri_actifs }}" class="tree-head {% if type_selectionne == 'technique' %}sel{% endif %}">
+        <span><span class="fchev">▾</span>Technique</span><span class="badge">{{ actifs_technique|length }}</span>
       </a>
-    {% empty %}
-      <div class="item-row" style="color:var(--text-faint); cursor:default;">Aucun actif déclaré — voir Organisation</div>
-    {% endfor %}
+      <div class="tree-children">
+        {% for actif in actifs_technique %}
+          <a href="?actif={{ actif.pk }}&tri_actifs={{ tri_actifs }}" class="item-row {% if actif_selectionne.pk == actif.pk %}sel{% endif %}">
+            <span>{{ actif }}{% if actif.version %}<span class="ver mono">{{ actif.version }}</span>{% endif %}</span>
+            <span class="badge">{{ actif.traitements.count }}</span>
+          </a>
+        {% empty %}
+          <div class="item-row" style="color:var(--text-faint); cursor:default;">Aucun actif technique</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="tree-group">
+      <a href="?type=normatif&tri_actifs={{ tri_actifs }}" class="tree-head {% if type_selectionne == 'normatif' %}sel{% endif %}">
+        <span><span class="fchev">▾</span>Normatif</span><span class="badge">{{ actifs_normatif|length }}</span>
+      </a>
+      <div class="tree-children">
+        {% for actif in actifs_normatif %}
+          <a href="?actif={{ actif.pk }}&tri_actifs={{ tri_actifs }}" class="item-row {% if actif_selectionne.pk == actif.pk %}sel{% endif %}">
+            <span>{{ actif }}</span>
+            <span class="badge">{{ actif.traitements.count }}</span>
+          </a>
+        {% empty %}
+          <div class="item-row" style="color:var(--text-faint); cursor:default;">Aucun référentiel</div>
+        {% endfor %}
+      </div>
+    </div>
   </div>
   <div class="right">
-    <div class="right-head"><span class="count">{{ items|length }} Renseignement{{ items|length|pluralize }}</span><span class="sub">{% if actif_selectionne %}{{ actif_selectionne }}{% else %}Tous les actifs{% endif %}</span></div>
+    <div class="right-head"><span class="count">{{ items|length }} Renseignement{{ items|length|pluralize }}</span><span class="sub">{% if actif_selectionne %}{{ actif_selectionne }}{% elif type_selectionne == 'technique' %}Technique{% elif type_selectionne == 'normatif' %}Normatif{% else %}Tous les actifs{% endif %}</span></div>
     <div class="toolbar">
       <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri=date" class="{% if tri == 'date' %}active{% endif %}">Renseignement</a>
       <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri=statut" class="{% if tri == 'statut' %}active{% endif %}">Traitement</a>
@@ -85,16 +121,16 @@
     <div>
       {% for item in items %}
         {% with t=traitements_par_id|get_item:item.id_renseignement_bdp %}
-        <div class="r-group">
+        <div class="r-group" data-id="{{ item.id_renseignement_bdp }}">
           <div class="r-head" onclick="toggleDetail(this)">
-            <span class="t"><span class="chev">▸</span><span class="dot {{ item.criticite }}"></span>{{ item.reference_externe|default:item.source }} — {{ item.titre }}</span>
+            <span class="t"><span class="chev">▸</span><span class="dot {{ item.criticite }}"></span>{{ item.reference_externe|default:item.source }} — {{ item.titre }}{% if item.id_renseignement_bdp not in consultes %}<span class="badge-nouveau">Nouveau</span>{% endif %}</span>
             {% if t %}
               <span><span class="status-pill {{ t.statut }}">{{ t.get_statut_display }}</span>{% if t.justificatif %}<span class="just">justif. : {{ t.justificatif }}</span>{% endif %}</span>
             {% else %}
               <form method="post" action="{% url 'panel:demarrer_traitement' item.id_renseignement_bdp %}" onclick="event.stopPropagation()">
                 {% csrf_token %}
                 <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                <button type="submit" class="status-pill a_traiter-btn">+ Traitement</button>
+                <button type="submit" class="a_traiter-btn">+ Traitement</button>
               </form>
             {% endif %}
             <span class="date mono">{{ item.decouvert_le|timesince }}</span>
@@ -109,16 +145,34 @@
         </div>
         {% endwith %}
       {% empty %}
-        <div style="padding:32px 16px; color:var(--text-faint);">Aucun renseignement pour le moment{% if actif_selectionne %} pour cet actif{% else %} — l'ingestion n'a pas encore tourné{% endif %}.</div>
+        <div style="padding:32px 16px; color:var(--text-faint);">Aucun renseignement pour le moment{% if actif_selectionne %} pour cet actif{% endif %}.</div>
       {% endfor %}
     </div>
   </div>
 </div>
 </div>
+{% endblock %}
+{% block extra_scripts %}
 <script>
   function toggleDetail(head){
-    head.querySelector('.chev').classList.toggle('open');
-    head.nextElementSibling.classList.toggle('open');
+    const group = head.closest('.r-group');
+    const chev = head.querySelector('.chev');
+    const detail = head.nextElementSibling;
+    const opening = !chev.classList.contains('open');
+    chev.classList.toggle('open');
+    detail.classList.toggle('open');
+    if (opening) {
+      const badge = head.querySelector('.badge-nouveau');
+      if (badge) {
+        badge.remove();
+        postJSON('/renseignements/' + group.dataset.id + '/consulter/');
+      }
+    }
   }
+  document.querySelectorAll('.tree-head').forEach(function(h){
+    h.addEventListener('click', function(e){
+      // laisse le lien filtrer par type, mais permet aussi de replier visuellement au clic sur le chevron seul
+    });
+  });
 </script>
 {% endblock %}

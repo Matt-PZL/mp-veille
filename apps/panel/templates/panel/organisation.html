@@ -23,11 +23,22 @@
   .fields-technique, .fields-normatif{ display:none; }
   .fields-technique.show, .fields-normatif.show{ display:flex; }
   .btn-primary{ padding:8px 16px; background:var(--accent); border:none; border-radius:5px; color:#fff; font-weight:600; font-size:12.5px; cursor:pointer; font-family:inherit; }
+  .add-grid{ display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start; }
+  .import-card{ background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:18px 20px; margin-top:20px; }
+  .import-card h2{ font-size:12px; font-weight:600; color:var(--text-muted); margin:0 0 10px; font-family:var(--font-display); text-transform:uppercase; letter-spacing:0.05em; }
+  .import-card p{ font-size:11.5px; color:var(--text-faint); margin:0 0 12px; line-height:1.5; }
+  .import-card input[type=file]{ font-size:11.5px; color:var(--text-muted); margin-bottom:10px; }
+  .messages{ margin-bottom:16px; }
+  .messages li{ list-style:none; background:var(--accent-dim); border:1px solid var(--accent); color:var(--accent); padding:8px 12px; border-radius:5px; font-size:12px; }
+  @media (max-width:760px){ .add-grid{ grid-template-columns:1fr; } }
 </style>
 {% endblock %}
 {% block content %}
 <h1 class="section">Gestion de l'organisation</h1>
 <div class="page">
+{% if messages %}
+  <ul class="messages">{% for m in messages %}<li>{{ m }}</li>{% endfor %}</ul>
+{% endif %}
 <div class="wrap">
   {% for actif in actifs %}
     <div class="org-row">
@@ -76,6 +87,16 @@
       <div style="flex:1;"><span class="lbl">Référentiel</span><input type="text" name="referentiel" placeholder="DORA"></div>
     </div>
     <button type="submit" class="btn-primary" style="margin-top:6px;">Ajouter</button>
+  </form>
+</div>
+
+<div class="import-card">
+  <h2>Importer un CSV</h2>
+  <p>Colonnes attendues : <span class="mono">type,categorie,editeur,produit,version,referentiel</span> — une ligne par actif ou référentiel. Chaque ligne déclenche le Matching et crée les traitements en attente correspondants.</p>
+  <form method="post" action="{% url 'panel:importer_actifs_csv' %}" enctype="multipart/form-data" style="display:flex; gap:10px; align-items:center;">
+    {% csrf_token %}
+    <input type="file" name="fichier" accept=".csv" required>
+    <button type="submit" class="btn-primary">Importer</button>
   </form>
 </div>
 </div>

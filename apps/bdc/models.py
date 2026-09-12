@@ -56,8 +56,18 @@ class Traitement(models.Model):
     statut = models.CharField(max_length=20, choices=STATUT_CHOICES, default="a_traiter")
     # Sensible -> chiffre. "clos" et "non_applicable" l'exigent (voir apps/panel).
     justificatif = EncryptedTextField(blank=True, default="")
+    echeance = models.DateField(null=True, blank=True, help_text="Delai de traitement previsionnel")
 
     maj_le = models.DateTimeField(auto_now=True)
+
+    @property
+    def en_retard(self):
+        from django.utils import timezone
+        return bool(
+            self.echeance
+            and self.echeance < timezone.localdate()
+            and self.statut in ("a_traiter", "en_cours")
+        )
 
     class Meta:
         indexes = [
@@ -97,3 +107,12 @@ class PreferenceNotification(models.Model):
         choices=[("immediat", "Immediat"), ("quotidien", "Quotidien"), ("hebdo", "Hebdomadaire")],
         default="quotidien",
     )
+
+
+class RenseignementConsulte(models.Model):
+    """Marque de lecture cote client. C'est un fait propre au client (a-t-il
+    ouvert ce renseignement ?), donc BDC et non BDP, meme si la cle pointe
+    vers un id_renseignement_bdp."""
+
+    id_renseignement_bdp = models.UUIDField(unique=True)
+    consulte_le = models.DateTimeField(auto_now_add=True)
