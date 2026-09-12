@@ -39,8 +39,8 @@
 {% block extra_head %}{% endblock %}
 </head>
 <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
-{% if user.is_authenticated %}
 <div class="app">
+{% if user.is_authenticated %}
 <aside class="sidenav">
   <div class="brand">veille<b>_</b></div>
   <nav class="sidenav-links">
@@ -52,14 +52,10 @@
   </nav>
   <div class="user-menu">{{ user.username }}<br><a href="{% url 'accounts:logout' %}">déconnexion</a></div>
 </aside>
+{% endif %}
 <main class="stage">
 {% block content %}{% endblock %}
 </main>
 </div>
-{% else %}
-<main class="stage">
-{% block content %}{% endblock %}
-</main>
-{% endif %}
 </body>
 </html>
