@@ -118,7 +118,7 @@ class Renseignement(models.Model):
     }
     _CVSS_AXIS_ORDER = ("AV", "AC", "PR", "UI", "S", "C", "I", "A")
 
-    def cvss_radar(self, cx=100, cy=100, r=72):
+    def cvss_radar(self, cx=110, cy=110, r=64):
         """Precalcule les coordonnees SVG d'un radar CVSS a 8 axes (les
         gabarits Django ne font pas de trigonometrie) : polygone de valeurs,
         grille de fond, et position de chaque etiquette d'axe."""

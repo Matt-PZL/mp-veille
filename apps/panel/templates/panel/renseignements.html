@@ -168,7 +168,7 @@
                   <div class="n {{ item.criticite }}">{{ item.cvss_score|floatformat:1 }}</div>
                   <div class="v">{{ item.get_criticite_display }}</div>
                 </div>
-                <svg class="cvss-radar" viewBox="0 0 200 200" width="170" height="170">
+                <svg class="cvss-radar" viewBox="0 0 220 220" width="185" height="185">
                   <polygon points="{{ radar.grid_points }}" fill="none" stroke="var(--border)" stroke-width="1"/>
                   {% for a in radar.axes %}
                     <line x1="{{ radar.cx }}" y1="{{ radar.cy }}" x2="{{ a.sx }}" y2="{{ a.sy }}" stroke="var(--border)" stroke-width="1"/>
