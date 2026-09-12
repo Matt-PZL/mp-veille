@@ -44,18 +44,30 @@
   .r-field .val{ font-size:12.5px; color:var(--text-muted); line-height:1.55; }
   .r-side{ display:flex; gap:28px; }
   .r-side .r-field{ flex:1; }
+
+  .status-pill.a_traiter-btn{ border:1.5px dashed var(--accent); background:none; color:var(--accent); font-size:10.5px; font-weight:600; padding:2px 9px; border-radius:4px; cursor:pointer; font-family:inherit; }
+  .status-pill.a_traiter-btn:hover{ background:var(--accent-dim); }
+  .sort-toggle{ display:flex; border:1px solid var(--border); border-radius:5px; overflow:hidden; font-size:10.5px; }
+  .sort-toggle a{ padding:4px 9px; color:var(--text-faint); font-family:var(--font-mono); text-decoration:none; }
+  .sort-toggle a.active{ background:var(--accent); color:#fff; }
+  .toolbar a{ color:inherit; text-decoration:none; }
+  .toolbar a.active{ color:var(--accent); }
 </style>
 {% endblock %}
 {% block content %}
-<h1 class="section">01 · Renseignements sur les actifs</h1>
+<h1 class="section">Renseignements sur les actifs</h1>
 <div class="page">
-<div class="wrap bracket">
-  <span class="tl"></span><span class="tr"></span><span class="bl"></span><span class="br"></span>
+<div class="wrap">
   <div class="left">
-    <div class="left-head">Actifs</div>
-    <a href="?" class="item-row all {% if not request.GET.actif %}sel{% endif %}"><span>Tous les actifs</span><span class="badge">{{ actifs.count }}</span></a>
+    <div class="left-head"><span>Actifs</span>
+      <div class="sort-toggle">
+        <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri_actifs=az" class="{% if tri_actifs == 'az' %}active{% endif %}">A–Z</a>
+        <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri_actifs=nb" class="{% if tri_actifs == 'nb' %}active{% endif %}">Nb.</a>
+      </div>
+    </div>
+    <a href="?tri_actifs={{ tri_actifs }}" class="item-row all {% if not actif_selectionne %}sel{% endif %}"><span>Tous les actifs</span><span class="badge">{{ actifs|length }}</span></a>
     {% for actif in actifs %}
-      <a href="?actif={{ actif.pk }}" class="item-row {% if request.GET.actif == actif.pk|stringformat:'s' %}sel{% endif %}">
+      <a href="?actif={{ actif.pk }}&tri_actifs={{ tri_actifs }}" class="item-row {% if actif_selectionne.pk == actif.pk %}sel{% endif %}">
         <span>{{ actif }}{% if actif.version %}<span class="ver mono">{{ actif.version }}</span>{% endif %}</span>
         <span class="badge">{{ actif.traitements.count }}</span>
       </a>
@@ -64,8 +76,12 @@
     {% endfor %}
   </div>
   <div class="right">
-    <div class="right-head"><span class="count">{{ items.count }} Renseignement{{ items.count|pluralize }}</span><span class="sub">Tous les actifs</span></div>
-    <div class="toolbar"><span>Renseignement</span><span>Traitement</span><span>Date</span></div>
+    <div class="right-head"><span class="count">{{ items|length }} Renseignement{{ items|length|pluralize }}</span><span class="sub">{% if actif_selectionne %}{{ actif_selectionne }}{% else %}Tous les actifs{% endif %}</span></div>
+    <div class="toolbar">
+      <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri=date" class="{% if tri == 'date' %}active{% endif %}">Renseignement</a>
+      <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri=statut" class="{% if tri == 'statut' %}active{% endif %}">Traitement</a>
+      <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri=date" class="{% if tri == 'date' %}active{% endif %}">Date</a>
+    </div>
     <div>
       {% for item in items %}
         {% with t=traitements_par_id|get_item:item.id_renseignement_bdp %}
@@ -75,7 +91,11 @@
             {% if t %}
               <span><span class="status-pill {{ t.statut }}">{{ t.get_statut_display }}</span>{% if t.justificatif %}<span class="just">justif. : {{ t.justificatif }}</span>{% endif %}</span>
             {% else %}
-              <span class="status-pill a_traiter">+ Traitement</span>
+              <form method="post" action="{% url 'panel:demarrer_traitement' item.id_renseignement_bdp %}" onclick="event.stopPropagation()">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <button type="submit" class="status-pill a_traiter-btn">+ Traitement</button>
+              </form>
             {% endif %}
             <span class="date mono">{{ item.decouvert_le|timesince }}</span>
           </div>
@@ -89,7 +109,7 @@
         </div>
         {% endwith %}
       {% empty %}
-        <div style="padding:32px 16px; color:var(--text-faint);">Aucun renseignement pour le moment — l'ingestion n'a pas encore tourné.</div>
+        <div style="padding:32px 16px; color:var(--text-faint);">Aucun renseignement pour le moment{% if actif_selectionne %} pour cet actif{% else %} — l'ingestion n'a pas encore tourné{% endif %}.</div>
       {% endfor %}
     </div>
   </div>

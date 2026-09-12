@@ -1,22 +1,43 @@
 {% extends "base.html" %}
 {% block title %}Profil{% endblock %}
 {% block nav_profil %}active{% endblock %}
+{% block extra_head %}
+<style>
+  .card{ background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:24px; }
+  .field{ margin-bottom:16px; }
+  .field .lbl{ font-size:10px; text-transform:uppercase; color:var(--text-faint); margin-bottom:6px; display:block; letter-spacing:0.04em; }
+  select{ width:100%; padding:8px 10px; background:var(--bg); border:1px solid var(--border); border-radius:5px; color:var(--text); font-family:inherit; font-size:12.5px; }
+  .btn-primary{ padding:8px 16px; background:var(--accent); border:none; border-radius:5px; color:#fff; font-weight:600; font-size:12.5px; cursor:pointer; font-family:inherit; }
+</style>
+{% endblock %}
 {% block content %}
 <h1 class="section">Gestion du profil</h1>
-<div class="page" style="max-width:480px;">
-  <div style="background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:24px;">
-    <div style="margin-bottom:16px;">
-      <div style="font-size:10px; text-transform:uppercase; color:var(--text-faint); margin-bottom:4px;">Compte</div>
+<div class="page" style="max-width:420px;">
+  <div class="card">
+    <div class="field">
+      <span class="lbl">Compte</span>
       <div>{{ user.email|default:user.username }}</div>
     </div>
-    <div style="margin-bottom:16px;">
-      <div style="font-size:10px; text-transform:uppercase; color:var(--text-faint); margin-bottom:4px;">Seuil de criticité des notifications</div>
-      <div class="mono">{{ prefs.get_seuil_criticite_display }}</div>
-    </div>
-    <div>
-      <div style="font-size:10px; text-transform:uppercase; color:var(--text-faint); margin-bottom:4px;">Fréquence des alertes</div>
-      <div class="mono">{{ prefs.get_frequence_display }}</div>
-    </div>
+    <form method="post">
+      {% csrf_token %}
+      <div class="field">
+        <span class="lbl">Seuil de criticité des notifications</span>
+        <select name="seuil_criticite">
+          <option value="critique" {% if prefs.seuil_criticite == 'critique' %}selected{% endif %}>Critique uniquement</option>
+          <option value="elevee" {% if prefs.seuil_criticite == 'elevee' %}selected{% endif %}>Élevée et plus</option>
+          <option value="moyenne" {% if prefs.seuil_criticite == 'moyenne' %}selected{% endif %}>Moyenne et plus</option>
+        </select>
+      </div>
+      <div class="field">
+        <span class="lbl">Fréquence des alertes</span>
+        <select name="frequence">
+          <option value="immediat" {% if prefs.frequence == 'immediat' %}selected{% endif %}>Immédiat</option>
+          <option value="quotidien" {% if prefs.frequence == 'quotidien' %}selected{% endif %}>Quotidien</option>
+          <option value="hebdo" {% if prefs.frequence == 'hebdo' %}selected{% endif %}>Hebdomadaire</option>
+        </select>
+      </div>
+      <button type="submit" class="btn-primary">Enregistrer</button>
+    </form>
   </div>
 </div>
 {% endblock %}

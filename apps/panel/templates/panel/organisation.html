@@ -7,6 +7,22 @@
   .org-row{ display:flex; justify-content:space-between; align-items:center; padding:11px 16px; border-bottom:1px solid var(--border); font-size:12.5px; }
   .org-row .tag{ font-size:10px; text-transform:uppercase; color:var(--text-faint); margin-right:8px; }
   .btn-ghost{ font-size:11.5px; border:1px solid var(--border); color:var(--text-muted); padding:5px 11px; border-radius:5px; background:none; cursor:pointer; font-family:inherit; }
+  .btn-ghost:hover{ color:var(--text); border-color:var(--text-faint); }
+  .retirer-actions{ display:flex; gap:6px; }
+
+  .add-card{ background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:18px 20px; margin-top:20px; max-width:520px; }
+  .add-card h2{ font-size:12px; font-weight:600; color:var(--text-muted); margin:0 0 14px; font-family:var(--font-display); text-transform:uppercase; letter-spacing:0.05em; }
+  .add-row{ display:flex; gap:10px; margin-bottom:10px; }
+  .add-row.type-toggle{ gap:6px; }
+  .type-radio{ flex:1; }
+  .type-radio input{ display:none; }
+  .type-radio label{ display:block; text-align:center; padding:7px; border:1px solid var(--border); border-radius:5px; font-size:12px; color:var(--text-muted); cursor:pointer; }
+  .type-radio input:checked + label{ border-color:var(--accent); color:var(--accent); background:var(--accent-dim); }
+  .add-card input[type=text]{ flex:1; padding:8px 10px; background:var(--bg); border:1px solid var(--border); border-radius:5px; color:var(--text); font-family:inherit; font-size:12.5px; min-width:0; }
+  .add-card .lbl{ font-size:10px; text-transform:uppercase; color:var(--text-faint); margin-bottom:4px; display:block; }
+  .fields-technique, .fields-normatif{ display:none; }
+  .fields-technique.show, .fields-normatif.show{ display:flex; }
+  .btn-primary{ padding:8px 16px; background:var(--accent); border:none; border-radius:5px; color:#fff; font-weight:600; font-size:12.5px; cursor:pointer; font-family:inherit; }
 </style>
 {% endblock %}
 {% block content %}
@@ -16,11 +32,58 @@
   {% for actif in actifs %}
     <div class="org-row">
       <span><span class="tag mono">{{ actif.type }}</span>{{ actif }}{% if actif.version %} <span class="mono" style="color:var(--text-faint);">{{ actif.version }}</span>{% endif %}</span>
-      <button class="btn-ghost">Retirer</button>
+      <div class="retirer-actions">
+        <form method="post" action="{% url 'panel:retirer_actif' actif.pk %}" onsubmit="return confirm('Retirer {{ actif }} en conservant son historique de traitement ?');">
+          {% csrf_token %}
+          <input type="hidden" name="mode" value="conserver">
+          <button type="submit" class="btn-ghost" title="L'historique de traitement reste consultable, détaché de l'actif">Retirer (conserver)</button>
+        </form>
+        <form method="post" action="{% url 'panel:retirer_actif' actif.pk %}" onsubmit="return confirm('Retirer {{ actif }} ET supprimer définitivement son historique de traitement ?');">
+          {% csrf_token %}
+          <input type="hidden" name="mode" value="purger">
+          <button type="submit" class="btn-ghost" title="Supprime aussi tout l'historique de traitement associé">Retirer (purger)</button>
+        </form>
+      </div>
     </div>
   {% empty %}
-    <div style="padding:32px 16px; color:var(--text-faint);">Aucun actif ni référentiel déclaré. Passez par l'onboarding ou l'ajout manuel (à venir).</div>
+    <div style="padding:32px 16px; color:var(--text-faint);">Aucun actif ni référentiel déclaré.</div>
   {% endfor %}
 </div>
+
+<div class="add-card">
+  <h2>Ajouter un actif ou un référentiel</h2>
+  <form method="post" action="{% url 'panel:ajouter_actif' %}">
+    {% csrf_token %}
+    <div class="add-row type-toggle">
+      <div class="type-radio">
+        <input type="radio" name="type" value="technique" id="type-technique" checked onclick="toggleTypeFields()">
+        <label for="type-technique">Technique</label>
+      </div>
+      <div class="type-radio">
+        <input type="radio" name="type" value="normatif" id="type-normatif" onclick="toggleTypeFields()">
+        <label for="type-normatif">Normatif</label>
+      </div>
+    </div>
+    <div class="add-row fields-technique show" id="fields-technique">
+      <div style="flex:1;"><span class="lbl">Catégorie</span><input type="text" name="categorie" placeholder="Pare-feu"></div>
+      <div style="flex:1;"><span class="lbl">Éditeur</span><input type="text" name="editeur" placeholder="Palo Alto Networks"></div>
+    </div>
+    <div class="add-row fields-technique show">
+      <div style="flex:1;"><span class="lbl">Produit</span><input type="text" name="produit" placeholder="PAN-OS"></div>
+      <div style="flex:1;"><span class="lbl">Version</span><input type="text" name="version" placeholder="11.1.2"></div>
+    </div>
+    <div class="add-row fields-normatif" id="fields-normatif">
+      <div style="flex:1;"><span class="lbl">Référentiel</span><input type="text" name="referentiel" placeholder="DORA"></div>
+    </div>
+    <button type="submit" class="btn-primary" style="margin-top:6px;">Ajouter</button>
+  </form>
 </div>
+</div>
+<script>
+  function toggleTypeFields(){
+    const technique = document.getElementById('type-technique').checked;
+    document.querySelectorAll('.fields-technique').forEach(el => el.classList.toggle('show', technique));
+    document.querySelectorAll('.fields-normatif').forEach(el => el.classList.toggle('show', !technique));
+  }
+</script>
 {% endblock %}
