@@ -1,5 +1,5 @@
 from collections import Counter
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse
@@ -17,6 +17,7 @@ from apps.bdp.models import Renseignement
 from apps.matching.services import calculer_matching
 
 _ORDRE_STATUT = {"a_traiter": 0, "en_cours": 1, "clos": 2, "non_applicable": 3}
+_ORDRE_CRITICITE = {"critique": 0, "elevee": 1, "moyenne": 2, "faible": 3}
 _OUVERTS = ("a_traiter", "en_cours")
 
 
@@ -35,18 +36,26 @@ def vue_ensemble(request):
     """Tableau de bord : KPI et aperçu rapide, point d'entrée du panel."""
     traitements_par_id = {t.id_renseignement_bdp: t for t in Traitement.objects.select_related("actif")}
     tous_renseignements = list(Renseignement.objects.all())
+    consultes = set(RenseignementConsulte.objects.values_list("id_renseignement_bdp", flat=True))
+    aujourdhui = timezone.localdate()
 
-    ouverts = [
-        r for r in tous_renseignements
-        if getattr(traitements_par_id.get(r.id_renseignement_bdp), "statut", "a_traiter") in _OUVERTS
-    ]
+    def statut_de(r):
+        return getattr(traitements_par_id.get(r.id_renseignement_bdp), "statut", "a_traiter")
+
+    ouverts = [r for r in tous_renseignements if statut_de(r) in _OUVERTS]
     par_criticite = Counter(r.criticite or "moyenne" for r in ouverts)
+    par_etape = Counter(statut_de(r) for r in tous_renseignements)
+    non_consultes = [r for r in tous_renseignements if r.id_renseignement_bdp not in consultes]
 
     compteur_actifs = Counter()
     for t in traitements_par_id.values():
         if t.actif and t.statut in _OUVERTS:
             compteur_actifs[t.actif] += 1
     actifs_exposes = compteur_actifs.most_common(5)
+
+    resultats_matching = calculer_matching()
+    actifs_couverts = {r.actif for r in resultats_matching}
+    actifs_sans_renseignement = [a for a in ActifClient.objects.all() if a not in actifs_couverts]
 
     total_traitements = Traitement.objects.count()
     clos_count = Traitement.objects.filter(statut="clos").count()
@@ -63,25 +72,54 @@ def vue_ensemble(request):
 
     en_retard = list(
         Traitement.objects.select_related("actif")
-        .filter(echeance__lt=timezone.localdate(), statut__in=_OUVERTS)
+        .filter(echeance__lt=aujourdhui, statut__in=_OUVERTS)
+        .order_by("echeance")[:5]
+    )
+    echeances_a_venir = list(
+        Traitement.objects.select_related("actif")
+        .filter(echeance__gte=aujourdhui, echeance__lt=aujourdhui + timedelta(days=7), statut__in=_OUVERTS)
         .order_by("echeance")[:5]
     )
     renseignements_par_id = {r.id_renseignement_bdp: r for r in tous_renseignements}
+
+    prioritaires = sorted(
+        ouverts,
+        key=lambda r: (_ORDRE_CRITICITE.get(r.criticite, 9), -r.decouvert_le.timestamp()),
+    )[:5]
+
+    activite = []
+    for i in range(5, -1, -1):
+        debut_semaine = aujourdhui - timedelta(days=aujourdhui.weekday() + 7 * i)
+        fin_semaine = debut_semaine + timedelta(days=7)
+        n = sum(1 for r in tous_renseignements if debut_semaine <= r.decouvert_le.date() < fin_semaine)
+        activite.append({"label": f"S-{i}" if i else "S", "n": n})
+    activite_max = max((a["n"] for a in activite), default=0) or 1
+
+    derniere_collecte = max((r.cree_le for r in tous_renseignements), default=None)
 
     return render(
         request,
         "panel/dashboard.html",
         {
             "par_criticite": par_criticite,
+            "par_etape": par_etape,
             "actifs_exposes": actifs_exposes,
+            "actifs_sans_renseignement": actifs_sans_renseignement,
             "taux_cloture": taux_cloture,
             "total_traitements": total_traitements,
             "delai_moyen_jours": delai_moyen_jours,
             "en_retard": en_retard,
+            "echeances_a_venir": echeances_a_venir,
             "renseignements_par_id": renseignements_par_id,
             "derniers_renseignements": tous_renseignements[:5],
+            "prioritaires": prioritaires,
+            "non_consultes": non_consultes,
+            "activite": activite,
+            "activite_max": activite_max,
+            "derniere_collecte": derniere_collecte,
             "nb_ouverts": len(ouverts),
             "nb_total_renseignements": len(tous_renseignements),
+            "nb_actifs": ActifClient.objects.count(),
         },
     )
 

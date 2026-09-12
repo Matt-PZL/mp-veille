@@ -4,97 +4,168 @@
 {% block nav_dashboard %}active{% endblock %}
 {% block extra_head %}
 <style>
-  .kpis{ display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; margin-bottom:24px; }
-  .kpi{ background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:16px 18px; }
-  .kpi .val{ font-size:26px; font-weight:700; font-family:var(--font-mono); color:var(--text); line-height:1.1; }
-  .kpi .lbl{ font-size:11px; color:var(--text-faint); margin-top:6px; text-transform:uppercase; letter-spacing:0.04em; }
-  .kpi .sub{ font-size:11px; color:var(--text-muted); margin-top:4px; }
+  .dash-sub{ color:var(--text-muted); font-size:12.5px; margin-bottom:22px; }
+  .dash-sub b{ color:var(--text); font-family:var(--font-mono); }
 
-  .sev-breakdown{ display:flex; gap:14px; margin-top:8px; }
-  .sev-breakdown span{ display:flex; align-items:center; gap:5px; font-size:11px; color:var(--text-muted); font-family:var(--font-mono); }
-  .sev-breakdown .dot{ width:7px; height:7px; border-radius:50%; }
-  .dot.critique{ background:var(--sev-critique); } .dot.elevee{ background:var(--sev-elevee); }
-  .dot.moyenne{ background:var(--sev-moyenne); } .dot.faible{ background:var(--sev-faible); }
+  .kpis{ display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; margin-bottom:20px; }
+  .kpi{ background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:16px 18px 0; overflow:hidden; }
+  .kpi .top{ display:flex; justify-content:space-between; align-items:flex-start; }
+  .kpi .lbl{ font-size:10.5px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; font-weight:600; }
+  .kpi .val{ font-size:30px; font-weight:700; font-family:var(--font-mono); line-height:1.1; margin-top:8px; }
+  .kpi .bar{ height:4px; margin:14px -18px 0; }
+  .kpi.red .val{ color:var(--danger); } .kpi.red .bar{ background:var(--danger); }
+  .kpi.orange .val{ color:var(--warn); } .kpi.orange .bar{ background:var(--warn); }
+  .kpi.blue .val{ color:var(--info); } .kpi.blue .bar{ background:var(--info); }
+  .kpi.violet .val{ color:var(--violet); } .kpi.violet .bar{ background:var(--violet); }
 
-  .cols{ display:grid; grid-template-columns:1fr 1fr; gap:20px; }
-  .panel-card{ background:var(--surface); border:1px solid var(--border); border-radius:6px; overflow:hidden; }
-  .panel-card h2{ font-size:11.5px; font-weight:600; color:var(--text-muted); padding:12px 16px; border-bottom:1px solid var(--border); text-transform:uppercase; letter-spacing:0.04em; font-family:var(--font-mono); margin:0; }
+  .row3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:16px; }
+  .row2{ display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
+
+  .card{ background:var(--surface); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  .card h2{ font-size:11.5px; font-weight:700; color:var(--text); padding:13px 16px; border-bottom:1px solid var(--border); text-transform:uppercase; letter-spacing:0.04em; font-family:var(--font-display); margin:0; display:flex; align-items:center; gap:8px; }
+  .card h2 .hdot{ width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+  .card-body{ padding:16px; }
+  .card-empty{ text-align:center; padding:22px 12px; color:var(--text-muted); font-size:12px; }
+  .card-empty .big{ font-size:22px; margin-bottom:6px; }
+
   .row{ display:flex; justify-content:space-between; align-items:center; padding:10px 16px; border-bottom:1px solid var(--border); font-size:12.5px; }
-  .row:last-child{ border-bottom:none; }
-  .row .meta{ color:var(--text-faint); font-size:11px; font-family:var(--font-mono); }
-  .row-empty{ padding:24px 16px; color:var(--text-faint); font-size:12px; }
-  .retard-tag{ font-size:10px; font-weight:700; text-transform:uppercase; color:var(--sev-critique); border:1px solid var(--sev-critique); padding:1px 6px; border-radius:4px; }
-  @media (max-width:900px){ .kpis{ grid-template-columns:1fr 1fr; } .cols{ grid-template-columns:1fr; } }
+  .card > .row:last-child, .card-body .row:last-child{ border-bottom:none; }
+  .row .meta{ color:var(--text-muted); font-size:11px; font-family:var(--font-mono); }
+  .tag-retard{ font-size:10px; font-weight:700; text-transform:uppercase; color:var(--danger); border:1px solid var(--danger); padding:1px 6px; border-radius:4px; }
+  .tag-bientot{ font-size:10px; font-weight:700; text-transform:uppercase; color:var(--warn); border:1px solid var(--warn); padding:1px 6px; border-radius:4px; }
+  .dot-sev{ width:7px; height:7px; border-radius:50%; flex-shrink:0; margin-right:8px; display:inline-block; }
+  .dot-sev.critique{ background:var(--sev-critique); } .dot-sev.elevee{ background:var(--sev-elevee); }
+  .dot-sev.moyenne{ background:var(--sev-moyenne); } .dot-sev.faible{ background:var(--sev-faible); }
+
+  .health-item{ display:flex; align-items:center; gap:10px; padding:10px 16px; font-size:12.5px; border-bottom:1px solid var(--border); }
+  .health-item:last-child{ border-bottom:none; }
+  .health-item .ico{ width:18px; height:18px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; }
+  .health-item.warn .ico{ background:rgba(240,149,74,0.18); color:var(--warn); }
+  .health-item.good .ico{ background:rgba(63,190,126,0.18); color:var(--good); }
+  .health-item .txt small{ display:block; color:var(--text-muted); font-size:10.5px; margin-top:1px; }
+
+  .bar-row{ display:flex; align-items:center; gap:10px; padding:0 16px; margin-bottom:12px; font-size:11.5px; }
+  .bar-row:first-child{ margin-top:16px; }
+  .bar-row:last-child{ margin-bottom:16px; }
+  .bar-row .bar-label{ width:110px; flex-shrink:0; color:var(--text-muted); font-weight:600; }
+  .bar-track{ flex:1; background:var(--surface-2); border-radius:3px; height:9px; overflow:hidden; }
+  .bar-fill{ height:100%; border-radius:3px; }
+  .bar-val{ width:24px; text-align:right; color:var(--text); font-family:var(--font-mono); font-weight:600; }
+
+  .trend{ display:flex; align-items:flex-end; gap:8px; height:80px; padding:20px 16px 0; }
+  .trend-bar{ flex:1; background:var(--surface-2); border-radius:3px 3px 1px 1px; position:relative; min-height:3px; }
+  .trend-bar.hi{ background:var(--accent); }
+  .trend-bar .n{ position:absolute; top:-17px; left:0; right:0; text-align:center; font-size:10px; color:var(--text-muted); font-family:var(--font-mono); font-weight:600; }
+  .trend-labels{ display:flex; gap:8px; padding:6px 16px 16px; }
+  .trend-labels span{ flex:1; text-align:center; font-size:10px; color:var(--text-muted); font-family:var(--font-mono); }
+
+  @media (max-width:1000px){ .kpis{ grid-template-columns:1fr 1fr; } .row3{ grid-template-columns:1fr; } .row2{ grid-template-columns:1fr; } }
 </style>
 {% endblock %}
 {% block content %}
 <h1 class="section">Vue d'ensemble</h1>
 <div class="page">
+<p class="dash-sub"><b>{{ nb_total_renseignements }}</b> renseignements suivis sur <b>{{ nb_actifs }}</b> actifs/référentiels déclarés — dernière collecte {% if derniere_collecte %}il y a {{ derniere_collecte|timesince }}{% else %}jamais{% endif %}.</p>
 
-  <div class="kpis">
-    <div class="kpi">
-      <div class="val">{{ nb_ouverts }}</div>
-      <div class="lbl">Renseignements ouverts</div>
-      <div class="sev-breakdown">
-        <span><span class="dot critique"></span>{{ par_criticite.critique|default:0 }}</span>
-        <span><span class="dot elevee"></span>{{ par_criticite.elevee|default:0 }}</span>
-        <span><span class="dot moyenne"></span>{{ par_criticite.moyenne|default:0 }}</span>
-        <span><span class="dot faible"></span>{{ par_criticite.faible|default:0 }}</span>
-      </div>
-    </div>
-    <div class="kpi">
-      <div class="val">{% if taux_cloture is not None %}{{ taux_cloture }}%{% else %}—{% endif %}</div>
-      <div class="lbl">Taux de clôture</div>
-      <div class="sub">{{ total_traitements }} traitement{{ total_traitements|pluralize }} au total</div>
-    </div>
-    <div class="kpi">
-      <div class="val">{% if delai_moyen_jours is not None %}{{ delai_moyen_jours }} j{% else %}—{% endif %}</div>
-      <div class="lbl">Délai moyen de clôture</div>
-      <div class="sub">découverte → clôture</div>
-    </div>
-    <div class="kpi">
-      <div class="val">{{ en_retard|length }}</div>
-      <div class="lbl">Traitements en retard</div>
-      <div class="sub">échéance dépassée</div>
-    </div>
+<div class="kpis">
+  <div class="kpi red">
+    <div class="top"><span class="lbl">Critiques</span></div>
+    <div class="val">{{ par_criticite.critique|default:0 }}</div>
+    <div class="bar"></div>
+  </div>
+  <div class="kpi orange">
+    <div class="top"><span class="lbl">Élevées</span></div>
+    <div class="val">{{ par_criticite.elevee|default:0 }}</div>
+    <div class="bar"></div>
+  </div>
+  <div class="kpi blue">
+    <div class="top"><span class="lbl">Non consultés</span></div>
+    <div class="val">{{ non_consultes|length }}</div>
+    <div class="bar"></div>
+  </div>
+  <div class="kpi violet">
+    <div class="top"><span class="lbl">En retard</span></div>
+    <div class="val">{{ en_retard|length }}</div>
+    <div class="bar"></div>
+  </div>
+</div>
+
+<div class="row3">
+  <div class="card">
+    <h2><span class="hdot" style="background:var(--warn)"></span>État du triage</h2>
+    {% if par_etape.a_traiter %}
+      <div class="row"><span>À traiter</span><span class="meta">{{ par_etape.a_traiter }}</span></div>
+      <div class="row"><span>En cours</span><span class="meta">{{ par_etape.en_cours|default:0 }}</span></div>
+    {% else %}
+      <div class="card-empty"><div class="big">✓</div>Rien à trier — tout est pris en charge.</div>
+    {% endif %}
   </div>
 
-  <div class="cols">
-    <div class="panel-card">
-      <h2>Actifs les plus exposés</h2>
-      {% for actif, n in actifs_exposes %}
-        <div class="row"><span>{{ actif }}</span><span class="meta">{{ n }} ouvert{{ n|pluralize }}</span></div>
-      {% empty %}
-        <div class="row-empty">Aucun actif exposé pour le moment.</div>
+  <div class="card">
+    <h2><span class="hdot" style="background:{% if actifs_sans_renseignement %}var(--warn){% else %}var(--good){% endif %}"></span>Santé de la surveillance</h2>
+    {% if actifs_sans_renseignement %}
+      {% for a in actifs_sans_renseignement %}
+        <div class="health-item warn"><span class="ico">!</span><span class="txt">{{ a }}<small>Aucun renseignement associé pour le moment</small></span></div>
       {% endfor %}
-    </div>
-
-    <div class="panel-card">
-      <h2>Traitements en retard</h2>
-      {% for t in en_retard %}
-        {% with r=renseignements_par_id|get_item:t.id_renseignement_bdp %}
-        <div class="row">
-          <span>{{ t.actif|default:"—" }} — {{ r.titre|default:t.id_renseignement_bdp }}</span>
-          <span class="retard-tag">{{ t.echeance|date:"d/m" }}</span>
-        </div>
-        {% endwith %}
-      {% empty %}
-        <div class="row-empty">Aucun retard — tout est dans les temps.</div>
-      {% endfor %}
-    </div>
+    {% else %}
+      <div class="health-item good"><span class="ico">✓</span><span class="txt">Tous les actifs sont couverts<small>Chaque actif déclaré a au moins un renseignement associé</small></span></div>
+    {% endif %}
+    <div class="health-item good"><span class="ico">✓</span><span class="txt">Ingestion planifiée active<small>Cycle automatique toutes les 12h</small></span></div>
   </div>
 
-  <div class="panel-card" style="margin-top:20px;">
-    <h2>Derniers renseignements</h2>
-    {% for item in derniers_renseignements %}
-      <div class="row">
-        <span>{{ item.reference_externe|default:item.source }} — {{ item.titre }}</span>
-        <span class="meta">{{ item.decouvert_le|timesince }}</span>
-      </div>
+  <div class="card">
+    <h2><span class="hdot" style="background:var(--info)"></span>Échéances à venir</h2>
+    {% for t in echeances_a_venir %}
+      {% with r=renseignements_par_id|get_item:t.id_renseignement_bdp %}
+      <div class="row"><span>{{ t.actif|default:"—" }} — {{ r.titre|default:t.id_renseignement_bdp|truncatechars:28 }}</span><span class="tag-bientot">{{ t.echeance|date:"d/m" }}</span></div>
+      {% endwith %}
     {% empty %}
-      <div class="row-empty">Aucun renseignement — l'ingestion n'a pas encore tourné.</div>
+      <div class="card-empty"><div class="big">🗓</div>Aucune échéance dans les 7 prochains jours.</div>
     {% endfor %}
   </div>
+</div>
+
+<div class="row2">
+  <div class="card">
+    <h2><span class="hdot" style="background:var(--danger)"></span>Renseignements prioritaires</h2>
+    {% for r in prioritaires %}
+      <div class="row"><span><span class="dot-sev {{ r.criticite }}"></span>{{ r.reference_externe|default:r.source }} — {{ r.titre|truncatechars:38 }}</span><span class="meta">{{ r.decouvert_le|timesince }}</span></div>
+    {% empty %}
+      <div class="card-empty"><div class="big">🔥</div>Aucun renseignement à prioriser.</div>
+    {% endfor %}
+  </div>
+
+  <div class="card">
+    <h2><span class="hdot" style="background:var(--accent)"></span>Renseignements par étape</h2>
+    {% with total=nb_total_renseignements %}
+    <div class="bar-row"><span class="bar-label">À traiter</span><div class="bar-track"><div class="bar-fill" style="width:{% widthratio par_etape.a_traiter total 100 %}%; background:var(--st-attente)"></div></div><span class="bar-val">{{ par_etape.a_traiter|default:0 }}</span></div>
+    <div class="bar-row"><span class="bar-label">En cours</span><div class="bar-track"><div class="bar-fill" style="width:{% widthratio par_etape.en_cours total 100 %}%; background:var(--st-encours)"></div></div><span class="bar-val">{{ par_etape.en_cours|default:0 }}</span></div>
+    <div class="bar-row"><span class="bar-label">Clos</span><div class="bar-track"><div class="bar-fill" style="width:{% widthratio par_etape.clos total 100 %}%; background:var(--st-clos)"></div></div><span class="bar-val">{{ par_etape.clos|default:0 }}</span></div>
+    <div class="bar-row"><span class="bar-label">Non applicable</span><div class="bar-track"><div class="bar-fill" style="width:{% widthratio par_etape.non_applicable total 100 %}%; background:var(--st-na)"></div></div><span class="bar-val">{{ par_etape.non_applicable|default:0 }}</span></div>
+    {% endwith %}
+  </div>
+</div>
+
+<div class="row2">
+  <div class="card">
+    <h2><span class="hdot" style="background:var(--good)"></span>Activité de collecte</h2>
+    <div class="trend">
+      {% for a in activite %}
+        <div class="trend-bar {% if a.n == activite_max and a.n > 0 %}hi{% endif %}" style="height:{% widthratio a.n activite_max 100 %}%"><span class="n">{{ a.n }}</span></div>
+      {% endfor %}
+    </div>
+    <div class="trend-labels">{% for a in activite %}<span>{{ a.label }}</span>{% endfor %}</div>
+  </div>
+
+  <div class="card">
+    <h2><span class="hdot" style="background:var(--text-muted)"></span>Derniers renseignements</h2>
+    {% for item in derniers_renseignements %}
+      <div class="row"><span><span class="dot-sev {{ item.criticite }}"></span>{{ item.reference_externe|default:item.source }} — {{ item.titre|truncatechars:36 }}</span><span class="meta">{{ item.decouvert_le|timesince }}</span></div>
+    {% empty %}
+      <div class="card-empty">Aucun renseignement — l'ingestion n'a pas encore tourné.</div>
+    {% endfor %}
+  </div>
+</div>
 
 </div>
 {% endblock %}

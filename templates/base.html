@@ -8,11 +8,13 @@
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#0B0D11; --surface:#12151A; --border:#1E242B;
-    --text:#F5F6F7; --text-muted:#AEB4BC; --text-faint:#828A94;
-    --accent:#3B6FE0; --accent-dim:rgba(59,111,224,0.12); --accent-dim2:rgba(59,111,224,0.20);
-    --sev-critique:#D6555A; --sev-elevee:#C97C3D; --sev-moyenne:#B9A24E; --sev-faible:#5B626B;
-    --st-attente:#E08A3C; --st-encours:#3B6FE0; --st-clos:#4C9A73; --st-na:#6E7580;
+    --sidebar-bg:#000000;
+    --bg:#17191D; --surface:#212429; --surface-2:#282C32; --border:#33373E;
+    --text:#FFFFFF; --text-muted:#C7CBD1; --text-faint:#8A909A;
+    --accent:#3B6FE0; --accent-dim:rgba(59,111,224,0.14); --accent-dim2:rgba(59,111,224,0.22);
+    --sev-critique:#F0555C; --sev-elevee:#F0954A; --sev-moyenne:#E0C24E; --sev-faible:#8A909A;
+    --st-attente:#F0954A; --st-encours:#3B6FE0; --st-clos:#3FBE7E; --st-na:#8A909A;
+    --good:#3FBE7E; --warn:#F0954A; --info:#3B6FE0; --danger:#F0555C; --violet:#9B7BE0;
     --font-display:'Archivo',sans-serif; --font-body:'IBM Plex Sans',sans-serif; --font-mono:'IBM Plex Mono',monospace;
   }
   *{box-sizing:border-box; margin:0; padding:0;}
@@ -22,7 +24,7 @@
 
   .app{ display:flex; min-height:100vh; align-items:stretch; }
 
-  .sidenav{ width:212px; flex-shrink:0; border-right:1px solid var(--border); display:flex; flex-direction:column; padding:22px 14px; position:sticky; top:0; align-self:flex-start; height:100vh; }
+  .sidenav{ width:212px; flex-shrink:0; background:var(--sidebar-bg); border-right:1px solid var(--border); display:flex; flex-direction:column; padding:22px 14px; position:sticky; top:0; align-self:flex-start; height:100vh; }
   .sidenav .brand{ font-family:var(--font-display); font-weight:700; letter-spacing:0.04em; color:var(--text); text-transform:uppercase; font-size:13px; padding:0 10px; margin-bottom:24px; }
   .sidenav .brand b{ color:var(--accent); }
   .nav-group{ display:flex; flex-direction:column; gap:2px; }
