@@ -351,8 +351,20 @@ def actualites(request):
 
 @login_required
 def organisation(request):
+    import json
+
+    from .taxonomie import REFERENTIELS_NORMATIFS, TAXONOMIE_TECHNIQUE
+
     actifs = ActifClient.objects.all()
-    return render(request, "panel/organisation.html", {"actifs": actifs})
+    return render(
+        request,
+        "panel/organisation.html",
+        {
+            "actifs": actifs,
+            "taxonomie_json": json.dumps(TAXONOMIE_TECHNIQUE),
+            "referentiels": REFERENTIELS_NORMATIFS,
+        },
+    )
 
 
 @login_required

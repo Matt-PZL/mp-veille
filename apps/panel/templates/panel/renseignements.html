@@ -59,15 +59,18 @@
   .r-side{ display:flex; gap:28px; }
   .r-side .r-field{ flex:1; }
 
-  .cvss-box{ display:flex; gap:24px; background:rgba(0,0,0,0.18); border:1px solid var(--border); border-radius:6px; padding:14px 16px; }
-  .cvss-score{ flex-shrink:0; text-align:center; padding-right:20px; border-right:1px solid var(--border); }
-  .cvss-score .n{ font-size:26px; font-weight:700; font-family:var(--font-mono); line-height:1; }
+  .cvss-box{ display:flex; gap:8px; align-items:center; background:rgba(0,0,0,0.18); border:1px solid var(--border); border-radius:6px; padding:16px 20px; flex-wrap:wrap; }
+  .cvss-score{ flex-shrink:0; text-align:center; padding-right:24px; border-right:1px solid var(--border); align-self:center; }
+  .cvss-score .n{ font-size:30px; font-weight:700; font-family:var(--font-mono); line-height:1; }
   .cvss-score .n.critique{ color:var(--sev-critique); } .cvss-score .n.elevee{ color:var(--sev-elevee); }
   .cvss-score .n.moyenne{ color:var(--sev-moyenne); } .cvss-score .n.faible{ color:var(--sev-faible); }
-  .cvss-score .v{ font-size:9.5px; color:var(--text-faint); text-transform:uppercase; margin-top:4px; }
-  .cvss-grid{ display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px 18px; flex:1; }
-  .cvss-item .lbl{ font-size:9.5px; text-transform:uppercase; color:var(--text-faint); letter-spacing:0.03em; }
-  .cvss-item .val{ font-size:12px; color:var(--text); font-weight:600; margin-top:2px; }
+  .cvss-score .v{ font-size:9.5px; color:var(--text-faint); text-transform:uppercase; letter-spacing:0.04em; margin-top:6px; font-weight:600; }
+  .cvss-radar{ flex-shrink:0; }
+  .cvss-radar text.lbl{ fill:var(--text-faint); font-size:8.5px; font-family:var(--font-body); text-transform:uppercase; letter-spacing:0.02em; }
+  .cvss-radar text.val{ fill:var(--text); font-size:9px; font-weight:600; font-family:var(--font-body); }
+  .cvss-legend{ flex:1; min-width:180px; display:grid; grid-template-columns:1fr 1fr; gap:8px 20px; padding-left:12px; }
+  .cvss-legend .lbl{ font-size:9.5px; text-transform:uppercase; color:var(--text-faint); letter-spacing:0.03em; }
+  .cvss-legend .val{ font-size:12px; color:var(--text); font-weight:600; margin-top:1px; }
 
   .statut-form{ display:flex; flex-direction:column; gap:8px; }
   .statut-choices{ display:flex; gap:6px; flex-wrap:wrap; }
@@ -156,7 +159,8 @@
               <div class="r-field"><div class="lbl">Découvert le</div><div class="val mono">{{ item.decouvert_le|date:"d/m/Y H:i" }}</div></div>
             </div>
 
-            {% if item.cvss_vector %}
+            {% with radar=item.cvss_radar %}
+            {% if radar %}
             <div class="r-field">
               <div class="lbl">Analyse CVSS</div>
               <div class="cvss-box">
@@ -164,14 +168,21 @@
                   <div class="n {{ item.criticite }}">{{ item.cvss_score|floatformat:1 }}</div>
                   <div class="v">{{ item.get_criticite_display }}</div>
                 </div>
-                <div class="cvss-grid">
-                  {% for d in item.cvss_details %}
-                    <div class="cvss-item"><div class="lbl">{{ d.champ }}</div><div class="val">{{ d.valeur }}</div></div>
+                <svg class="cvss-radar" viewBox="0 0 200 200" width="170" height="170">
+                  <polygon points="{{ radar.grid_points }}" fill="none" stroke="var(--border)" stroke-width="1"/>
+                  {% for a in radar.axes %}
+                    <line x1="{{ radar.cx }}" y1="{{ radar.cy }}" x2="{{ a.sx }}" y2="{{ a.sy }}" stroke="var(--border)" stroke-width="1"/>
                   {% endfor %}
-                </div>
+                  <polygon points="{{ radar.points }}" fill="rgba(214,85,90,0.28)" stroke="var(--sev-critique)" stroke-width="1.5"/>
+                  {% for a in radar.axes %}
+                    <text class="lbl" x="{{ a.x }}" y="{{ a.y }}" text-anchor="{{ a.anchor }}">{{ a.label }}</text>
+                    <text class="val" x="{{ a.x }}" y="{{ a.y|add:11 }}" text-anchor="{{ a.anchor }}">{{ a.valeur }}</text>
+                  {% endfor %}
+                </svg>
               </div>
             </div>
             {% endif %}
+            {% endwith %}
 
             <div class="r-field">
               <div class="lbl">Traitement</div>

@@ -1,3 +1,4 @@
+import math
 import uuid
 
 from django.db import models
@@ -102,3 +103,56 @@ class Renseignement(models.Model):
                 "valeur": self._CVSS_LABELS.get(code, {}).get(valeur, valeur),
             })
         return details
+
+    # Severite normalisee par axe (0 = benin, 1 = pire cas) — sert uniquement
+    # a dessiner la forme du radar, pas une donnee CVSS officielle.
+    _CVSS_AXIS_SEVERITE = {
+        "AV": {"N": 1.0, "A": 0.66, "L": 0.33, "P": 0.0},
+        "AC": {"L": 1.0, "H": 0.33},
+        "PR": {"N": 1.0, "L": 0.66, "H": 0.33},
+        "UI": {"N": 1.0, "R": 0.33},
+        "S": {"C": 1.0, "U": 0.33},
+        "C": {"H": 1.0, "L": 0.5, "N": 0.0},
+        "I": {"H": 1.0, "L": 0.5, "N": 0.0},
+        "A": {"H": 1.0, "L": 0.5, "N": 0.0},
+    }
+    _CVSS_AXIS_ORDER = ("AV", "AC", "PR", "UI", "S", "C", "I", "A")
+
+    def cvss_radar(self, cx=100, cy=100, r=72):
+        """Precalcule les coordonnees SVG d'un radar CVSS a 8 axes (les
+        gabarits Django ne font pas de trigonometrie) : polygone de valeurs,
+        grille de fond, et position de chaque etiquette d'axe."""
+        if not self.cvss_vector:
+            return None
+        parts = dict(p.split(":", 1) for p in self.cvss_vector.split("/") if ":" in p)
+        n = len(self._CVSS_AXIS_ORDER)
+
+        points, grid_points, axes = [], [], []
+        for i, code in enumerate(self._CVSS_AXIS_ORDER):
+            angle = -math.pi / 2 + i * (2 * math.pi / n)
+            cos_a, sin_a = math.cos(angle), math.sin(angle)
+
+            valeur = parts.get(code)
+            sev = self._CVSS_AXIS_SEVERITE.get(code, {}).get(valeur, 0.0)
+            rr = r * (0.14 + 0.86 * sev)
+
+            points.append(f"{cx + rr * cos_a:.1f},{cy + rr * sin_a:.1f}")
+            gx, gy = cx + r * cos_a, cy + r * sin_a
+            grid_points.append(f"{gx:.1f},{gy:.1f}")
+
+            lx, ly = cx + (r + 30) * cos_a, cy + (r + 30) * sin_a
+            anchor = "middle" if abs(cos_a) < 0.2 else ("start" if cos_a > 0 else "end")
+            axes.append({
+                "label": self._CVSS_FIELD_LABELS.get(code, code),
+                "valeur": self._CVSS_LABELS.get(code, {}).get(valeur, valeur or "—"),
+                "sx": round(gx, 1), "sy": round(gy, 1),
+                "x": round(lx, 1), "y": round(ly, 1),
+                "anchor": anchor,
+            })
+
+        return {
+            "points": " ".join(points),
+            "grid_points": " ".join(grid_points),
+            "axes": axes,
+            "cx": cx, "cy": cy,
+        }
