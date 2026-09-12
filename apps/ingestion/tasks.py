@@ -55,6 +55,8 @@ def normaliser_et_ecrire_bdp(item: dict) -> Renseignement:
         taxonomie_version=item.get("taxonomie_version", ""),
         taxonomie_referentiel=item.get("taxonomie_referentiel", ""),
         decouvert_le=item["decouvert_le"],
+        cvss_score=item.get("cvss_score"),
+        cvss_vector=item.get("cvss_vector", ""),
     )
 
 
@@ -79,6 +81,20 @@ def _nvd_severite(cve: dict) -> str:
             if sev:
                 return _SEVERITE_NVD.get(sev.upper(), "moyenne")
     return "moyenne"
+
+
+def _nvd_cvss(cve: dict):
+    """Retourne (score, vecteur_brut) depuis la premiere metrique CVSS
+    disponible (v3.1 en priorite), pour l'analyse d'exploitabilite/impact."""
+    metrics = cve.get("metrics", {})
+    for cle in ("cvssMetricV31", "cvssMetricV30", "cvssMetricV2"):
+        for entree in metrics.get(cle, []):
+            data = entree.get("cvssData", {})
+            vecteur = data.get("vectorString")
+            score = data.get("baseScore")
+            if vecteur:
+                return score, vecteur
+    return None, ""
 
 
 @shared_task
@@ -119,6 +135,7 @@ def collecter_nvd_cve():
             if timezone.is_naive(publie):
                 publie = timezone.make_aware(publie, timezone.get_default_timezone())
 
+            score, vecteur = _nvd_cvss(cve)
             normaliser_et_ecrire_bdp({
                 "type": "technique",
                 "titre": f"{cve_id} — {actif.produit}",
@@ -130,6 +147,8 @@ def collecter_nvd_cve():
                 "taxonomie_produit": actif.produit,
                 "taxonomie_version": actif.version,
                 "decouvert_le": publie,
+                "cvss_score": score,
+                "cvss_vector": vecteur,
             })
             total += 1
 

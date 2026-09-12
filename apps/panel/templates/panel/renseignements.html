@@ -43,7 +43,7 @@
   .dot.moyenne{ background:var(--sev-moyenne); } .dot.faible{ background:var(--sev-faible); }
   .badge-nouveau{ font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:var(--accent-ink,#06101F); background:var(--accent); padding:1px 6px; border-radius:3px; margin-left:6px; }
   .status-pill{ font-size:10.5px; padding:2px 9px; border-radius:4px; background:var(--border); color:var(--text-muted); width:fit-content; font-weight:600; }
-  .status-pill.a_traiter{ background:none; border:1.5px dashed var(--accent); color:var(--accent); }
+  .status-pill.a_traiter{ background:none; border:1.5px dashed var(--st-attente); color:var(--st-attente); }
   .status-pill.en_cours{ background:rgba(59,111,224,0.15); color:var(--st-encours); }
   .status-pill.clos{ background:rgba(76,154,115,0.15); color:var(--st-clos); }
   .status-pill.non_applicable{ background:rgba(255,255,255,0.05); color:var(--st-na); }
@@ -53,14 +53,32 @@
   .r-detail{ display:none; background:rgba(0,0,0,0.16); }
   .r-detail.open{ display:block; }
   .r-detail-inner{ padding:14px 16px 16px 34px; }
-  .r-field{ margin-bottom:12px; }
+  .r-field{ margin-bottom:14px; }
   .r-field .lbl{ font-size:10px; text-transform:uppercase; color:var(--text-faint); font-weight:600; letter-spacing:0.05em; margin-bottom:3px; font-family:var(--font-mono); }
   .r-field .val{ font-size:12.5px; color:var(--text-muted); line-height:1.55; }
   .r-side{ display:flex; gap:28px; }
   .r-side .r-field{ flex:1; }
 
-  .a_traiter-btn{ border:1.5px dashed var(--accent); background:none; color:var(--accent); font-size:10.5px; font-weight:600; padding:2px 9px; border-radius:4px; cursor:pointer; font-family:inherit; }
-  .a_traiter-btn:hover{ background:var(--accent-dim); }
+  .cvss-box{ display:flex; gap:24px; background:rgba(0,0,0,0.18); border:1px solid var(--border); border-radius:6px; padding:14px 16px; }
+  .cvss-score{ flex-shrink:0; text-align:center; padding-right:20px; border-right:1px solid var(--border); }
+  .cvss-score .n{ font-size:26px; font-weight:700; font-family:var(--font-mono); line-height:1; }
+  .cvss-score .n.critique{ color:var(--sev-critique); } .cvss-score .n.elevee{ color:var(--sev-elevee); }
+  .cvss-score .n.moyenne{ color:var(--sev-moyenne); } .cvss-score .n.faible{ color:var(--sev-faible); }
+  .cvss-score .v{ font-size:9.5px; color:var(--text-faint); text-transform:uppercase; margin-top:4px; }
+  .cvss-grid{ display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px 18px; flex:1; }
+  .cvss-item .lbl{ font-size:9.5px; text-transform:uppercase; color:var(--text-faint); letter-spacing:0.03em; }
+  .cvss-item .val{ font-size:12px; color:var(--text); font-weight:600; margin-top:2px; }
+
+  .statut-form{ display:flex; flex-direction:column; gap:8px; }
+  .statut-choices{ display:flex; gap:6px; flex-wrap:wrap; }
+  .statut-choice{ font-size:11px; font-weight:600; padding:5px 11px; border-radius:4px; cursor:pointer; font-family:inherit; background:none; border:1px solid var(--border); color:var(--text-muted); }
+  .statut-choice:hover{ border-color:var(--text-faint); color:var(--text); }
+  .statut-choice.sel.a_traiter{ border-color:var(--st-attente); color:var(--st-attente); background:rgba(224,138,60,0.12); }
+  .statut-choice.sel.en_cours{ border-color:var(--st-encours); color:var(--st-encours); background:rgba(59,111,224,0.12); }
+  .statut-choice.sel.clos{ border-color:var(--st-clos); color:var(--st-clos); background:rgba(76,154,115,0.12); }
+  .statut-choice.sel.non_applicable{ border-color:var(--st-na); color:var(--st-na); background:rgba(255,255,255,0.06); }
+  .statut-form textarea{ background:var(--bg); border:1px solid var(--border); border-radius:5px; color:var(--text); font-family:inherit; font-size:12px; padding:8px 10px; resize:vertical; }
+
   .sort-toggle{ display:flex; border:1px solid var(--border); border-radius:5px; overflow:hidden; font-size:10.5px; }
   .sort-toggle a{ padding:4px 9px; color:var(--text-faint); font-family:var(--font-mono); text-decoration:none; }
   .sort-toggle a.active{ background:var(--accent); color:#fff; }
@@ -127,11 +145,7 @@
             {% if t %}
               <span><span class="status-pill {{ t.statut }}">{{ t.get_statut_display }}</span>{% if t.justificatif %}<span class="just">justif. : {{ t.justificatif }}</span>{% endif %}</span>
             {% else %}
-              <form method="post" action="{% url 'panel:demarrer_traitement' item.id_renseignement_bdp %}" onclick="event.stopPropagation()">
-                {% csrf_token %}
-                <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                <button type="submit" class="a_traiter-btn">+ Traitement</button>
-              </form>
+              <span class="status-pill a_traiter">+ Traitement</span>
             {% endif %}
             <span class="date mono">{{ item.decouvert_le|timesince }}</span>
           </div>
@@ -140,6 +154,38 @@
             <div class="r-side">
               <div class="r-field"><div class="lbl">Sources</div><div class="val">{{ item.source }}</div></div>
               <div class="r-field"><div class="lbl">Découvert le</div><div class="val mono">{{ item.decouvert_le|date:"d/m/Y H:i" }}</div></div>
+            </div>
+
+            {% if item.cvss_vector %}
+            <div class="r-field">
+              <div class="lbl">Analyse CVSS</div>
+              <div class="cvss-box">
+                <div class="cvss-score">
+                  <div class="n {{ item.criticite }}">{{ item.cvss_score|floatformat:1 }}</div>
+                  <div class="v">{{ item.get_criticite_display }}</div>
+                </div>
+                <div class="cvss-grid">
+                  {% for d in item.cvss_details %}
+                    <div class="cvss-item"><div class="lbl">{{ d.champ }}</div><div class="val">{{ d.valeur }}</div></div>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+            {% endif %}
+
+            <div class="r-field">
+              <div class="lbl">Traitement</div>
+              <form method="post" action="{% url 'panel:definir_traitement' item.id_renseignement_bdp %}" class="statut-form" onclick="event.stopPropagation()">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <div class="statut-choices">
+                  <button type="submit" name="statut" value="a_traiter" class="statut-choice a_traiter {% if not t or t.statut == 'a_traiter' %}sel{% endif %}">À traiter</button>
+                  <button type="submit" name="statut" value="en_cours" class="statut-choice en_cours {% if t.statut == 'en_cours' %}sel{% endif %}">En cours</button>
+                  <button type="submit" name="statut" value="clos" class="statut-choice clos {% if t.statut == 'clos' %}sel{% endif %}">Clos</button>
+                  <button type="submit" name="statut" value="non_applicable" class="statut-choice non_applicable {% if t.statut == 'non_applicable' %}sel{% endif %}">Non applicable</button>
+                </div>
+                <textarea name="justificatif" rows="2" placeholder="Justificatif (obligatoire pour Clos / Non applicable)">{{ t.justificatif|default:"" }}</textarea>
+              </form>
             </div>
           </div></div>
         </div>

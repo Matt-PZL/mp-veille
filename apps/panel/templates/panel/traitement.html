@@ -13,7 +13,7 @@
   .item-row.all{ font-weight:600; color:var(--text); }
   .item-row .badge{ background:var(--border); color:var(--text-muted); font-size:11px; padding:2px 8px; border-radius:4px; font-family:var(--font-mono); }
   .sdot{ width:7px; height:7px; border-radius:50%; display:inline-block; margin-right:8px; flex-shrink:0; }
-  .sdot.dashed{ border:1.5px dashed var(--text-faint); }
+  .sdot.dashed{ border:1.5px dashed var(--st-attente); }
 
   .right{ display:flex; flex-direction:column; }
   .right-head{ padding:12px 16px; border-bottom:1px solid var(--border); }
@@ -33,7 +33,7 @@
   .chev{ color:var(--text-faint); font-size:10px; margin-right:2px; display:inline-block; transition:transform .12s ease; }
   .chev.open{ transform:rotate(90deg); color:var(--accent); }
   .status-pill{ font-size:10.5px; padding:2px 9px; border-radius:4px; background:var(--border); color:var(--text-muted); width:fit-content; font-weight:600; }
-  .status-pill.a_traiter{ background:none; border:1.5px dashed var(--accent); color:var(--accent); }
+  .status-pill.a_traiter{ background:none; border:1.5px dashed var(--st-attente); color:var(--st-attente); }
   .status-pill.en_cours{ background:rgba(59,111,224,0.15); color:var(--st-encours); }
   .status-pill.clos{ background:rgba(76,154,115,0.15); color:var(--st-clos); }
   .status-pill.non_applicable{ background:rgba(255,255,255,0.05); color:var(--st-na); }
@@ -151,7 +151,7 @@
   <div class="chart-card">
     <div class="chart-title">Répartition par statut</div>
     {% with total=traitements_total %}
-    <div class="bar-row"><span class="bar-label">À traiter</span><div class="bar-track"><div class="bar-fill" style="width:{% widthratio compteurs.a_traiter total 100 %}%; background:var(--text-faint)"></div></div><span class="bar-val mono">{{ compteurs.a_traiter }}</span></div>
+    <div class="bar-row"><span class="bar-label">À traiter</span><div class="bar-track"><div class="bar-fill" style="width:{% widthratio compteurs.a_traiter total 100 %}%; background:var(--st-attente)"></div></div><span class="bar-val mono">{{ compteurs.a_traiter }}</span></div>
     <div class="bar-row"><span class="bar-label">En cours</span><div class="bar-track"><div class="bar-fill" style="width:{% widthratio compteurs.en_cours total 100 %}%; background:var(--st-encours)"></div></div><span class="bar-val mono">{{ compteurs.en_cours }}</span></div>
     <div class="bar-row"><span class="bar-label">Clos</span><div class="bar-track"><div class="bar-fill" style="width:{% widthratio compteurs.clos total 100 %}%; background:var(--st-clos)"></div></div><span class="bar-val mono">{{ compteurs.clos }}</span></div>
     <div class="bar-row"><span class="bar-label">Non applicable</span><div class="bar-track"><div class="bar-fill" style="width:{% widthratio compteurs.non_applicable total 100 %}%; background:var(--st-na)"></div></div><span class="bar-val mono">{{ compteurs.non_applicable }}</span></div>

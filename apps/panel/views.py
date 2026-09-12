@@ -152,19 +152,31 @@ def marquer_consulte(request, id_renseignement_bdp):
 
 
 @login_required
-def demarrer_traitement(request, id_renseignement_bdp):
-    """Cree explicitement un Traitement 'a_traiter' pour un renseignement qui
-    n'en a pas encore — un statut resulte toujours d'une action volontaire
-    (brief section 4), jamais d'une valeur preremplie."""
+def definir_traitement(request, id_renseignement_bdp):
+    """Choix direct du statut (À traiter/En cours/Clos/Non applicable) +
+    justificatif, depuis l'écran Renseignements — cree le Traitement s'il
+    n'existe pas encore."""
     if request.method == "POST":
         renseignement = get_object_or_404(Renseignement, id_renseignement_bdp=id_renseignement_bdp)
-        actif = _actif_pour_renseignement(renseignement.id_renseignement_bdp)
-        t, created = Traitement.objects.get_or_create(
-            id_renseignement_bdp=renseignement.id_renseignement_bdp,
-            defaults={"statut": "a_traiter", "actif": actif},
-        )
-        if created:
-            HistoriqueTraitement.objects.create(traitement=t, evenement="Découvert")
+        statut = request.POST.get("statut")
+        justificatif = request.POST.get("justificatif", "").strip()
+        if statut in dict(Traitement.STATUT_CHOICES):
+            actif = _actif_pour_renseignement(renseignement.id_renseignement_bdp)
+            t, created = Traitement.objects.get_or_create(
+                id_renseignement_bdp=renseignement.id_renseignement_bdp,
+                defaults={"statut": statut, "actif": actif, "justificatif": justificatif},
+            )
+            if created:
+                HistoriqueTraitement.objects.create(traitement=t, evenement="Découvert")
+                if statut != "a_traiter":
+                    HistoriqueTraitement.objects.create(traitement=t, evenement=t.get_statut_display())
+            else:
+                statut_a_change = t.statut != statut
+                t.statut = statut
+                t.justificatif = justificatif
+                t.save()
+                if statut_a_change:
+                    HistoriqueTraitement.objects.create(traitement=t, evenement=t.get_statut_display())
     return redirect(request.POST.get("next") or "panel:renseignements")
 
 

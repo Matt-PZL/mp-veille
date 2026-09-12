@@ -55,6 +55,8 @@ class Command(BaseCommand):
             taxonomie_produit="Windows 11",
             taxonomie_version="26100",
             decouvert_le=now - timedelta(hours=2),
+            cvss_score=9.8,
+            cvss_vector="CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
         )
         r_win_bulletin = Renseignement.objects.create(
             type="technique",
@@ -78,6 +80,8 @@ class Command(BaseCommand):
             taxonomie_editeur="Palo Alto Networks",
             taxonomie_produit="PAN-OS",
             decouvert_le=now - timedelta(hours=6),
+            cvss_score=8.1,
+            cvss_vector="CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:N",
         )
         r_nis2 = Renseignement.objects.create(
             type="normatif",

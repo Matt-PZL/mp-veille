@@ -3,21 +3,36 @@
 {% block nav_actualites %}active{% endblock %}
 {% block extra_head %}
 <style>
-  .news-row{ display:grid; grid-template-columns:100px 1fr 140px 80px; gap:12px; align-items:baseline; padding:11px 16px; border-bottom:1px solid var(--border); font-size:12.5px; }
-  .news-row .src{ color:var(--accent); font-size:10.5px; text-transform:uppercase; }
-  .news-row .date{ color:var(--text-faint); font-size:11.5px; text-align:right; }
-  .wrap{ background:var(--surface); border:1px solid var(--border); border-radius:6px; overflow:hidden; }
-  .filters{ display:flex; gap:10px; align-items:center; margin-bottom:14px; }
-  .filters input[type=text]{ flex:1; max-width:320px; padding:8px 10px; background:var(--surface); border:1px solid var(--border); border-radius:5px; color:var(--text); font-family:inherit; font-size:12.5px; }
-  .filters a{ font-size:11.5px; padding:6px 12px; border:1px solid var(--border); border-radius:5px; color:var(--text-muted); text-decoration:none; }
+  .filters{ display:flex; gap:10px; align-items:center; margin-bottom:20px; }
+  .filters input[type=text]{ flex:1; max-width:340px; padding:9px 12px; background:var(--surface); border:1px solid var(--border); border-radius:6px; color:var(--text); font-family:inherit; font-size:12.5px; }
+  .filters a{ font-size:11.5px; padding:6px 13px; border:1px solid var(--border); border-radius:6px; color:var(--text-muted); text-decoration:none; }
   .filters a.active{ color:var(--accent); border-color:var(--accent); background:var(--accent-dim); }
-  .filters button{ padding:8px 14px; background:var(--accent); border:none; border-radius:5px; color:#fff; font-weight:600; font-size:12px; cursor:pointer; font-family:inherit; }
+  .filters button{ padding:9px 16px; background:var(--accent); border:none; border-radius:6px; color:#fff; font-weight:600; font-size:12px; cursor:pointer; font-family:inherit; }
+
+  .feed{ display:flex; flex-direction:column; gap:12px; }
+  .feed-card{ background:var(--surface); border:1px solid var(--border); border-left:3px solid var(--sev-faible); border-radius:8px; padding:16px 20px; text-decoration:none; color:inherit; display:block; }
+  .feed-card:hover{ border-color:var(--text-faint); border-left-color:inherit; background:rgba(255,255,255,0.015); }
+  .feed-card.critique{ border-left-color:var(--sev-critique); }
+  .feed-card.elevee{ border-left-color:var(--sev-elevee); }
+  .feed-card.moyenne{ border-left-color:var(--sev-moyenne); }
+  .feed-meta{ display:flex; align-items:center; gap:10px; margin-bottom:8px; font-size:11px; color:var(--text-faint); }
+  .feed-meta .src{ font-family:var(--font-mono); text-transform:uppercase; color:var(--accent); font-weight:600; letter-spacing:0.03em; }
+  .feed-meta .ref{ font-family:var(--font-mono); }
+  .feed-meta .sev{ font-weight:600; text-transform:uppercase; letter-spacing:0.03em; font-size:10px; }
+  .feed-meta .sev.critique{ color:var(--sev-critique); } .feed-meta .sev.elevee{ color:var(--sev-elevee); }
+  .feed-meta .sev.moyenne{ color:var(--sev-moyenne); } .feed-meta .sev.faible{ color:var(--sev-faible); }
+  .feed-meta .time{ margin-left:auto; }
+  .feed-card h3{ font-size:14.5px; font-weight:600; margin:0 0 6px; color:var(--text); text-wrap:balance; }
+  .feed-card .excerpt{ font-size:12.5px; color:var(--text-muted); line-height:1.6; margin:0; }
+  .feed-tags{ display:flex; gap:6px; margin-top:12px; }
+  .feed-tag{ font-size:10px; padding:2px 8px; border-radius:4px; background:var(--border); color:var(--text-faint); font-family:var(--font-mono); }
+  .feed-empty{ padding:48px 16px; text-align:center; color:var(--text-faint); font-size:12.5px; }
 </style>
 {% endblock %}
 {% block content %}
 <h1 class="section">Actualités</h1>
-<p style="max-width:960px; margin:0 auto 16px; color:var(--text-faint); font-size:12px;">Flux complet de la base de connaissance, non filtré sur vos actifs déclarés.</p>
 <div class="page">
+<p style="color:var(--text-faint); font-size:12px; margin-bottom:16px;">Flux complet de la base de connaissance, non filtré sur vos actifs déclarés.</p>
 <form method="get" class="filters">
   <a href="?" class="{% if not type_filtre %}active{% endif %}">Tous</a>
   <a href="?type=technique" class="{% if type_filtre == 'technique' %}active{% endif %}">Technique</a>
@@ -26,16 +41,28 @@
   <input type="text" name="q" value="{{ q }}" placeholder="Rechercher un titre, une source…">
   <button type="submit">Rechercher</button>
 </form>
-<div class="wrap">
+
+<div class="feed">
   {% for item in items %}
-    <div class="news-row">
-      <span class="src mono">{{ item.source }}</span>
-      <span>{{ item.titre }}</span>
-      <span class="mono" style="color:var(--text-faint); font-size:11px;">{{ item.taxonomie_editeur|default:item.taxonomie_referentiel }}</span>
-      <span class="date mono">{{ item.decouvert_le|timesince }}</span>
+    <div class="feed-card {{ item.criticite }}">
+      <div class="feed-meta">
+        <span class="src">{{ item.source }}</span>
+        {% if item.reference_externe %}<span class="ref">{{ item.reference_externe }}</span>{% endif %}
+        {% if item.criticite %}<span class="sev {{ item.criticite }}">{{ item.get_criticite_display }}</span>{% endif %}
+        {% if item.cvss_score %}<span class="ref">CVSS {{ item.cvss_score|floatformat:1 }}</span>{% endif %}
+        <span class="time">{{ item.decouvert_le|timesince }}</span>
+      </div>
+      <h3>{{ item.titre }}</h3>
+      <p class="excerpt">{{ item.description|truncatewords:32 }}</p>
+      <div class="feed-tags">
+        <span class="feed-tag">{{ item.get_type_display }}</span>
+        {% if item.taxonomie_editeur %}<span class="feed-tag">{{ item.taxonomie_editeur }}</span>{% endif %}
+        {% if item.taxonomie_produit %}<span class="feed-tag">{{ item.taxonomie_produit }}</span>{% endif %}
+        {% if item.taxonomie_referentiel %}<span class="feed-tag">{{ item.taxonomie_referentiel }}</span>{% endif %}
+      </div>
     </div>
   {% empty %}
-    <div style="padding:32px 16px; color:var(--text-faint);">Aucune actualité{% if q %} pour « {{ q }} »{% endif %}.</div>
+    <div class="feed-empty">Aucune actualité{% if q %} pour « {{ q }} »{% endif %}.</div>
   {% endfor %}
 </div>
 </div>

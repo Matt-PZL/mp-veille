@@ -8,9 +8,9 @@ urlpatterns = [
     path("", views.vue_ensemble, name="dashboard"),
     path("renseignements/", views.renseignements, name="renseignements"),
     path(
-        "renseignements/<uuid:id_renseignement_bdp>/demarrer/",
-        views.demarrer_traitement,
-        name="demarrer_traitement",
+        "renseignements/<uuid:id_renseignement_bdp>/traitement/",
+        views.definir_traitement,
+        name="definir_traitement",
     ),
     path(
         "renseignements/<uuid:id_renseignement_bdp>/consulter/",

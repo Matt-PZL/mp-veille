@@ -41,6 +41,11 @@ class Renseignement(models.Model):
     )
     criticite = models.CharField(max_length=16, choices=CRITICITE_CHOICES, blank=True)
 
+    # Detail CVSS (technique uniquement) — vecteur brut + score, pour affichage
+    # d'une analyse d'exploitabilite/impact dans le detail du renseignement.
+    cvss_score = models.FloatField(null=True, blank=True)
+    cvss_vector = models.CharField(max_length=100, blank=True, help_text="ex: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H")
+
     # Taxonomie de rattachement — cle de lecture pour le Matching (non sensible).
     # Volet technique : categorie > editeur > produit > version.
     taxonomie_categorie = models.CharField(max_length=200, blank=True)
@@ -62,3 +67,38 @@ class Renseignement(models.Model):
 
     def __str__(self):
         return f"{self.titre} ({self.id_renseignement_bdp})"
+
+    _CVSS_LABELS = {
+        "AV": {"N": "Réseau", "A": "Adjacent", "L": "Local", "P": "Physique"},
+        "AC": {"L": "Faible", "H": "Élevée"},
+        "PR": {"N": "Aucun", "L": "Faible", "H": "Élevé"},
+        "UI": {"N": "Aucune", "R": "Requise"},
+        "S": {"U": "Inchangée", "C": "Modifiée"},
+        "C": {"N": "Aucun", "L": "Faible", "H": "Élevé"},
+        "I": {"N": "Aucun", "L": "Faible", "H": "Élevé"},
+        "A": {"N": "Aucun", "L": "Faible", "H": "Élevé"},
+    }
+    _CVSS_FIELD_LABELS = {
+        "AV": "Vecteur d'accès", "AC": "Complexité", "PR": "Privilèges requis", "UI": "Interaction",
+        "S": "Portée", "C": "Confidentialité", "I": "Intégrité", "A": "Disponibilité",
+    }
+
+    def cvss_details(self):
+        """Decode le vecteur CVSS brut en libelles lisibles pour l'affichage
+        (exploitabilite + impact), a la maniere d'un rapport d'analyse."""
+        if not self.cvss_vector:
+            return None
+        parts = dict(
+            p.split(":", 1) for p in self.cvss_vector.split("/") if ":" in p
+        )
+        details = []
+        for code in ("AV", "AC", "PR", "UI", "S", "C", "I", "A"):
+            valeur = parts.get(code)
+            if valeur is None:
+                continue
+            details.append({
+                "code": code,
+                "champ": self._CVSS_FIELD_LABELS.get(code, code),
+                "valeur": self._CVSS_LABELS.get(code, {}).get(valeur, valeur),
+            })
+        return details
