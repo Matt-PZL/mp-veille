@@ -158,7 +158,10 @@
       <a href="{% url 'panel:organisation' %}"><svg class="ico" viewBox="0 0 24 24"><rect x="4" y="3" width="10" height="18"/><rect x="14" y="9" width="6" height="12"/><path d="M7 7h1M10 7h1M7 11h1M10 11h1M7 15h1M10 15h1"/></svg>Organisation</a>
       <a href="{% url 'panel:profil' %}"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/></svg>Profil</a>
       <div class="divider"></div>
-      <a href="{% url 'accounts:logout' %}"><svg class="ico" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>Se déconnecter</a>
+      <form method="post" action="{% url 'accounts:logout' %}" style="margin:0;">
+        {% csrf_token %}
+        <button type="submit"><svg class="ico" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>Se déconnecter</button>
+      </form>
     </div>
   </div>
 </header>
