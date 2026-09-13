@@ -32,9 +32,15 @@ def _actif_pour_renseignement(id_renseignement_bdp, resultats=None):
     return None
 
 
-@login_required
 def vue_ensemble(request):
-    """Tableau de bord : KPI et aperçu rapide, point d'entrée du panel."""
+    """Tableau de bord (connecte) — point d'entree du panel. Un visiteur non
+    connecte tombe sur la vitrine publique a cette meme URL ('/'), pour ne
+    pas avoir a deplacer le tableau de bord vers une autre adresse."""
+    if not request.user.is_authenticated:
+        from apps.vitrine.views import landing
+
+        return landing(request)
+
     traitements_par_id = {t.id_renseignement_bdp: t for t in Traitement.objects.select_related("actif")}
     tous_renseignements = list(Renseignement.objects.all())
     consultes = set(RenseignementConsulte.objects.values_list("id_renseignement_bdp", flat=True))

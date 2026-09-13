@@ -20,6 +20,7 @@ INSTALLED_APPS = [
     "django_celery_beat",
     "django_celery_results",
     "apps.accounts",
+    "apps.vitrine",
     "apps.bdp",
     "apps.bdc",
     "apps.catalogue",

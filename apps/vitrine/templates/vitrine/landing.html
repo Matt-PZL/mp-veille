@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Veille — Veille cyber &amp; normative pour ESN</title>
+<meta name="description" content="Une seule base de renseignements, alimentée par NVD, CERT-FR et la CNIL, mise en correspondance avec vos actifs déclarés — pour ne plus jamais chercher si une vulnérabilité vous concerne.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800;900&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#070707; --surface:#010101; --surface-2:#111111; --border:#30363D;
+    --text:#E6EDF3; --text-muted:#9BA4AF; --text-faint:#6E7681;
+    --accent:#1D4ED8; --accent-fg:#FFFFFF; --accent-dim:rgba(29,78,216,0.16); --accent-dim2:rgba(29,78,216,0.26);
+    --sev-critique:#FF3B3B; --sev-elevee:#F0954A; --sev-moyenne:#E3A83F; --sev-faible:#00E003;
+    --st-attente:#D29922; --st-encours:#1D4ED8; --st-clos:#00E003; --st-na:#6E7681;
+    --good:#00E003; --warn:#D29922; --info:#1D4ED8; --danger:#F85149; --violet:#A371F7;
+    --font-display:'Archivo',sans-serif; --font-body:'IBM Plex Sans',sans-serif; --font-mono:'IBM Plex Mono',monospace;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html{ scroll-behavior:smooth; }
+  body{ background:var(--bg); color:var(--text); font-family:var(--font-body); font-size:15px; line-height:1.6; overflow-x:hidden; }
+  a{ color:inherit; text-decoration:none; }
+  img{ max-width:100%; }
+  ::selection{ background:var(--accent); color:#fff; }
+  .mono{ font-family:var(--font-mono); font-variant-numeric:tabular-nums; }
+  .wrap{ max-width:1160px; margin:0 auto; padding:0 24px; }
+  h1,h2,h3{ font-family:var(--font-display); letter-spacing:-0.01em; }
+  section{ position:relative; }
+
+  /* ---- reveal au scroll ---- */
+  .reveal{ opacity:0; transform:translateY(22px); transition:opacity .7s cubic-bezier(.16,.8,.3,1), transform .7s cubic-bezier(.16,.8,.3,1); }
+  .reveal.in{ opacity:1; transform:translateY(0); }
+  .reveal-1.in{ transition-delay:.06s; } .reveal-2.in{ transition-delay:.14s; }
+  .reveal-3.in{ transition-delay:.22s; } .reveal-4.in{ transition-delay:.3s; }
+  @media (prefers-reduced-motion: reduce){ .reveal{ opacity:1; transform:none; transition:none; } html{ scroll-behavior:auto; } }
+
+  /* ---- Nav ---- */
+  .nav{ position:fixed; top:0; left:0; right:0; z-index:100; padding:16px 0; transition:background-color .25s ease, border-color .25s ease, padding .25s ease; border-bottom:1px solid transparent; }
+  .nav.scrolled{ background:rgba(7,7,7,0.82); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); border-color:var(--border); padding:11px 0; }
+  .nav-inner{ display:flex; align-items:center; gap:28px; }
+  .brand{ display:flex; align-items:center; gap:9px; font-weight:700; font-size:15px; margin-right:auto; }
+  .brand .sq{ width:26px; height:26px; border-radius:7px; background:var(--accent); display:flex; align-items:center; justify-content:center; color:#fff; font-family:var(--font-display); font-size:13px; font-weight:800; box-shadow:0 0 0 1px rgba(255,255,255,0.06), 0 4px 14px rgba(29,78,216,0.35); }
+  .nav-links{ display:flex; gap:24px; }
+  .nav-links a{ font-size:13.5px; color:var(--text-muted); font-weight:500; }
+  .nav-links a:hover{ color:var(--text); }
+  .nav-actions{ display:flex; gap:10px; align-items:center; }
+  @media (max-width:820px){ .nav-links{ display:none; } }
+
+  .btn{ display:inline-flex; align-items:center; justify-content:center; gap:8px; font-family:inherit; font-weight:600; font-size:13.5px; padding:10px 18px; border-radius:7px; border:1px solid var(--border); background:var(--surface-2); color:var(--text); cursor:pointer; transition:transform .15s ease, filter .15s ease, border-color .15s ease, background-color .15s ease; white-space:nowrap; }
+  .btn:hover{ border-color:var(--text-faint); transform:translateY(-1px); }
+  .btn-primary{ background:var(--accent); border-color:var(--accent); color:#fff; box-shadow:0 4px 18px rgba(29,78,216,0.35); }
+  .btn-primary:hover{ filter:brightness(1.1); box-shadow:0 6px 24px rgba(29,78,216,0.5); }
+  .btn-lg{ padding:13px 24px; font-size:14.5px; }
+  .btn svg{ width:15px; height:15px; stroke:currentColor; stroke-width:2; fill:none; }
+
+  /* ---- Hero ---- */
+  .hero{ padding:168px 0 96px; overflow:hidden; }
+  .hero-grid{ display:grid; grid-template-columns:1fr 460px; gap:56px; align-items:center; }
+  @media (max-width:980px){ .hero-grid{ grid-template-columns:1fr; } }
+  #hero-canvas{ position:absolute; inset:0; width:100%; height:100%; z-index:0; opacity:.55; pointer-events:none; }
+  .hero-content{ position:relative; z-index:1; }
+  .eyebrow{ display:inline-flex; align-items:center; gap:8px; font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--accent); background:var(--accent-dim); border:1px solid rgba(29,78,216,0.35); padding:6px 12px; border-radius:999px; margin-bottom:22px; }
+  .eyebrow .dot{ width:6px; height:6px; border-radius:50%; background:var(--good); box-shadow:0 0 0 3px rgba(0,224,3,0.18); }
+  .hero h1{ font-size:clamp(34px,4.6vw,58px); font-weight:800; line-height:1.06; margin-bottom:20px; }
+  .hero h1 .hl{ color:var(--accent); }
+  .hero p.lead{ font-size:17px; color:var(--text-muted); max-width:520px; margin-bottom:32px; line-height:1.65; }
+  .hero-ctas{ display:flex; gap:12px; flex-wrap:wrap; margin-bottom:36px; }
+  .trust{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  .trust span{ font-size:11.5px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-faint); font-weight:600; }
+  .trust .srcs{ display:flex; gap:8px; flex-wrap:wrap; }
+  .trust .src{ font-family:var(--font-mono); font-size:11.5px; color:var(--text-muted); background:var(--surface-2); border:1px solid var(--border); padding:4px 10px; border-radius:5px; }
+
+  /* ---- Mock feed (visuel produit dans le hero) ---- */
+  .feed-mock{ position:relative; z-index:1; background:var(--surface-2); border:1px solid var(--border); border-radius:12px; box-shadow:0 24px 64px rgba(0,0,0,0.55); overflow:hidden; }
+  .feed-mock-head{ display:flex; align-items:center; gap:8px; padding:12px 16px; border-bottom:1px solid var(--border); }
+  .feed-mock-head .dots{ display:flex; gap:6px; }
+  .feed-mock-head .dots span{ width:9px; height:9px; border-radius:50%; background:var(--border); }
+  .feed-mock-head .lbl{ margin-left:8px; font-size:11.5px; color:var(--text-faint); font-family:var(--font-mono); }
+  .feed-mock-body{ padding:12px; display:flex; flex-direction:column; gap:8px; max-height:420px; }
+  .fcard{ background:var(--bg); border:1px solid var(--border); border-left:3px solid var(--sev-faible); border-radius:7px; padding:11px 13px; opacity:0; transform:translateX(14px); animation:fcard-in .5s cubic-bezier(.16,.8,.3,1) forwards; }
+  .fcard.critique{ border-left-color:var(--sev-critique); } .fcard.elevee{ border-left-color:var(--sev-elevee); }
+  .fcard.moyenne{ border-left-color:var(--sev-moyenne); } .fcard.reglementaire{ border-left-color:var(--violet); }
+  @keyframes fcard-in{ to{ opacity:1; transform:translateX(0); } }
+  .fcard-top{ display:flex; align-items:center; gap:7px; margin-bottom:5px; }
+  .fdot{ width:7px; height:7px; border-radius:50%; flex-shrink:0; background:var(--sev-faible); }
+  .fcard.critique .fdot{ background:var(--sev-critique); animation:pulse 1.8s ease-in-out infinite; }
+  .fcard.elevee .fdot{ background:var(--sev-elevee); } .fcard.moyenne .fdot{ background:var(--sev-moyenne); } .fcard.reglementaire .fdot{ background:var(--violet); }
+  @keyframes pulse{ 0%,100%{ box-shadow:0 0 0 0 rgba(255,59,59,0.5);} 50%{ box-shadow:0 0 0 5px rgba(255,59,59,0);} }
+  .ftitle{ font-size:12.5px; font-weight:600; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .fbadge{ font-size:8.5px; font-weight:800; text-transform:uppercase; letter-spacing:0.04em; color:#fff; background:var(--accent); padding:2px 6px; border-radius:3px; flex-shrink:0; }
+  .fmeta{ display:flex; gap:8px; padding-left:14px; align-items:center; }
+  .fmeta span{ font-size:10.5px; color:var(--text-faint); font-family:var(--font-mono); }
+  .fpill{ font-size:9.5px; padding:1px 7px; border-radius:999px; border:1.5px dashed var(--st-attente); color:var(--st-attente); font-weight:600; }
+
+  /* ---- Sections generiques ---- */
+  .section-pad{ padding:112px 0; }
+  .section-head{ max-width:640px; margin:0 auto 56px; text-align:center; }
+  .section-eyebrow{ font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.09em; color:var(--accent); margin-bottom:14px; }
+  .section-head h2{ font-size:clamp(26px,3.2vw,38px); font-weight:800; margin-bottom:16px; line-height:1.18; }
+  .section-head p{ color:var(--text-muted); font-size:15.5px; line-height:1.65; }
+
+  /* ---- Probleme ---- */
+  .probleme-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:18px; }
+  @media (max-width:980px){ .probleme-grid{ grid-template-columns:1fr 1fr; } }
+  @media (max-width:600px){ .probleme-grid{ grid-template-columns:1fr; } }
+  .pcard{ background:var(--surface-2); border:1px solid var(--border); border-radius:10px; padding:24px 22px; transition:transform .25s ease, border-color .25s ease; }
+  .pcard:hover{ transform:translateY(-3px); border-color:var(--danger); }
+  .pcard .ico{ width:38px; height:38px; border-radius:9px; background:rgba(248,81,73,0.12); color:var(--danger); display:flex; align-items:center; justify-content:center; margin-bottom:16px; }
+  .pcard .ico svg{ width:19px; height:19px; stroke:currentColor; stroke-width:2; fill:none; }
+  .pcard h3{ font-size:15.5px; font-weight:700; margin-bottom:8px; }
+  .pcard p{ font-size:13px; color:var(--text-muted); line-height:1.6; }
+
+  /* ---- Solution : etapes ---- */
+  .solution-steps{ display:grid; grid-template-columns:repeat(3,1fr); gap:0; position:relative; }
+  @media (max-width:900px){ .solution-steps{ grid-template-columns:1fr; gap:28px; } }
+  .step{ padding:0 28px; position:relative; }
+  .step:not(:last-child)::after{ content:''; position:absolute; top:26px; right:-2px; width:calc(100% - 52px); height:1px; background:linear-gradient(to right, var(--border), transparent); }
+  @media (max-width:900px){ .step:not(:last-child)::after{ display:none; } }
+  .step-num{ width:52px; height:52px; border-radius:12px; background:var(--surface-2); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-weight:700; font-size:17px; color:var(--accent); margin-bottom:20px; position:relative; z-index:1; }
+  .step h3{ font-size:17px; font-weight:700; margin-bottom:10px; }
+  .step p{ font-size:13.5px; color:var(--text-muted); line-height:1.65; margin-bottom:14px; }
+  .step .tag{ display:inline-block; font-family:var(--font-mono); font-size:10.5px; color:var(--text-faint); background:var(--surface-2); border:1px solid var(--border); padding:3px 8px; border-radius:5px; margin:2px 4px 0 0; }
+
+  /* ---- Fonctionnalites ---- */
+  .feat-grid{ display:grid; grid-template-columns:1.1fr 1fr; gap:20px; }
+  @media (max-width:900px){ .feat-grid{ grid-template-columns:1fr; } }
+  .feat-card{ background:var(--surface-2); border:1px solid var(--border); border-radius:12px; overflow:hidden; display:flex; flex-direction:column; }
+  .feat-card.span2{ grid-column:span 2; } @media (max-width:900px){ .feat-card.span2{ grid-column:span 1; } }
+  .feat-card .fc-body{ padding:24px 26px 4px; }
+  .feat-card h3{ font-size:16.5px; font-weight:700; margin-bottom:8px; }
+  .feat-card p{ font-size:13px; color:var(--text-muted); line-height:1.6; max-width:420px; }
+  .feat-mock{ margin:18px 20px 20px; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:14px; }
+
+  .mock-kpis{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+  .mock-kpi{ background:var(--surface-2); border:1px solid var(--border); border-radius:6px; padding:9px 10px; }
+  .mock-kpi .n{ font-family:var(--font-mono); font-weight:700; font-size:16px; }
+  .mock-kpi.red .n{ color:var(--sev-critique); } .mock-kpi.orange .n{ color:var(--sev-elevee); }
+  .mock-kpi.blue .n{ color:var(--info); } .mock-kpi.violet .n{ color:var(--violet); }
+  .mock-kpi .l{ font-size:8.5px; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-faint); margin-top:3px; font-weight:600; }
+
+  .mock-radar-row{ display:flex; align-items:center; gap:14px; }
+  .mock-radar-row .score{ text-align:center; flex-shrink:0; }
+  .mock-radar-row .score .n{ font-family:var(--font-mono); font-weight:700; font-size:24px; color:var(--sev-critique); }
+  .mock-radar-row .score .l{ font-size:8.5px; color:var(--text-faint); text-transform:uppercase; }
+  .mock-search{ display:flex; align-items:center; gap:8px; background:var(--surface-2); border:1px solid var(--accent); border-radius:6px; padding:8px 11px; font-size:12px; color:var(--text); margin-bottom:10px; }
+  .mock-search svg{ width:13px; height:13px; stroke:var(--text-faint); fill:none; stroke-width:2; flex-shrink:0; }
+  .mock-result{ display:flex; justify-content:space-between; align-items:center; padding:8px 10px; background:var(--surface-2); border-radius:5px; font-size:12px; }
+  .mock-result b{ font-weight:600; } .mock-result span{ color:var(--text-faint); font-size:10.5px; }
+
+  .mock-statuses{ display:flex; gap:8px; flex-wrap:wrap; }
+  .mock-pill{ font-size:10.5px; padding:3px 10px; border-radius:999px; font-weight:600; }
+  .mock-pill.wait{ border:1.5px dashed var(--st-attente); color:var(--st-attente); }
+  .mock-pill.go{ background:rgba(29,78,216,0.18); color:var(--st-encours); }
+  .mock-pill.done{ background:rgba(0,224,3,0.18); color:var(--st-clos); }
+  .mock-justif{ margin-top:10px; font-size:11px; color:var(--text-faint); border-left:2px solid var(--border); padding-left:10px; line-height:1.5; }
+
+  /* ---- Chiffres ---- */
+  .chiffres{ background:var(--surface); border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+  .chiffres-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:24px; text-align:center; }
+  @media (max-width:800px){ .chiffres-grid{ grid-template-columns:1fr 1fr; } }
+  .chiffre .n{ font-family:var(--font-mono); font-size:clamp(30px,4vw,44px); font-weight:700; color:var(--accent); }
+  .chiffre .l{ font-size:12px; color:var(--text-muted); margin-top:6px; }
+
+  /* ---- Tarifs ---- */
+  .pricing-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:20px; align-items:stretch; }
+  @media (max-width:900px){ .pricing-grid{ grid-template-columns:1fr; max-width:400px; margin:0 auto; } }
+  .price-card{ background:var(--surface-2); border:1px solid var(--border); border-radius:12px; padding:30px 26px; display:flex; flex-direction:column; }
+  .price-card.pro{ border-color:var(--accent); box-shadow:0 0 0 1px var(--accent), 0 20px 50px rgba(29,78,216,0.22); position:relative; transform:translateY(-6px); }
+  .price-card .badge-reco{ position:absolute; top:-13px; left:50%; transform:translateX(-50%); background:var(--accent); color:#fff; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; padding:4px 12px; border-radius:999px; white-space:nowrap; }
+  .price-card h3{ font-size:15px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-muted); margin-bottom:14px; }
+  .price-card .price{ font-family:var(--font-mono); font-size:36px; font-weight:700; margin-bottom:4px; }
+  .price-card .price small{ font-size:13px; font-weight:500; color:var(--text-faint); }
+  .price-card .sub{ font-size:12px; color:var(--text-faint); margin-bottom:22px; }
+  .price-card ul{ list-style:none; margin:0 0 26px; display:flex; flex-direction:column; gap:11px; flex:1; }
+  .price-card li{ display:flex; gap:9px; font-size:13px; color:var(--text-muted); align-items:flex-start; }
+  .price-card li svg{ width:15px; height:15px; stroke:var(--good); stroke-width:2.4; fill:none; flex-shrink:0; margin-top:1px; }
+  .price-card .btn{ width:100%; }
+
+  /* ---- Contact ---- */
+  .contact-grid{ display:grid; grid-template-columns:1fr 1.15fr; gap:48px; }
+  @media (max-width:900px){ .contact-grid{ grid-template-columns:1fr; } }
+  .contact-info h2{ font-size:clamp(24px,3vw,32px); margin-bottom:16px; }
+  .contact-info p{ color:var(--text-muted); font-size:14.5px; line-height:1.7; margin-bottom:24px; }
+  .contact-point{ display:flex; gap:12px; align-items:flex-start; margin-bottom:16px; }
+  .contact-point .ico{ width:32px; height:32px; border-radius:8px; background:var(--surface-2); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--accent); }
+  .contact-point .ico svg{ width:15px; height:15px; stroke:currentColor; stroke-width:2; fill:none; }
+  .contact-point b{ display:block; font-size:13.5px; } .contact-point span{ font-size:12.5px; color:var(--text-faint); }
+  .contact-form{ background:var(--surface-2); border:1px solid var(--border); border-radius:12px; padding:28px; }
+  .f-row{ display:flex; gap:14px; margin-bottom:14px; } @media (max-width:560px){ .f-row{ flex-direction:column; } }
+  .f-group{ flex:1; }
+  .f-group label{ display:block; font-size:11px; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-faint); margin-bottom:6px; font-weight:600; }
+  .f-group input, .f-group textarea{ width:100%; padding:10px 12px; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text); font-family:inherit; font-size:13.5px; resize:vertical; }
+  .f-group input:focus, .f-group textarea:focus{ outline:none; border-color:var(--accent); }
+  .form-msg{ font-size:12.5px; padding:10px 12px; border-radius:6px; margin-bottom:14px; }
+  .form-msg.success{ background:rgba(0,224,3,0.12); color:var(--good); border:1px solid rgba(0,224,3,0.3); }
+  .form-msg.error{ background:rgba(248,81,73,0.12); color:var(--danger); border:1px solid rgba(248,81,73,0.3); }
+
+  /* ---- CTA finale ---- */
+  .cta-final{ background:linear-gradient(155deg, rgba(29,78,216,0.16), transparent 60%), var(--surface); border-top:1px solid var(--border); text-align:center; padding:100px 0; }
+  .cta-final h2{ font-size:clamp(28px,3.6vw,42px); margin-bottom:16px; }
+  .cta-final p{ color:var(--text-muted); font-size:15.5px; margin-bottom:34px; }
+
+  /* ---- Footer ---- */
+  footer{ border-top:1px solid var(--border); padding:40px 0; }
+  .footer-row{ display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; }
+  .footer-links{ display:flex; gap:22px; flex-wrap:wrap; }
+  .footer-links a{ font-size:12.5px; color:var(--text-faint); }
+  .footer-links a:hover{ color:var(--text-muted); }
+  .footer-copy{ font-size:11.5px; color:var(--text-faint); }
+</style>
+</head>
+<body>
+
+<nav class="nav" id="nav">
+  <div class="wrap nav-inner">
+    <a href="#" class="brand"><span class="sq">V</span>veille</a>
+    <div class="nav-links">
+      <a href="#probleme">Problématique</a>
+      <a href="#solution">Solution</a>
+      <a href="#fonctionnalites">Fonctionnalités</a>
+      <a href="#tarifs">Tarifs</a>
+      <a href="#contact">Contact</a>
+    </div>
+    <div class="nav-actions">
+      <a href="{% url 'accounts:login' %}" class="btn">Connexion</a>
+      <a href="{% url 'accounts:inscription' %}" class="btn btn-primary">Créer un compte</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <canvas id="hero-canvas"></canvas>
+  <div class="wrap hero-grid">
+    <div class="hero-content reveal">
+      <span class="eyebrow"><span class="dot"></span>Connecté en direct à NVD · CERT-FR · CNIL</span>
+      <h1>Ne laissez plus une <span class="hl">vulnérabilité critique</span> se perdre dans le bruit.</h1>
+      <p class="lead">Veille centralise le renseignement cyber et normatif, le met en correspondance avec les actifs que vous avez réellement déclarés, et impose une justification à chaque décision — pour que votre prochain audit ISO 27001 ou NIS2 se passe en consultant un historique, pas en fouillant des emails.</p>
+      <div class="hero-ctas">
+        <a href="{% url 'accounts:inscription' %}" class="btn btn-primary btn-lg">
+          Créer un compte gratuitement
+          <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </a>
+        <a href="#solution" class="btn btn-lg">Voir comment ça marche</a>
+      </div>
+      <div class="trust">
+        <span>Catalogue d'actifs</span>
+        <div class="srcs">
+          <span class="src">Debian</span><span class="src">Ubuntu</span><span class="src">Windows Server</span><span class="src">PAN-OS</span><span class="src">FortiOS</span><span class="src">+ 468 autres</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="feed-mock reveal reveal-2">
+      <div class="feed-mock-head">
+        <div class="dots"><span></span><span></span><span></span></div>
+        <span class="lbl">renseignements — en direct</span>
+      </div>
+      <div class="feed-mock-body" id="feed-mock-body">
+        <div class="fcard critique" style="animation-delay:.1s">
+          <div class="fcard-top"><span class="fdot"></span><span class="ftitle">CVE-2026-41823 — Windows 11</span><span class="fbadge">Nouveau</span></div>
+          <div class="fmeta"><span>NVD</span><span>·</span><span class="fpill">À traiter</span></div>
+        </div>
+        <div class="fcard elevee" style="animation-delay:.3s">
+          <div class="fcard-top"><span class="fdot"></span><span class="ftitle">CERTFR-2026-AVI-0853 — PAN-OS</span><span class="fbadge">Nouveau</span></div>
+          <div class="fmeta"><span>CERT-FR</span><span>·</span><span>CVSS 8.1</span></div>
+        </div>
+        <div class="fcard reglementaire" style="animation-delay:.5s">
+          <div class="fcard-top"><span class="fdot"></span><span class="ftitle">NIS2 — périmètre entités importantes</span></div>
+          <div class="fmeta"><span>ANSSI</span><span>·</span><span>Réglementaire</span></div>
+        </div>
+        <div class="fcard moyenne" style="animation-delay:.7s">
+          <div class="fcard-top"><span class="fdot"></span><span class="ftitle">Multiples vulnérabilités — Debian LTS</span></div>
+          <div class="fmeta"><span>CERT-FR</span><span>·</span><span>CVSS 5.4</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section id="probleme" class="section-pad">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="section-eyebrow">Le constat</div>
+      <h2>La veille cyber s'éparpille, la conformité n'attend pas.</h2>
+      <p>Entre les CVE, les avis CERT-FR, les exigences NIS2/ISO 27001/RGPD et les bulletins éditeurs, personne ne peut tout suivre à la main — et un seul actif oublié suffit à rendre tout le reste inutile.</p>
+    </div>
+    <div class="probleme-grid">
+      <div class="pcard reveal reveal-1">
+        <div class="ico"><svg viewBox="0 0 24 24"><path d="M3 3v18h18M7 16l4-6 4 3 4-7"/></svg></div>
+        <h3>Six sources, zéro vue d'ensemble</h3>
+        <p>NVD, CERT-FR, éditeurs, ANSSI, CNIL... chacun son flux, son format, ses délais. Le croisement se fait dans la tête de quelqu'un, ou pas du tout.</p>
+      </div>
+      <div class="pcard reveal reveal-2">
+        <div class="ico"><svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4M12 3l8 4v5c0 5-3.5 9-8 10-4.5-1-8-5-8-10V7l8-4z"/></svg></div>
+        <h3>La conformité exige une preuve</h3>
+        <p>NIS2 et ISO 27001 ne demandent pas juste d'avoir traité un risque — ils demandent de prouver quand, pourquoi, et par qui.</p>
+      </div>
+      <div class="pcard reveal reveal-3">
+        <div class="ico"><svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg></div>
+        <h3>Un actif oublié, un angle mort</h3>
+        <p>Si personne n'a déclaré ce vieux Debian 11 encore en prod, aucune alerte ne le concernera jamais — jusqu'à ce que ce soit trop tard.</p>
+      </div>
+      <div class="pcard reveal reveal-4">
+        <div class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
+        <h3>Le triage prend des heures</h3>
+        <p>Chaque semaine, retrier manuellement ce qui est critique de ce qui ne l'est pas — au lieu de traiter ce qui compte vraiment.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="solution" class="section-pad" style="background:var(--surface);">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="section-eyebrow">La solution</div>
+      <h2>Trois étapes, entièrement automatisées.</h2>
+      <p>Vous déclarez vos actifs une fois. Veille s'occupe de savoir, en continu, ce qui les concerne — et garde la trace de chaque décision.</p>
+    </div>
+    <div class="solution-steps">
+      <div class="step reveal reveal-1">
+        <div class="step-num">01</div>
+        <h3>Une base qui s'enrichit toute seule</h3>
+        <p>Ingestion automatique depuis NVD, CERT-FR et la CNIL, cycle après cycle — plus un catalogue de 470+ produits (OS, bases de données, pare-feux) pour ne jamais chercher en vain votre actif.</p>
+        <span class="tag">NVD</span><span class="tag">CERT-FR</span><span class="tag">CNIL</span>
+      </div>
+      <div class="step reveal reveal-2">
+        <div class="step-num">02</div>
+        <h3>Un matching précis, jamais approximatif</h3>
+        <p>Dès qu'un actif est déclaré, il est immédiatement mis en correspondance avec tout ce qui le concerne réellement — ni bruit ni angle mort, sur vos actifs et vos référentiels normatifs.</p>
+        <span class="tag">Éditeur + produit</span><span class="tag">Référentiel</span>
+      </div>
+      <div class="step reveal reveal-3">
+        <div class="step-num">03</div>
+        <h3>Un traitement qui fait preuve</h3>
+        <p>Chaque changement de statut exige une justification réelle — plan d'action, date, ou preuve de clôture. L'historique horodaté devient votre réponse toute prête à un audit.</p>
+        <span class="tag">Justification obligatoire</span><span class="tag">Export PDF</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="fonctionnalites" class="section-pad">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="section-eyebrow">Sous le capot</div>
+      <h2>Fait pour être utilisé tous les jours, pas juste pendant l'audit.</h2>
+    </div>
+    <div class="feat-grid">
+      <div class="feat-card span2 reveal reveal-1">
+        <div class="fc-body">
+          <h3>Tableau de bord</h3>
+          <p>Criticités ouvertes, échéances à venir, taux de clôture — l'essentiel de votre exposition en un coup d'œil, jamais noyé dans le flux complet de la base.</p>
+        </div>
+        <div class="feat-mock">
+          <div class="mock-kpis">
+            <div class="mock-kpi red"><div class="n">3</div><div class="l">Critiques</div></div>
+            <div class="mock-kpi orange"><div class="n">4</div><div class="l">Élevées</div></div>
+            <div class="mock-kpi blue"><div class="n">9</div><div class="l">Non consultés</div></div>
+            <div class="mock-kpi violet"><div class="n">0</div><div class="l">En retard</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="feat-card reveal reveal-2">
+        <div class="fc-body">
+          <h3>Analyse CVSS visuelle</h3>
+          <p>Un radar d'exploitabilité et d'impact calculé pour chaque vulnérabilité technique — pas juste un score brut.</p>
+        </div>
+        <div class="feat-mock">
+          <div class="mock-radar-row">
+            <div class="score"><div class="n">9.8</div><div class="l">Critique</div></div>
+            <svg width="90" height="90" viewBox="0 0 220 220"><polygon points="110,46 174,110 110,174 46,110" fill="none" stroke="var(--border)" stroke-width="1"/><polygon points="110,55 165,110 110,160 60,112" fill="rgba(255,59,59,0.25)" stroke="var(--sev-critique)" stroke-width="1.5"/></svg>
+          </div>
+        </div>
+      </div>
+      <div class="feat-card reveal reveal-3">
+        <div class="fc-body">
+          <h3>Catalogue d'actifs auto-alimenté</h3>
+          <p>Debian, Ubuntu, RHEL, PAN-OS, FortiOS et 460+ autres — recherchez, ne devinez pas la catégorie.</p>
+        </div>
+        <div class="feat-mock">
+          <div class="mock-search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>debian</div>
+          <div class="mock-result"><b>Debian</b><span>Debian Project · Système d'exploitation</span></div>
+        </div>
+      </div>
+      <div class="feat-card span2 reveal reveal-4">
+        <div class="fc-body">
+          <h3>Traitement bloquant, pas décoratif</h3>
+          <p>Impossible de clore ou démarrer un traitement sans les informations qui font foi — le statut choisi impose ce qui est demandé.</p>
+        </div>
+        <div class="feat-mock">
+          <div class="mock-statuses">
+            <span class="mock-pill wait">À traiter</span>
+            <span class="mock-pill go">Démarré</span>
+            <span class="mock-pill done">Clos</span>
+          </div>
+          <div class="mock-justif">« Correctif déployé le 12/09 sur le parc — CAB validé le 10/09. Preuve jointe. »</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="chiffres section-pad">
+  <div class="wrap">
+    <div class="chiffres-grid">
+      <div class="chiffre reveal reveal-1"><div class="n" data-count="470">0</div><div class="l">Produits catalogués automatiquement</div></div>
+      <div class="chiffre reveal reveal-2"><div class="n" data-count="3">0</div><div class="l">Sources connectées en direct</div></div>
+      <div class="chiffre reveal reveal-3"><div class="n" data-count="12">0</div><div class="l">Cycles de collecte par jour</div></div>
+      <div class="chiffre reveal reveal-4"><div class="n" data-count="100">0</div><div class="l">% des décisions justifiées</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="tarifs" class="section-pad">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="section-eyebrow">Tarifs</div>
+      <h2>Un prix qui suit la taille de votre parc, pas l'inverse.</h2>
+      <p>Trois formules, sans engagement à l'aveugle — un essai gratuit sur votre premier actif déclaré.</p>
+    </div>
+    <div class="pricing-grid">
+      <div class="price-card reveal reveal-1">
+        <h3>Essentiel</h3>
+        <div class="price">149€ <small>/ mois</small></div>
+        <div class="sub">Jusqu'à 25 actifs déclarés</div>
+        <ul>
+          <li><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Ingestion NVD + CERT-FR</li>
+          <li><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Catalogue d'actifs complet</li>
+          <li><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Workflow de traitement</li>
+          <li><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>1 utilisateur</li>
+        </ul>
+        <a href="{% url 'accounts:inscription' %}" class="btn">Commencer</a>
+      </div>
+      <div class="price-card pro reveal reveal-2">
+        <span class="badge-reco">Le plus choisi</span>
+        <h3>Professionnel</h3>
+        <div class="price">399€ <small>/ mois</small></div>
+        <div class="sub">Jusqu'à 150 actifs, multi-clients</div>
+        <ul>
+          <li><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Tout Essentiel, plus :</li>
+          <li><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Ingestion CNIL / RGPD</li>
+          <li><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Export PDF d'audit</li>
+          <li><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Utilisateurs illimités</li>
+          <li><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Support prioritaire</li>
+        </ul>
+        <a href="{% url 'accounts:inscription' %}" class="btn btn-primary">Commencer</a>
+      </div>
+      <div class="price-card reveal reveal-3">
+        <h3>Entreprise</h3>
+        <div class="price">Sur devis</div>
+        <div class="sub">Parc illimité, exigences spécifiques</div>
+        <ul>
+          <li><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Tout Professionnel, plus :</li>
+          <li><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>SSO / SAML</li>
+          <li><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>SLA contractuel</li>
+          <li><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Référentiels normatifs sur mesure</li>
+        </ul>
+        <a href="#contact" class="btn">Nous contacter</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="contact" class="section-pad" style="background:var(--surface);">
+  <div class="wrap">
+    <div class="contact-grid">
+      <div class="contact-info reveal">
+        <h2>Une question avant de vous lancer ?</h2>
+        <p>Que ce soit sur un référentiel spécifique, une intégration, ou juste pour voir une démo sur votre propre parc — écrivez-nous.</p>
+        <div class="contact-point">
+          <div class="ico"><svg viewBox="0 0 24 24"><path d="M4 4h16v16H4zM4 4l8 8 8-8"/></svg></div>
+          <div><b>contact@veille-saas.fr</b><span>Réponse sous 24h ouvrées</span></div>
+        </div>
+        <div class="contact-point">
+          <div class="ico"><svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 00-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 00-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg></div>
+          <div><b>Basés en France</b><span>Hébergement et support francophones</span></div>
+        </div>
+      </div>
+      <div class="reveal reveal-2">
+        {% if messages %}
+          {% for m in messages %}<div class="form-msg {{ m.tags }}">{{ m }}</div>{% endfor %}
+        {% endif %}
+        <form class="contact-form" method="post" action="{% url 'vitrine:contact' %}">
+          {% csrf_token %}
+          <div class="f-row">
+            <div class="f-group"><label>Nom</label><input type="text" name="nom" required></div>
+            <div class="f-group"><label>Email</label><input type="email" name="email" required></div>
+          </div>
+          <div class="f-group" style="margin-bottom:14px;"><label>Entreprise (optionnel)</label><input type="text" name="entreprise"></div>
+          <div class="f-group" style="margin-bottom:18px;"><label>Message</label><textarea name="message" rows="4" required></textarea></div>
+          <button type="submit" class="btn btn-primary" style="width:100%;">Envoyer le message</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="cta-final">
+  <div class="wrap reveal">
+    <h2>Reprenez le contrôle de votre veille, dès aujourd'hui.</h2>
+    <p>Aucune carte bancaire requise pour commencer.</p>
+    <a href="{% url 'accounts:inscription' %}" class="btn btn-primary btn-lg">Créer mon compte</a>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap footer-row">
+    <a href="#" class="brand"><span class="sq">V</span>veille</a>
+    <div class="footer-links">
+      <a href="#probleme">Problématique</a>
+      <a href="#solution">Solution</a>
+      <a href="#tarifs">Tarifs</a>
+      <a href="#contact">Contact</a>
+      <a href="{% url 'accounts:login' %}">Connexion</a>
+    </div>
+    <div class="footer-copy">© 2026 Veille — Renseignement cyber &amp; normatif.</div>
+  </div>
+</footer>
+
+<script>
+  // ---- Reveal au scroll ----
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+  // ---- Nav qui se fige au scroll ----
+  const nav = document.getElementById('nav');
+  function onScrollNav(){ nav.classList.toggle('scrolled', window.scrollY > 12); }
+  document.addEventListener('scroll', onScrollNav, { passive: true });
+  onScrollNav();
+
+  // ---- Compteurs animes ----
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function animerCompteur(el){
+    const cible = parseInt(el.dataset.count, 10);
+    if (reduced) { el.textContent = cible; return; }
+    const duree = 1200;
+    const debut = performance.now();
+    function tick(now){
+      const p = Math.min(1, (now - debut) / duree);
+      const ease = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.round(cible * ease);
+      if (p < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+  const ioCount = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { animerCompteur(e.target); ioCount.unobserve(e.target); } });
+  }, { threshold: 0.5 });
+  document.querySelectorAll('.chiffre .n').forEach(el => ioCount.observe(el));
+
+  // ---- Fond anime dans le hero : reseau de points relies ----
+  (function(){
+    const canvas = document.getElementById('hero-canvas');
+    const ctx = canvas.getContext('2d');
+    let w, h, points;
+    function taille(){
+      const rect = canvas.parentElement.getBoundingClientRect();
+      w = canvas.width = rect.width; h = canvas.height = rect.height;
+    }
+    function initPoints(){
+      const n = Math.max(18, Math.min(46, Math.floor((w * h) / 32000)));
+      points = Array.from({ length: n }, () => ({
+        x: Math.random() * w, y: Math.random() * h,
+        vx: (Math.random() - 0.5) * 0.25, vy: (Math.random() - 0.5) * 0.25,
+      }));
+    }
+    function frame(){
+      ctx.clearRect(0, 0, w, h);
+      for (const p of points) {
+        p.x += p.vx; p.y += p.vy;
+        if (p.x < 0 || p.x > w) p.vx *= -1;
+        if (p.y < 0 || p.y > h) p.vy *= -1;
+      }
+      for (let i = 0; i < points.length; i++) {
+        for (let j = i + 1; j < points.length; j++) {
+          const dx = points[i].x - points[j].x, dy = points[i].y - points[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 140) {
+            ctx.strokeStyle = 'rgba(29,78,216,' + (0.22 * (1 - dist / 140)) + ')';
+            ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(points[i].x, points[i].y); ctx.lineTo(points[j].x, points[j].y); ctx.stroke();
+          }
+        }
+      }
+      ctx.fillStyle = 'rgba(29,78,216,0.55)';
+      for (const p of points) { ctx.beginPath(); ctx.arc(p.x, p.y, 1.6, 0, Math.PI * 2); ctx.fill(); }
+      if (!reduced) requestAnimationFrame(frame);
+    }
+    taille(); initPoints();
+    window.addEventListener('resize', () => { taille(); initPoints(); });
+    frame();
+  })();
+</script>
+</body>
+</html>

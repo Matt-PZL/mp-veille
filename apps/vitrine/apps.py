@@ -1,0 +1,8 @@
+from django.apps import AppConfig
+
+
+class VitrineConfig(AppConfig):
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "apps.vitrine"
+    label = "vitrine"
+    verbose_name = "Vitrine — Site public (landing, contact)"
