@@ -543,14 +543,22 @@ def gestion_actifs(request):
     else:
         actifs.sort(key=lambda a: str(a))
 
+    # Couverture : un actif sans renseignement matche n'est pas forcement
+    # "sain" — le plus souvent, aucune source ingeree ne couvre encore cet
+    # editeur/produit (ou ce referentiel). On le signale plutot que de
+    # laisser un silence qui pourrait passer pour "rien a signaler".
+    actifs_couverts_pks = {r.actif.pk for r in calculer_matching()}
+
     return render(
         request,
         "panel/gestion_actifs.html",
         {
             "actifs": actifs,
+            "actifs_couverts_pks": actifs_couverts_pks,
             "total": ActifClient.objects.count(),
             "nb_technique": ActifClient.objects.filter(type="technique").count(),
             "nb_normatif": ActifClient.objects.filter(type="normatif").count(),
+            "nb_non_couverts": ActifClient.objects.count() - len(actifs_couverts_pks),
             "historique": HistoriqueActif.objects.all()[:12],
             "q": q,
             "type_filtre": type_filtre,

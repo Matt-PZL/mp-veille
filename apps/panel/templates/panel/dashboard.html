@@ -107,10 +107,10 @@
     <h2><span class="hdot" style="background:{% if actifs_sans_renseignement %}var(--warn){% else %}var(--good){% endif %}"></span>Santé de la surveillance</h2>
     {% if actifs_sans_renseignement %}
       {% for a in actifs_sans_renseignement %}
-        <div class="health-item warn"><span class="ico">!</span><span class="txt">{{ a }}<small>Aucun renseignement associé pour le moment</small></span></div>
+        <div class="health-item warn"><span class="ico">!</span><span class="txt">{{ a }}<small>Non couvert par une source — pas forcément sain, peut-être juste pas encore surveillé (<a href="{% url 'panel:gestion_actifs' %}" style="color:inherit;">voir</a>)</small></span></div>
       {% endfor %}
     {% else %}
-      <div class="health-item good"><span class="ico">✓</span><span class="txt">Tous les actifs sont couverts<small>Chaque actif déclaré a au moins un renseignement associé</small></span></div>
+      <div class="health-item good"><span class="ico">✓</span><span class="txt">Tous les actifs sont couverts par au moins une source<small>Ça ne veut pas dire « aucune vulnérabilité » — seulement qu'une source les surveille activement</small></span></div>
     {% endif %}
     <div class="health-item good"><span class="ico">✓</span><span class="txt">Ingestion planifiée active<small>Cycle automatique toutes les 12h</small></span></div>
   </div>

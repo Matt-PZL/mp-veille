@@ -30,6 +30,7 @@
   .at-tag{ font-size:10px; text-transform:uppercase; color:var(--text-faint); font-family:var(--font-mono); width:64px; flex-shrink:0; }
   .at-name{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .at-name .ver{ color:var(--text-faint); font-size:11px; margin-left:6px; }
+  .at-non-couvert{ font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; padding:2px 8px; border-radius:4px; background:none; border:1.5px dashed var(--warn); color:var(--warn); flex-shrink:0; cursor:help; }
   .at-actions{ display:flex; gap:6px; flex-shrink:0; }
   .at-actions button{ display:flex; align-items:center; gap:5px; font-size:11px; font-weight:600; padding:5px 10px; border-radius:5px; border:1px solid var(--border); background:none; color:var(--text-muted); cursor:pointer; font-family:inherit; }
   .at-actions button:hover{ color:var(--text); border-color:var(--text-faint); }
@@ -105,6 +106,7 @@
     <div class="stat-tile"><div class="stat-num">{{ total }}</div><div class="stat-lbl">Total actifs</div></div>
     <div class="stat-tile tech"><div class="stat-num">{{ nb_technique }}</div><div class="stat-lbl">Technique</div></div>
     <div class="stat-tile norm"><div class="stat-num">{{ nb_normatif }}</div><div class="stat-lbl">Normatif</div></div>
+    <div class="stat-tile warn"><div class="stat-num">{{ nb_non_couverts }}</div><div class="stat-lbl">Non couverts</div></div>
   </div>
 </div>
 
@@ -131,6 +133,9 @@
         <div class="at-row">
           <span class="at-tag">{{ actif.type }}</span>
           <span class="at-name">{{ actif }}{% if actif.version %}<span class="ver mono">{{ actif.version }}</span>{% endif %}</span>
+          {% if actif.pk not in actifs_couverts_pks %}
+            <span class="at-non-couvert" title="Aucune source de renseignements ne couvre pour l'instant cet {% if actif.type == 'technique' %}éditeur/produit{% else %}référentiel{% endif %} — ce n'est pas une garantie d'absence de vulnérabilité, seulement une absence de collecte.">Non couvert</span>
+          {% endif %}
           <div class="at-actions">
             {% if actif.type == 'technique' %}
               <button type="button" onclick="openVersionModal({{ actif.pk }}, '{{ actif|escapejs }}', '{{ actif.version|escapejs }}')"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>Monter en version</button>
