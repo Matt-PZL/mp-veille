@@ -162,7 +162,7 @@
           <div class="t-row" onclick="toggleTDetail(this)">
             <span class="t-dot {{ r.criticite }}"></span>
             <span class="t-actif">{{ t.actif|default:"—" }}</span>
-            <span class="t-titre">{{ r.reference_courte|default:r.source|default:"" }} — {{ r.titre|default:"Renseignement retiré de la BDP" }}</span>
+            <span class="t-titre">{% if r %}{{ r.reference_courte|default:r.source }} — {{ r.titre }}{% else %}Renseignement retiré de la BDP{% endif %}</span>
             <span class="status-pill {{ t.statut }}">{{ t.get_statut_display }}</span>
             <span class="t-echeance {% if t.en_retard %}retard{% endif %}">{{ t.echeance|date:"d/m/Y"|default:"—" }}</span>
             <span class="t-maj">{{ t.maj_le|timesince }}</span>

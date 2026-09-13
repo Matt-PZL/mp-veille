@@ -302,7 +302,7 @@
       {% with r=renseignements_par_id|get_item:t.id_renseignement_bdp %}
       <a class="dt-row" href="{% url 'panel:traiter_renseignement' t.id_renseignement_bdp %}">
         <div class="dt-when">Il y a {{ t.maj_le|timesince }}</div>
-        <div class="dt-line">• {{ t.actif|default:"—" }} — {{ r.reference_courte|default:r.source|default:"" }} — <span class="sev {{ r.criticite }}">{{ r.get_criticite_display|default:"" }}</span> — <span class="st">{{ t.get_statut_display }}</span></div>
+        <div class="dt-line">• {{ t.actif|default:"—" }} — {% if r %}{{ r.reference_courte|default:r.source }} — <span class="sev {{ r.criticite }}">{{ r.get_criticite_display }}</span>{% else %}Renseignement retiré de la BDP{% endif %} — <span class="st">{{ t.get_statut_display }}</span></div>
       </a>
       {% endwith %}
     {% empty %}
