@@ -3,64 +3,71 @@
 {% block nav_actualites %}active{% endblock %}
 {% block extra_head %}
 <style>
-  .filters{ display:flex; gap:10px; align-items:center; margin-bottom:20px; }
-  .filters input[type=text]{ flex:1; max-width:340px; padding:9px 12px; background:var(--surface); border:1px solid var(--border); border-radius:6px; color:var(--text); font-family:inherit; font-size:12.5px; }
-  .filters a{ font-size:11.5px; padding:6px 13px; border:1px solid var(--border); border-radius:6px; color:var(--text-muted); text-decoration:none; }
-  .filters a.active{ color:var(--accent); border-color:var(--accent); background:var(--accent-dim); }
-  .filters button{ padding:9px 16px; background:var(--accent); border:none; border-radius:6px; color:#fff; font-weight:600; font-size:12px; cursor:pointer; font-family:inherit; }
+  /* .card, .chip, .nature-tag, .sev, .btn* viennent de base.html */
 
-  .feed{ display:flex; flex-direction:column; gap:12px; }
-  .feed-card{ background:var(--surface); border:1px solid var(--border); border-left:3px solid var(--sev-faible); border-radius:8px; padding:16px 20px; text-decoration:none; color:inherit; display:block; }
-  .feed-card:hover{ border-color:var(--text-faint); border-left-color:inherit; background:rgba(255,255,255,0.015); }
-  .feed-card.critique{ border-left-color:var(--sev-critique); }
-  .feed-card.elevee{ border-left-color:var(--sev-elevee); }
-  .feed-card.moyenne{ border-left-color:var(--sev-moyenne); }
-  .feed-meta{ display:flex; align-items:center; gap:10px; margin-bottom:8px; font-size:11px; color:var(--text-muted); }
-  .feed-meta .src{ font-family:var(--font-mono); text-transform:uppercase; color:var(--accent); font-weight:600; letter-spacing:0.03em; text-decoration:none; }
-  .feed-meta .src:hover{ text-decoration:underline; }
-  .feed-meta .ref{ font-family:var(--font-mono); }
-  .feed-meta .nature-tag{ font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; padding:1px 7px; border-radius:4px; }
-  .feed-meta .nature-tag.vulnerabilite{ background:rgba(248,81,73,0.15); color:var(--danger); }
-  .feed-meta .nature-tag.correctif{ background:rgba(0,224,3,0.15); color:var(--good); }
-  .feed-meta .nature-tag.reglementaire{ background:rgba(163,113,247,0.15); color:var(--violet); }
-  .feed-meta .nature-tag.information{ background:rgba(255,255,255,0.08); color:var(--text-muted); }
-  .feed-meta .sev{ font-weight:600; text-transform:uppercase; letter-spacing:0.03em; font-size:10px; }
-  .feed-meta .sev.critique{ color:var(--sev-critique); } .feed-meta .sev.elevee{ color:var(--sev-elevee); }
-  .feed-meta .sev.moyenne{ color:var(--sev-moyenne); } .feed-meta .sev.faible{ color:var(--sev-faible); }
-  .feed-meta .time{ margin-left:auto; }
-  .feed-card h3{ font-size:14.5px; font-weight:600; margin:0 0 6px; color:var(--text); text-wrap:balance; }
-  .feed-card .excerpt{ font-size:12.5px; color:var(--text-muted); line-height:1.6; margin:0; }
-  .feed-tags{ display:flex; gap:6px; margin-top:12px; }
-  .feed-tag{ font-size:10px; padding:2px 8px; border-radius:4px; background:rgba(255,255,255,0.08); color:var(--text-muted); font-family:var(--font-mono); font-weight:600; }
-  .feed-empty{ padding:48px 16px; text-align:center; color:var(--text-faint); font-size:12.5px; }
+  .filters{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .filters input[type=text]{ flex:1; min-width:200px; max-width:360px; }
+
+  .feed{ display:flex; flex-direction:column; gap:11px; }
+  .feed-card{
+    position:relative; background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--r-lg); padding:17px 22px; box-shadow:var(--shadow);
+  }
+  .feed-card::before{ content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--faib); }
+  .feed-card.critique::before{ background:var(--crit); }
+  .feed-card.elevee::before{ background:var(--elev); }
+  .feed-card.moyenne::before{ background:var(--moy); }
+  .feed-card:hover{ border-color:var(--border-strong); background:var(--surface-2); }
+
+  .feed-meta{ display:flex; align-items:center; gap:10px; margin-bottom:9px; font-size:11.5px; flex-wrap:wrap; }
+  .feed-meta .ref{ font-family:var(--mono); color:var(--ink-faint); }
+  .feed-meta .sv{ font-weight:700; text-transform:uppercase; letter-spacing:0.06em; font-size:10px; }
+  .feed-meta .sv.critique{ color:var(--crit); } .feed-meta .sv.elevee{ color:var(--elev); }
+  .feed-meta .sv.moyenne{ color:var(--moy); } .feed-meta .sv.faible{ color:var(--faib); }
+  .feed-meta .time{ margin-left:auto; color:var(--ink-faint); font-family:var(--mono); }
+
+  .feed-card h3{ font-size:15px; font-weight:600; margin-bottom:7px; text-wrap:balance; letter-spacing:-0.01em; line-height:1.45; }
+  .feed-card .excerpt{ font-size:13px; color:var(--ink-soft); line-height:1.65; }
+  .feed-tags{ display:flex; gap:6px; margin-top:14px; flex-wrap:wrap; }
+  .feed-tag{
+    font-family:var(--mono); font-size:10.5px; padding:2.5px 9px; border-radius:var(--r-xs);
+    background:var(--surface-3); color:var(--ink-faint); font-weight:500;
+  }
 </style>
 {% endblock %}
 {% block content %}
-<div class="page">
-<div class="page-header">
-  <h1 class="page-title">Actualités</h1>
-  <div class="page-header-stats">
-    <div class="stat-tile"><div class="stat-num">{{ items|length }}</div><div class="stat-lbl">Résultats</div></div>
+
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Actualités</h1>
+    <p class="sub">Flux complet de la base de connaissance — <b>non filtré</b> sur vos actifs déclarés.</p>
+  </div>
+  <div class="head-actions">
+    <a class="btn" href="{% url 'panel:renseignements' %}">
+      <svg viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/></svg>
+      Ce qui me concerne
+    </a>
   </div>
 </div>
-<p style="color:var(--text-faint); font-size:12px; margin-bottom:16px;">Flux complet de la base de connaissance, non filtré sur vos actifs déclarés.</p>
+
 <form method="get" class="filters">
-  <a href="?" class="{% if not type_filtre %}active{% endif %}">Tous</a>
-  <a href="?type=technique" class="{% if type_filtre == 'technique' %}active{% endif %}">Technique</a>
-  <a href="?type=normatif" class="{% if type_filtre == 'normatif' %}active{% endif %}">Normatif</a>
+  <a href="?" class="chip {% if not type_filtre %}active{% endif %}">Tous</a>
+  <a href="?type=technique" class="chip {% if type_filtre == 'technique' %}active{% endif %}">Technique</a>
+  <a href="?type=normatif" class="chip {% if type_filtre == 'normatif' %}active{% endif %}">Normatif</a>
   {% if type_filtre %}<input type="hidden" name="type" value="{{ type_filtre }}">{% endif %}
   <input type="text" name="q" value="{{ q }}" placeholder="Rechercher un titre, une source…">
-  <button type="submit">Rechercher</button>
+  <button type="submit" class="btn primary">Rechercher</button>
+  <span style="margin-left:auto; font-family:var(--mono); font-size:12px; color:var(--ink-faint);">{{ items|length }} résultat{{ items|length|pluralize }}</span>
 </form>
 
 <div class="feed">
   {% for item in items %}
-    <div class="feed-card {{ item.criticite }}">
+    <article class="feed-card {{ item.criticite }}">
       <div class="feed-meta">
-        {% if item.url_source %}<a class="src" href="{{ item.url_source }}" target="_blank" rel="noopener">{{ item.source }} ↗</a>{% else %}<span class="src">{{ item.source }}</span>{% endif %}
+        {% if item.url_source %}<a class="source-link" href="{{ item.url_source }}" target="_blank" rel="noopener">{{ item.source }} ↗</a>{% else %}<span class="source-link">{{ item.source }}</span>{% endif %}
         {% if item.reference_externe %}<span class="ref">{{ item.reference_courte }}</span>{% endif %}
         {% if item.get_nature_display %}<span class="nature-tag {{ item.nature }}">{{ item.get_nature_display }}</span>{% endif %}
-        {% if item.criticite %}<span class="sev {{ item.criticite }}">{{ item.get_criticite_display }}</span>{% endif %}
+        {% if item.criticite %}<span class="sv {{ item.criticite }}">{{ item.get_criticite_display }}</span>{% endif %}
         {% if item.cvss_score %}<span class="ref">CVSS {{ item.cvss_score|floatformat:1 }}</span>{% endif %}
         <span class="time">{{ item.decouvert_le|timesince }}</span>
       </div>
@@ -72,10 +79,18 @@
         {% if item.taxonomie_produit %}<span class="feed-tag">{{ item.taxonomie_produit }}</span>{% endif %}
         {% if item.taxonomie_referentiel %}<span class="feed-tag">{{ item.taxonomie_referentiel }}</span>{% endif %}
       </div>
-    </div>
+    </article>
   {% empty %}
-    <div class="feed-empty">Aucune actualité{% if q %} pour « {{ q }} »{% endif %}.</div>
+    <div class="card">
+      <div class="card-empty" style="padding:52px 24px;">
+        <span class="empty-ico"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="1.5"/><path d="M7 9h6M7 12.5h10M7 16h10"/></svg></span>
+        {% if q %}
+          Aucune actualité pour « {{ q }} ».
+        {% else %}
+          La base est vide — aucune collecte n'a encore tourné.
+        {% endif %}
+      </div>
+    </div>
   {% endfor %}
-</div>
 </div>
 {% endblock %}

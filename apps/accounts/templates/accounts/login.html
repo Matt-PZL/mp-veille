@@ -1,26 +1,46 @@
 {% extends "base.html" %}
 {% block title %}Connexion{% endblock %}
-{% block content %}
-<div class="page" style="max-width:380px; margin:80px auto 0; background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:32px;">
-  <h1 class="section" style="margin:0 0 20px;">Connexion</h1>
-  <form method="post">
-    {% csrf_token %}
-    {% for field in form %}
-      <div style="margin-bottom:14px;">
-        <label style="display:block; font-size:11px; text-transform:uppercase; color:var(--text-faint); margin-bottom:4px;">{{ field.label }}</label>
-        {{ field }}
-        {% for error in field.errors %}<div style="color:#FF6B6B; font-size:11.5px; margin-top:4px;">{{ error }}</div>{% endfor %}
-      </div>
-    {% endfor %}
-    {% for error in form.non_field_errors %}<div style="color:#FF6B6B; font-size:11.5px; margin-bottom:12px;">{{ error }}</div>{% endfor %}
-    <button type="submit" style="width:100%; padding:9px; background:var(--accent); border:none; border-radius:5px; color:#fff; font-weight:600; cursor:pointer;">Se connecter</button>
-  </form>
-  <a href="{% url 'accounts:password_reset' %}" style="display:block; margin-top:14px; font-size:11.5px; color:var(--text-faint);">Mot de passe oublié ?</a>
-</div>
+{% block extra_head %}
 <style>
-  input[type=text], input[type=password]{
-    width:100%; padding:8px 10px; background:var(--bg); border:1px solid var(--border);
-    border-radius:5px; color:var(--text); font-family:inherit; font-size:13px;
+  .auth-wrap{ min-height:calc(100vh - 110px); display:flex; align-items:center; justify-content:center; }
+  .auth-card{
+    width:100%; max-width:400px; background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--r-lg); padding:34px 32px; box-shadow:var(--shadow-lg);
   }
+  .auth-brand{ display:flex; align-items:center; gap:11px; margin-bottom:8px; }
+  .auth-brand .mark{
+    width:32px; height:32px; border-radius:10px; background:var(--accent); color:var(--accent-ink);
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--display); font-weight:800; font-size:16px;
+  }
+  .auth-brand .nm{ font-family:var(--display); font-weight:700; font-size:17px; letter-spacing:-0.02em; }
+  .auth-sub{ color:var(--ink-faint); font-size:13px; margin-bottom:26px; }
+  .auth-card .btn{ width:100%; padding:10px; font-size:13.5px; margin-top:8px; }
+  .auth-err{ color:var(--crit); font-size:12.5px; margin-top:6px; font-weight:600; }
+  .auth-err.global{ margin:0 0 16px; }
+  .auth-foot{ display:block; margin-top:20px; font-size:12.5px; color:var(--ink-faint); text-align:center; }
+  .auth-foot:hover{ color:var(--ink-soft); }
 </style>
+{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-brand"><span class="mark">V</span><span class="nm">veille</span></div>
+    <p class="auth-sub">Veille cyber &amp; normative — connectez-vous pour continuer.</p>
+
+    <form method="post">
+      {% csrf_token %}
+      {% for error in form.non_field_errors %}<div class="auth-err global">{{ error }}</div>{% endfor %}
+      {% for field in form %}
+        <div class="f-field">
+          <label class="lbl" for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% for error in field.errors %}<div class="auth-err">{{ error }}</div>{% endfor %}
+        </div>
+      {% endfor %}
+      <button type="submit" class="btn primary">Se connecter</button>
+    </form>
+    <a class="auth-foot" href="{% url 'accounts:password_reset' %}">Mot de passe oublié ?</a>
+  </div>
+</div>
 {% endblock %}

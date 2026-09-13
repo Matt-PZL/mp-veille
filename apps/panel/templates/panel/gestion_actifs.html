@@ -3,171 +3,244 @@
 {% block nav_gestion_actifs %}active{% endblock %}
 {% block extra_head %}
 <style>
-  .layout{ display:grid; grid-template-columns:1fr 280px; gap:20px; align-items:start; }
-  @media (max-width:900px){ .layout{ grid-template-columns:1fr; } }
+  /* .card, .chip, .kpi*, .modal-*, .combo-*, .btn*, .seg, .messages
+     et les champs de formulaire viennent de base.html */
 
-  .stat-tiles{ display:flex; gap:12px; flex-wrap:wrap; }
-  .stat-tile{ background:var(--surface-2); border:1px solid var(--border); border-top:3px solid var(--accent); border-radius:8px; padding:14px 20px; min-width:130px; }
-  .stat-tile.tech{ border-top-color:var(--info); }
-  .stat-tile.norm{ border-top-color:var(--violet); }
-  .stat-num{ font-size:26px; font-weight:700; font-family:var(--font-mono); line-height:1.1; }
-  .stat-lbl{ font-size:10.5px; color:var(--text-muted); margin-top:6px; text-transform:uppercase; letter-spacing:0.04em; font-weight:600; }
+  .act-layout{ display:grid; grid-template-columns:1fr 300px; gap:18px; align-items:start; }
+  @media (max-width:1100px){ .act-layout{ grid-template-columns:1fr; } }
 
-  .toolbar-actions{ display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
-  .toolbar-actions button{ display:flex; align-items:center; gap:6px; font-size:12px; font-weight:600; padding:8px 14px; border-radius:6px; border:1px solid var(--border); background:var(--surface-2); color:var(--text-muted); cursor:pointer; font-family:inherit; }
-  .toolbar-actions button:hover{ color:var(--text); border-color:var(--text-faint); }
-  .toolbar-actions button.primary{ background:var(--accent); border-color:var(--accent); color:var(--accent-fg); }
-  .toolbar-actions button svg{ width:13px; height:13px; stroke:currentColor; stroke-width:2; fill:none; }
+  .toolbar{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:14px; }
+  .toolbar input[type=text]{ flex:1; min-width:190px; max-width:300px; font-size:12.5px; }
+  .toolbar .grow{ flex:1; }
 
-  .filters-row{ display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; align-items:center; }
-  .filters-row input[type=text]{ flex:1; min-width:160px; max-width:280px; padding:7px 10px; background:var(--surface-2); border:1px solid var(--border); border-radius:6px; color:var(--text); font-family:inherit; font-size:12px; }
-  .filters-row a{ font-size:11.5px; font-weight:600; padding:6px 12px; border-radius:6px; border:1px solid var(--border); color:var(--text-muted); text-decoration:none; }
-  .filters-row a.active{ border-color:var(--accent); color:var(--accent); background:var(--accent-dim); }
-
-  .actif-table{ background:var(--surface-2); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
-  .at-row{ display:flex; align-items:center; gap:12px; padding:12px 16px; border-bottom:1px solid var(--border); font-size:12.5px; }
+  /* ---- Liste des actifs ---- */
+  .at-row{ display:flex; align-items:center; gap:14px; padding:13px 18px; border-bottom:1px solid var(--border); font-size:13px; }
   .at-row:last-child{ border-bottom:none; }
-  .at-tag{ font-size:10px; text-transform:uppercase; color:var(--text-faint); font-family:var(--font-mono); width:64px; flex-shrink:0; }
-  .at-name{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .at-name .ver{ color:var(--text-faint); font-size:11px; margin-left:6px; }
-  .at-non-couvert{ font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; padding:2px 8px; border-radius:4px; background:none; border:1.5px dashed var(--warn); color:var(--warn); flex-shrink:0; cursor:help; }
+  .at-row:hover{ background:var(--surface-2); }
+  .at-tag{
+    font-family:var(--mono); font-size:9.5px; text-transform:uppercase; letter-spacing:0.09em; font-weight:600;
+    padding:2.5px 8px; border-radius:var(--r-xs); width:80px; text-align:center; flex-shrink:0;
+  }
+  .at-tag.technique{ background:var(--accent-soft); color:var(--accent); }
+  .at-tag.normatif{ background:var(--violet-soft); color:var(--violet); }
+  .at-name{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:500; }
+  .at-name .ver{ color:var(--ink-faint); font-size:11.5px; margin-left:8px; font-weight:400; }
+  .at-warn{
+    font-family:var(--mono); font-size:9.5px; font-weight:600; text-transform:uppercase; letter-spacing:0.07em;
+    padding:2.5px 9px; border-radius:var(--r-xs); background:var(--gold-soft);
+    border:1px solid var(--gold); color:var(--gold); flex-shrink:0; cursor:help;
+  }
   .at-actions{ display:flex; gap:6px; flex-shrink:0; }
-  .at-actions button{ display:flex; align-items:center; gap:5px; font-size:11px; font-weight:600; padding:5px 10px; border-radius:5px; border:1px solid var(--border); background:none; color:var(--text-muted); cursor:pointer; font-family:inherit; }
-  .at-actions button:hover{ color:var(--text); border-color:var(--text-faint); }
-  .at-actions button svg{ width:11px; height:11px; stroke:currentColor; stroke-width:2.3; fill:none; flex-shrink:0; }
-  .empty{ padding:32px 16px; text-align:center; color:var(--text-faint); font-size:12.5px; }
+  .at-actions .btn{ padding:5px 11px; font-size:11.5px; background:none; }
+  .at-actions .btn svg{ width:11px; height:11px; }
 
-  .card{ background:var(--surface-2); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
-  .col-right .card-head{ padding:12px 14px; font-size:13px; font-weight:600; border-bottom:1px solid var(--border); }
-  .hist-row{ padding:10px 14px; border-bottom:1px solid var(--border); font-size:12px; }
+  /* ---- Historique ---- */
+  .hist-row{ padding:11px 16px; border-bottom:1px solid var(--border); font-size:12.5px; }
   .hist-row:last-child{ border-bottom:none; }
-  .hist-when{ color:var(--text-faint); font-size:10.5px; margin-bottom:3px; }
-  .hist-tag{ font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; padding:1px 6px; border-radius:4px; margin-right:6px; }
-  .hist-tag.ajout{ background:rgba(0,224,3,0.15); color:#00E003; }
-  .hist-tag.version{ background:rgba(29,78,216,0.15); color:var(--info); }
-  .hist-tag.suppression_conserve, .hist-tag.suppression_purge{ background:rgba(248,81,73,0.15); color:var(--danger); }
-  .hist-name{ color:var(--text); }
-  .hist-detail{ color:var(--text-muted); font-size:11px; margin-top:3px; }
+  .hist-when{ font-family:var(--mono); font-size:11px; color:var(--ink-faint); margin-bottom:5px; }
+  .hist-tag{
+    display:inline-flex; font-family:var(--mono); font-size:9.5px; font-weight:600; text-transform:uppercase;
+    letter-spacing:0.07em; padding:2px 7px; border-radius:var(--r-xs); margin-right:7px;
+  }
+  .hist-tag.ajout{ background:var(--faib-soft); color:var(--faib); }
+  .hist-tag.version{ background:var(--accent-soft); color:var(--accent); }
+  .hist-tag.suppression_conserve, .hist-tag.suppression_purge{ background:var(--crit-soft); color:var(--crit); }
+  .hist-detail{ color:var(--ink-soft); font-size:11.5px; margin-top:4px; line-height:1.5; }
 
-  /* ---- Modales ---- */
-  .modal-overlay{ position:fixed; inset:0; background:rgba(1,4,9,0.7); z-index:90; display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity .12s ease; }
-  .modal-overlay.open{ opacity:1; pointer-events:auto; }
-  .modal-box{ background:var(--surface-2); border:1px solid var(--border); border-radius:8px; padding:20px 22px; width:100%; max-width:440px; margin:20px; position:relative; box-shadow:0 20px 60px rgba(0,0,0,0.6); transform:translateY(-8px) scale(0.98); transition:transform .14s ease; }
-  .modal-overlay.open .modal-box{ transform:translateY(0) scale(1); }
-  .modal-box h2{ font-size:13px; font-weight:700; margin-bottom:16px; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-muted); }
-  .modal-close{ position:absolute; top:14px; right:14px; width:28px; height:28px; display:flex; align-items:center; justify-content:center; border-radius:7px; background:none; border:none; color:var(--text-muted); cursor:pointer; }
-  .modal-close:hover{ background:rgba(255,255,255,0.06); color:var(--text); }
-  .f-field{ margin-bottom:14px; }
-  .f-field .lbl{ display:block; font-size:10px; text-transform:uppercase; color:var(--text-faint); margin-bottom:5px; font-weight:600; }
-  .f-field input[type=text]{ width:100%; padding:8px 10px; background:var(--bg); border:1px solid var(--border); border-radius:5px; color:var(--text); font-family:inherit; font-size:12.5px; }
-  .btn-primary{ padding:8px 16px; background:var(--accent); border:none; border-radius:5px; color:#fff; font-weight:600; font-size:12.5px; cursor:pointer; font-family:inherit; }
-  .mode-toggle{ display:flex; gap:8px; margin-bottom:14px; }
-  .mode-toggle label{ flex:1; text-align:center; padding:8px; border:1.5px solid var(--border); border-radius:6px; font-size:12px; font-weight:600; color:var(--text-muted); cursor:pointer; }
-  .mode-toggle input{ display:none; }
-  .mode-toggle input:checked + label{ border-color:var(--danger); background:rgba(248,81,73,0.12); color:var(--text); }
-  .messages{ margin-bottom:16px; }
-  .messages li{ list-style:none; background:var(--accent-dim); border:1px solid var(--accent); color:var(--accent); padding:8px 12px; border-radius:5px; font-size:12px; }
+  /* ---- Aide contextuelle ---- */
+  .tip{
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg);
+    padding:16px 18px; font-size:12.5px; color:var(--ink-soft); line-height:1.6;
+  }
+  .tip b{ color:var(--ink); display:block; font-size:13.5px; margin-bottom:6px; }
+  .tip ul{ margin:8px 0 0; padding-left:17px; }
+  .tip li{ margin-bottom:5px; }
 
-  /* ---- Combobox recherche (Monter en version / Supprimer) ---- */
-  .combo{ position:relative; }
-  .combo-list{ position:absolute; top:calc(100% + 4px); left:0; right:0; max-height:200px; overflow-y:auto; background:var(--bg); border:1px solid var(--border); border-radius:6px; box-shadow:0 8px 24px rgba(0,0,0,0.5); z-index:60; }
-  .combo-opt{ padding:8px 10px; font-size:12.5px; color:var(--text-muted); cursor:pointer; }
-  .combo-opt:hover{ background:rgba(255,255,255,0.06); color:var(--text); }
-  .combo-opt[hidden]{ display:none; }
-  .combo-empty{ padding:8px 10px; font-size:12px; color:var(--text-faint); }
-
-  .add-row{ display:flex; gap:10px; margin-bottom:10px; }
-  .add-row.type-toggle{ gap:6px; }
+  /* ---- Formulaires des modales ---- */
+  .add-row{ display:flex; gap:12px; margin-bottom:14px; }
+  .add-row > div{ min-width:0; flex:1; }
+  .add-row.type-toggle{ gap:7px; }
   .type-radio{ flex:1; }
   .type-radio input{ display:none; }
-  .type-radio label{ display:block; text-align:center; padding:7px; border:1px solid var(--border); border-radius:5px; font-size:12px; color:var(--text-muted); cursor:pointer; }
-  .type-radio input:checked + label{ border-color:var(--accent); color:var(--accent); background:var(--accent-dim); }
-  .modal-box .lbl{ font-size:10px; text-transform:uppercase; color:var(--text-faint); margin-bottom:4px; display:block; }
+  .type-radio label{
+    display:block; text-align:center; padding:8px; border:1px solid var(--border); border-radius:var(--r-sm);
+    font-size:12.5px; font-weight:600; color:var(--ink-soft); cursor:pointer; background:var(--surface-2);
+  }
+  .type-radio label:hover{ border-color:var(--border-strong); color:var(--ink); }
+  .type-radio input:checked + label{ border-color:var(--accent); color:var(--accent); background:var(--accent-soft); }
+  .modal-box input[type=text], .modal-box select{ width:100%; }
   .fields-technique, .fields-normatif{ display:none; }
   .fields-technique.show, .fields-normatif.show{ display:flex; }
-  .add-row-sep{ text-align:center; font-size:10.5px; color:var(--text-faint); margin:2px 0 10px; }
-  .combo-opt b{ color:var(--text); font-weight:600; }
-  .combo-opt .combo-sub{ color:var(--text-faint); }
-  .modal-box input[type=text]{ flex:1; padding:8px 10px; background:var(--bg); border:1px solid var(--border); border-radius:5px; color:var(--text); font-family:inherit; font-size:12.5px; min-width:0; }
-  .modal-box select{
-    flex:1; min-width:0; padding:8px 30px 8px 10px; background-color:var(--bg); color:var(--text);
-    border:1px solid var(--border); border-radius:5px; font-family:inherit; font-size:12.5px;
-    appearance:none; -webkit-appearance:none; -moz-appearance:none;
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239BA4AF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-    background-repeat:no-repeat; background-position:right 8px center; background-size:14px;
+  .add-row-sep{
+    display:flex; align-items:center; gap:12px; text-align:center; font-size:11px;
+    color:var(--ink-faint); margin:4px 0 14px;
   }
-  .modal-box select:disabled{ color:var(--text-faint); cursor:not-allowed; }
+  .add-row-sep::before, .add-row-sep::after{ content:''; flex:1; height:1px; background:var(--border); }
+
+  /* Le choix « purger » est destructif : marqué en rouge, pas en accent. */
+  .mode-toggle{ display:flex; gap:8px; margin-bottom:18px; }
+  .mode-toggle > input{ display:none; }
+  .mode-toggle label{
+    flex:1; text-align:center; padding:9px; border:1px solid var(--border); border-radius:var(--r-sm);
+    font-size:12.5px; font-weight:600; color:var(--ink-soft); cursor:pointer; background:var(--surface-2);
+  }
+  .mode-toggle label:hover{ border-color:var(--border-strong); color:var(--ink); }
+  .mode-toggle input:checked + label{ border-color:var(--crit); background:var(--crit-soft); color:var(--ink); }
 </style>
 {% endblock %}
 {% block content %}
-<div class="page" style="max-width:1080px;">
-{% if messages %}<ul class="messages">{% for m in messages %}<li>{{ m }}</li>{% endfor %}</ul>{% endif %}
 
-<div class="page-header">
-  <h1 class="page-title">Gestion des actifs</h1>
-  <div class="stat-tiles">
-    <div class="stat-tile"><div class="stat-num">{{ total }}</div><div class="stat-lbl">Total actifs</div></div>
-    <div class="stat-tile tech"><div class="stat-num">{{ nb_technique }}</div><div class="stat-lbl">Technique</div></div>
-    <div class="stat-tile norm"><div class="stat-num">{{ nb_normatif }}</div><div class="stat-lbl">Normatif</div></div>
-    <div class="stat-tile warn"><div class="stat-num">{{ nb_non_couverts }}</div><div class="stat-lbl">Non couverts</div></div>
+{% if messages %}
+<ul class="messages">
+  {% for m in messages %}
+    <li><svg class="ico" viewBox="0 0 24 24" style="color:var(--accent)"><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/></svg>{{ m }}</li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Gestion des actifs</h1>
+    <p class="sub">Votre inventaire pilote toute la veille : rien n'est remonté sur un actif non déclaré.</p>
+  </div>
+  <div class="head-actions">
+    <a class="btn" href="{% url 'panel:exporter_actifs_csv' %}">
+      <svg viewBox="0 0 24 24"><path d="M12 5v14M5 14l7 7 7-7"/></svg>Exporter
+    </a>
+    <button type="button" class="btn primary" onclick="openAddActif()">
+      <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Ajouter un actif
+    </button>
   </div>
 </div>
 
-<div class="layout">
-  <div class="col-main">
-    <div class="toolbar-actions">
-      <button type="button" class="primary" onclick="openAddActif()"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Ajouter</button>
-      <button type="button" onclick="openVersionModal()"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>Monter en version</button>
-      <button type="button" onclick="openDeleteModal()"><svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>Supprimer</button>
-      <a href="{% url 'panel:exporter_actifs_csv' %}" style="display:flex; align-items:center; gap:6px; font-size:12px; font-weight:600; padding:8px 14px; border-radius:6px; border:1px solid var(--border); background:var(--surface-2); color:var(--text-muted); text-decoration:none;">
-        <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;stroke-width:2;fill:none;"><path d="M12 5v14M5 14l7 7 7-7"/></svg>Exporter
-      </a>
+<div class="kpis">
+  <div class="kpi">
+    <div class="kpi-top">
+      <span class="kpi-ico"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="10" height="18" rx="1"/><rect x="14" y="9" width="6" height="12" rx="1"/></svg></span>
+      <span class="kpi-lbl">Total</span>
+    </div>
+    <div class="kpi-val tabular">{{ total }}</div>
+    <div class="kpi-foot">Actifs et référentiels</div>
+  </div>
+  <div class="kpi n">
+    <div class="kpi-top">
+      <span class="kpi-ico"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="14" rx="2"/><path d="M8 21h8M12 18v3"/></svg></span>
+      <span class="kpi-lbl">Technique</span>
+    </div>
+    <div class="kpi-val tabular">{{ nb_technique }}</div>
+    <div class="kpi-foot">Produits exploités</div>
+  </div>
+  <div class="kpi v">
+    <div class="kpi-top">
+      <span class="kpi-ico"><svg viewBox="0 0 24 24"><path d="M4 19V5a2 2 0 0 1 2-2h11l3 3v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/></svg></span>
+      <span class="kpi-lbl">Normatif</span>
+    </div>
+    <div class="kpi-val tabular">{{ nb_normatif }}</div>
+    <div class="kpi-foot">Référentiels suivis</div>
+  </div>
+  <div class="kpi r">
+    <div class="kpi-top">
+      <span class="kpi-ico"><svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9L2.4 17a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg></span>
+      <span class="kpi-lbl">Non couverts</span>
+    </div>
+    <div class="kpi-val tabular">{{ nb_non_couverts }}</div>
+    <div class="kpi-foot">Aucune source ne les suit</div>
+  </div>
+</div>
+
+<div class="act-layout">
+  <div>
+    <div class="toolbar">
+      <form method="get" style="display:contents;">
+        <input type="text" name="q" value="{{ q }}" placeholder="Rechercher un actif…" onchange="this.form.submit()">
+      </form>
+      <a href="?q={{ q }}" class="chip {% if not type_filtre %}active{% endif %}">Tous</a>
+      <a href="?q={{ q }}&type=technique" class="chip {% if type_filtre == 'technique' %}active{% endif %}">Technique</a>
+      <a href="?q={{ q }}&type=normatif" class="chip {% if type_filtre == 'normatif' %}active{% endif %}">Normatif</a>
+      <span class="grow"></span>
+      <button type="button" class="btn" onclick="openVersionModal()">
+        <svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>Monter en version
+      </button>
+      <button type="button" class="btn" onclick="openDeleteModal()">
+        <svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>Supprimer
+      </button>
     </div>
 
-    <form class="filters-row" method="get">
-      <input type="text" name="q" value="{{ q }}" placeholder="Rechercher un actif…" onchange="this.form.submit()">
-      <a href="?q={{ q }}" class="{% if not type_filtre %}active{% endif %}">Tous</a>
-      <a href="?q={{ q }}&type=technique" class="{% if type_filtre == 'technique' %}active{% endif %}">Technique</a>
-      <a href="?q={{ q }}&type=normatif" class="{% if type_filtre == 'normatif' %}active{% endif %}">Normatif</a>
-    </form>
-
-    <div class="actif-table">
+    <div class="card">
       {% for actif in actifs %}
         <div class="at-row">
-          <span class="at-tag">{{ actif.type }}</span>
+          <span class="at-tag {{ actif.type }}">{{ actif.type }}</span>
           <span class="at-name">{{ actif }}{% if actif.version %}<span class="ver mono">{{ actif.version }}</span>{% endif %}</span>
           {% if actif.pk not in actifs_couverts_pks %}
-            <span class="at-non-couvert" title="Aucune source de renseignements ne couvre pour l'instant cet {% if actif.type == 'technique' %}éditeur/produit{% else %}référentiel{% endif %} — ce n'est pas une garantie d'absence de vulnérabilité, seulement une absence de collecte.">Non couvert</span>
+            <span class="at-warn" title="Aucune source de renseignements ne couvre pour l'instant cet {% if actif.type == 'technique' %}éditeur/produit{% else %}référentiel{% endif %} — ce n'est pas une garantie d'absence de vulnérabilité, seulement une absence de collecte.">Non couvert</span>
           {% endif %}
           <div class="at-actions">
             {% if actif.type == 'technique' %}
-              <button type="button" onclick="openVersionModal({{ actif.pk }}, '{{ actif|escapejs }}', '{{ actif.version|escapejs }}', '{{ actif.produit|escapejs }}')"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>Monter en version</button>
+              <button type="button" class="btn" onclick="openVersionModal({{ actif.pk }}, '{{ actif|escapejs }}', '{{ actif.version|escapejs }}', '{{ actif.produit|escapejs }}')">
+                <svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>Version
+              </button>
             {% endif %}
-            <button type="button" onclick="openDeleteModal({{ actif.pk }}, '{{ actif|escapejs }}')"><svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>Supprimer</button>
+            <button type="button" class="btn" onclick="openDeleteModal({{ actif.pk }}, '{{ actif|escapejs }}')">
+              <svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>Retirer
+            </button>
           </div>
         </div>
       {% empty %}
-        <div class="empty">Aucun actif ne correspond à ces critères.</div>
+        <div class="empty" style="padding:56px 24px;">
+          <span class="empty-ico"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="10" height="18" rx="1"/><rect x="14" y="9" width="6" height="12" rx="1"/></svg></span>
+          <div>
+            {% if q or type_filtre %}
+              Aucun actif ne correspond à ces critères.
+            {% else %}
+              Votre inventaire est vide.<br>
+              Commencez par déclarer un produit que vous exploitez — un pare-feu, un OS, une base de données.
+            {% endif %}
+          </div>
+          {% if not q and not type_filtre %}
+            <button type="button" class="btn primary" onclick="openAddActif()">
+              <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Déclarer mon premier actif
+            </button>
+          {% endif %}
+        </div>
       {% endfor %}
     </div>
   </div>
 
-  <div class="col-right card">
-    <div class="card-head">Historique</div>
-    {% for h in historique %}
-      <div class="hist-row">
-        <div class="hist-when">Il y a {{ h.horodatage|timesince }}</div>
-        <div><span class="hist-tag {{ h.evenement }}">{{ h.get_evenement_display }}</span><span class="hist-name">{{ h.actif_repr }}</span></div>
-        {% if h.detail %}<div class="hist-detail">{{ h.detail }}</div>{% endif %}
+  <aside style="display:flex; flex-direction:column; gap:14px;">
+    <div class="tip">
+      <b>Comment bien déclarer</b>
+      Un actif trop générique ne produit aucune veille exploitable.
+      <ul>
+        <li>Descendez au niveau <b style="display:inline;">produit</b> : « Palo Alto PAN-OS », pas « Pare-feu ».</li>
+        <li>Renseignez la <b style="display:inline;">version</b> quand vous la connaissez — elle sert au suivi des montées de version.</li>
+        <li>Un logiciel se déclare en <b style="display:inline;">technique</b>, jamais en normatif : le normatif, ce sont les référentiels (ISO, RGPD).</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <span class="dot" style="background:var(--ink-faint)"></span>
+        <h2>Historique</h2>
       </div>
-    {% empty %}
-      <div class="empty">Aucune modification pour le moment.</div>
-    {% endfor %}
-  </div>
-</div>
+      <div class="card-list">
+        {% for h in historique %}
+          <div class="hist-row">
+            <div class="hist-when">Il y a {{ h.horodatage|timesince }}</div>
+            <div><span class="hist-tag {{ h.evenement }}">{{ h.get_evenement_display }}</span>{{ h.actif_repr }}</div>
+            {% if h.detail %}<div class="hist-detail">{{ h.detail }}</div>{% endif %}
+          </div>
+        {% empty %}
+          <div class="card-empty">
+            <span class="empty-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+            Aucune modification pour le moment.
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </aside>
 </div>
 
-<!-- Popup Ajouter -->
+<!-- Ajouter -->
 <div class="modal-overlay" id="add-actif-overlay" onclick="if(event.target===this) closeModal('add-actif-overlay')">
   <div class="modal-box">
     <button type="button" class="modal-close" onclick="closeModal('add-actif-overlay')"><svg class="ico" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
@@ -175,7 +248,7 @@
   </div>
 </div>
 
-<!-- Popup Monter en version -->
+<!-- Monter en version -->
 <div class="modal-overlay" id="version-overlay" onclick="if(event.target===this) closeModal('version-overlay')">
   <div class="modal-box">
     <button type="button" class="modal-close" onclick="closeModal('version-overlay')"><svg class="ico" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
@@ -199,18 +272,18 @@
         <select id="version-select" onchange="onVersionSelectChange()" disabled>
           <option value="">— Choisir un actif d'abord —</option>
         </select>
-        <input type="text" id="version-input-libre" placeholder="Saisir la version" style="display:none; margin-top:6px;">
+        <input type="text" id="version-input-libre" placeholder="Saisir la version" style="display:none; margin-top:8px;">
       </div>
-      <button type="submit" class="btn-primary">Enregistrer</button>
+      <button type="submit" class="btn primary">Enregistrer</button>
     </form>
   </div>
 </div>
 
-<!-- Popup Supprimer -->
+<!-- Supprimer -->
 <div class="modal-overlay" id="delete-overlay" onclick="if(event.target===this) closeModal('delete-overlay')">
   <div class="modal-box">
     <button type="button" class="modal-close" onclick="closeModal('delete-overlay')"><svg class="ico" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-    <h2>Supprimer un actif</h2>
+    <h2>Retirer un actif</h2>
     <form method="post" id="delete-form">
       {% csrf_token %}
       <input type="hidden" name="next" value="{{ request.get_full_path }}">
@@ -229,7 +302,7 @@
         <input type="radio" name="mode" value="conserver" id="mode-conserver" checked><label for="mode-conserver">Conserver l'historique</label>
         <input type="radio" name="mode" value="purger" id="mode-purger"><label for="mode-purger">Purger l'historique</label>
       </div>
-      <button type="submit" class="btn-primary" style="background:var(--danger);">Supprimer</button>
+      <button type="submit" class="btn primary danger">Retirer</button>
     </form>
   </div>
 </div>

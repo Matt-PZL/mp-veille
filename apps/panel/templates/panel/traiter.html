@@ -3,77 +3,90 @@
 {% block nav_renseignements %}active{% endblock %}
 {% block extra_head %}
 <style>
-  .wrap-narrow{ max-width:640px; margin:0 auto; }
-  .back-link{ display:inline-flex; align-items:center; gap:6px; color:var(--text-muted); text-decoration:none; font-size:12.5px; margin-bottom:18px; }
-  .back-link:hover{ color:var(--text); }
+  /* .card, .nature-tag, .sev, .btn*, .f-field, .lbl et les champs
+     de formulaire viennent de base.html */
 
-  .r-summary{ background:var(--surface-2); border:1px solid var(--border); border-radius:8px; padding:16px 18px; margin-bottom:20px; }
-  .r-summary .top{ display:flex; align-items:center; gap:8px; margin-bottom:6px; }
-  .r-dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; }
-  .r-dot.critique{ background:var(--sev-critique); } .r-dot.elevee{ background:var(--sev-elevee); }
-  .r-dot.moyenne{ background:var(--sev-moyenne); } .r-dot.faible{ background:var(--sev-faible); }
-  .r-summary h1{ font-size:15px; font-weight:700; }
-  .r-summary p{ font-size:12.5px; color:var(--text-muted); line-height:1.55; margin-top:6px; }
-  .r-summary .meta{ font-size:11px; color:var(--text-faint); margin-top:8px; font-family:var(--font-mono); }
-  .nature-tag{ font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; padding:2px 8px; border-radius:4px; font-family:var(--font-body); }
-  .nature-tag.vulnerabilite{ background:rgba(248,81,73,0.15); color:var(--danger); }
-  .nature-tag.correctif{ background:rgba(0,224,3,0.15); color:var(--good); }
-  .nature-tag.reglementaire{ background:rgba(163,113,247,0.15); color:var(--violet); }
-  .nature-tag.information{ background:rgba(255,255,255,0.08); color:var(--text-muted); }
+  .wrap{ max-width:720px; margin:0 auto; width:100%; }
+  .back{ display:inline-flex; align-items:center; gap:7px; color:var(--ink-soft); font-size:13px; margin-bottom:18px; }
+  .back:hover{ color:var(--ink); }
+  .back svg{ width:14px; height:14px; stroke:currentColor; stroke-width:2.2; fill:none; stroke-linecap:round; stroke-linejoin:round; }
 
-  .statut-tabs{ display:flex; gap:6px; margin-bottom:20px; flex-wrap:wrap; }
-  .statut-tab{ flex:1; min-width:120px; }
-  .statut-tab input{ display:none; }
-  .statut-tab label{ display:block; text-align:center; padding:10px 8px; border:1.5px solid var(--border); border-radius:7px; font-size:12.5px; font-weight:600; color:var(--text-muted); cursor:pointer; }
-  .statut-tab input:checked + label{ color:#fff; }
-  .statut-tab.a_traiter input:checked + label{ border-color:var(--st-attente); background:var(--st-attente); color:#1a1200; }
-  .statut-tab.en_cours input:checked + label{ border-color:var(--st-encours); background:var(--st-encours); }
-  .statut-tab.clos input:checked + label{ border-color:var(--st-clos); background:var(--st-clos); color:#E7E7E7; }
-  .statut-tab.non_applicable input:checked + label{ border-color:var(--st-na); background:var(--st-na); color:#04170F; }
-
-  .form-card{ background:var(--surface-2); border:1px solid var(--border); border-radius:8px; padding:20px; }
-  .f-field{ margin-bottom:18px; }
-  .f-field:last-child{ margin-bottom:0; }
-  .f-field .lbl{ display:block; font-size:11.5px; font-weight:600; color:var(--text); margin-bottom:6px; }
-  .f-field .lbl .req{ color:var(--sev-critique); margin-left:3px; }
-  .f-field .hint{ font-size:11px; color:var(--text-faint); margin-top:5px; }
-  .f-field .err{ font-size:11.5px; color:var(--sev-critique); margin-top:6px; font-weight:600; }
-  .f-field textarea, .f-field input[type=date], .f-field input[type=file]{
-    width:100%; padding:9px 11px; background:var(--bg); border:1px solid var(--border); border-radius:6px;
-    color:var(--text); font-family:inherit; font-size:12.5px;
+  .summary{
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg);
+    padding:20px 22px; margin-bottom:20px; box-shadow:var(--shadow); position:relative; overflow:hidden;
   }
-  .f-field textarea{ resize:vertical; min-height:80px; }
+  .summary::before{ content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--faib); }
+  .summary.critique::before{ background:var(--crit); }
+  .summary.elevee::before{ background:var(--elev); }
+  .summary.moyenne::before{ background:var(--moy); }
+  .summary .top{ display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+  .summary h1{ font-family:var(--display); font-size:17px; font-weight:700; letter-spacing:-0.015em; line-height:1.4; }
+  .summary p{ font-size:13px; color:var(--ink-soft); line-height:1.7; }
+  .summary .meta{
+    display:flex; align-items:center; gap:9px; flex-wrap:wrap; font-family:var(--mono);
+    font-size:11.5px; color:var(--ink-faint); margin-top:14px; padding-top:14px; border-top:1px solid var(--border);
+  }
+
+  .statut-tabs{ display:flex; gap:7px; margin-bottom:20px; flex-wrap:wrap; }
+  .statut-tab{ flex:1; min-width:130px; }
+  .statut-tab input{ display:none; }
+  .statut-tab label{
+    display:block; text-align:center; padding:11px 8px; border:1px solid var(--border);
+    border-radius:var(--r-sm); font-size:13px; font-weight:600; color:var(--ink-soft);
+    cursor:pointer; background:var(--surface-2);
+  }
+  .statut-tab label:hover{ border-color:var(--border-strong); color:var(--ink); }
+  .statut-tab.a_traiter input:checked + label{ border-color:var(--gold); background:var(--gold); color:#1A1200; }
+  .statut-tab.en_cours input:checked + label{ border-color:var(--accent); background:var(--accent); color:var(--accent-ink); }
+  .statut-tab.clos input:checked + label{ border-color:var(--faib); background:var(--faib); color:#04170A; }
+  .statut-tab.non_applicable input:checked + label{ border-color:var(--ink-faint); background:var(--ink-faint); color:var(--bg); }
+
+  .form-card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg); padding:22px; box-shadow:var(--shadow); }
+  /* Formulaire principal : libelles lisibles plutot que les micro-labels
+     capitales utilises dans les modales et les colonnes laterales. */
+  .form-card .f-field .lbl{ font-size:13px; font-weight:600; color:var(--ink); text-transform:none; letter-spacing:0; margin-bottom:7px; }
+  .form-card .f-field{ margin-bottom:20px; }
+
   .cab-toggle{ display:flex; gap:8px; }
-  .cab-toggle label{ flex:1; text-align:center; padding:8px; border:1.5px solid var(--border); border-radius:6px; font-size:12px; font-weight:600; color:var(--text-muted); cursor:pointer; }
   .cab-toggle input{ display:none; }
-  .cab-toggle input:checked + label{ border-color:var(--accent); background:var(--accent-dim); color:var(--text); }
-  .existing-file{ font-size:11.5px; color:var(--text-muted); margin-bottom:8px; }
+  .cab-toggle label{
+    flex:1; text-align:center; padding:9px; border:1px solid var(--border); border-radius:var(--r-sm);
+    font-size:12.5px; font-weight:600; color:var(--ink-soft); cursor:pointer; background:var(--surface-2);
+  }
+  .cab-toggle label:hover{ border-color:var(--border-strong); color:var(--ink); }
+  .cab-toggle input:checked + label{ border-color:var(--accent); background:var(--accent-soft); color:var(--accent); }
+
+  .existing-file{ font-size:12.5px; color:var(--ink-soft); margin-bottom:9px; }
   .existing-file a{ color:var(--accent); }
-
   .section-group[hidden]{ display:none; }
-  .btn-submit{ padding:10px 20px; background:var(--accent); border:none; border-radius:7px; color:#fff; font-weight:600; font-size:13px; cursor:pointer; font-family:inherit; margin-top:6px; }
 
-  .historique{ margin-top:20px; }
-  .historique h2{ font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-faint); margin-bottom:10px; font-weight:600; }
-  .hist-row{ font-size:12px; color:var(--text-muted); padding:6px 0; border-bottom:1px solid var(--border); }
-  .hist-row:last-child{ border-bottom:none; }
-  .hist-row b{ color:var(--text); }
+  .histo{ margin-top:20px; }
+  .histo-row{ display:flex; align-items:center; gap:12px; font-size:12.5px; color:var(--ink-soft); padding:10px 16px; border-bottom:1px solid var(--border); }
+  .histo-row:last-child{ border-bottom:none; }
+  .histo-row b{ color:var(--ink); font-weight:600; }
+  .histo-row .when{ margin-left:auto; font-family:var(--mono); font-size:11.5px; color:var(--ink-faint); }
 </style>
 {% endblock %}
 {% block content %}
-<div class="wrap-narrow">
-  <a class="back-link" href="{{ next|default:request.path|default:'/renseignements/' }}">← Retour</a>
+<div class="wrap">
+  <a class="back" href="{{ next|default:'/renseignements/' }}">
+    <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>Retour
+  </a>
 
-  <div class="r-summary">
+  <div class="summary {{ renseignement.criticite }}">
     <div class="top">
-      <span class="r-dot {{ renseignement.criticite }}"></span>
+      <span class="sev {{ renseignement.criticite }}"></span>
       <h1>{{ renseignement.reference_courte|default:renseignement.source }} — {{ renseignement.titre }}</h1>
     </div>
     <p>{{ renseignement.description }}</p>
     <div class="meta">
-      {% if renseignement.url_source %}<a href="{{ renseignement.url_source }}" target="_blank" rel="noopener" style="color:var(--accent);">{{ renseignement.source }} — vérifier l'article ↗</a>{% else %}{{ renseignement.source }}{% endif %}
-      · découvert le {{ renseignement.decouvert_le|date:"d/m/Y H:i" }}{% if renseignement.cvss_score %} · CVSS {{ renseignement.cvss_score|floatformat:1 }}{% endif %}
-      {% if renseignement.get_nature_display %} · <span class="nature-tag {{ renseignement.nature }}">{{ renseignement.get_nature_display }}</span>{% endif %}
+      {% if renseignement.url_source %}
+        <a class="source-link" href="{{ renseignement.url_source }}" target="_blank" rel="noopener">{{ renseignement.source }} — vérifier l'article ↗</a>
+      {% else %}{{ renseignement.source }}{% endif %}
+      <span>·</span>
+      <span>{{ renseignement.decouvert_le|date:"d/m/Y H:i" }}</span>
+      {% if renseignement.cvss_score %}<span>·</span><span>CVSS {{ renseignement.cvss_score|floatformat:1 }}</span>{% endif %}
+      {% if renseignement.get_nature_display %}<span class="nature-tag {{ renseignement.nature }}">{{ renseignement.get_nature_display }}</span>{% endif %}
     </div>
   </div>
 
@@ -82,7 +95,6 @@
     <input type="hidden" name="next" value="{{ next }}">
 
     <div class="statut-tabs">
-      {% with statut_actuel=statut_soumis|default:t.statut|default:"a_traiter" %}
       <div class="statut-tab a_traiter">
         <input type="radio" name="statut" value="a_traiter" id="st-a_traiter" onchange="onStatutChange()" {% if statut_actuel == 'a_traiter' %}checked{% endif %}>
         <label for="st-a_traiter">À traiter</label>
@@ -99,12 +111,10 @@
         <input type="radio" name="statut" value="non_applicable" id="st-na" onchange="onStatutChange()" {% if statut_actuel == 'non_applicable' %}checked{% endif %}>
         <label for="st-na">Non applicable</label>
       </div>
-      {% endwith %}
     </div>
     {% if erreurs.statut %}<div class="f-field"><div class="err">{{ erreurs.statut }}</div></div>{% endif %}
 
     <div class="form-card">
-
       <div class="section-group" data-for="en_cours">
         <div class="f-field">
           <label class="lbl">Plan d'action<span class="req">*</span></label>
@@ -139,16 +149,25 @@
         </div>
       </div>
 
-      <button type="submit" class="btn-submit">Enregistrer</button>
+      <button type="submit" class="btn primary btn-submit">Enregistrer</button>
     </div>
   </form>
 
   {% if t.historique.all %}
-  <div class="historique">
-    <h2>Historique</h2>
-    {% for h in t.historique.all %}
-      <div class="hist-row"><b>{{ h.evenement }}</b> — {{ h.horodatage|date:"d/m/Y H:i" }}</div>
-    {% endfor %}
+  <div class="card histo">
+    <div class="card-head">
+      <span class="dot" style="background:var(--accent)"></span>
+      <h2>Historique</h2>
+    </div>
+    <div class="card-list">
+      {% for h in t.historique.all %}
+        <div class="histo-row">
+          <span class="sev faible"></span>
+          <b>{{ h.evenement }}</b>
+          <span class="when">{{ h.horodatage|date:"d/m/Y H:i" }}</span>
+        </div>
+      {% endfor %}
+    </div>
   </div>
   {% endif %}
 </div>

@@ -4,247 +4,229 @@
 {% block nav_renseignements %}active{% endblock %}
 {% block extra_head %}
 <style>
-  /* ---- Grille externe : sidebar Actifs a pleine hauteur (a cote du titre
-     aussi, pas seulement du feed) + colonne principale (en-tete + feed) ---- */
-  .layout-outer{ display:grid; grid-template-columns:260px 1fr; gap:20px; align-items:stretch; }
-  @media (max-width:820px){ .layout-outer{ grid-template-columns:1fr; } .col-left{ display:none; } }
-  .col-main{ min-width:0; }
+  /* .side, .card, .chip, .stat*, .pill, .sev, .conf*, .modal-*, .combo-*,
+     .btn* et les champs de formulaire viennent de base.html */
 
-  .layout{ display:grid; grid-template-columns:1fr 280px; gap:20px; align-items:start; }
-  @media (max-width:1200px){ .layout{ grid-template-columns:1fr; } .col-right{ display:none; } }
+  /* Feed au centre, derniers traitements a droite — la colonne des actifs
+     occupe la zone laterale fournie par base.html. */
+  .rens-grid{ display:grid; grid-template-columns:1fr 296px; gap:18px; align-items:start; }
+  @media (max-width:1300px){ .rens-grid{ grid-template-columns:1fr; } .rens-right{ display:none; } }
 
-  .card{ background:var(--surface-2); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  /* ---- Colonne des actifs ---- */
+  .side-search{ margin-bottom:10px; }
+  .side-search input{ width:100%; font-size:12.5px; }
+  .side-filters{ display:flex; gap:5px; margin-bottom:6px; }
+  .side-filters .chip{ flex:1; justify-content:center; padding:5px 4px; font-size:11px; }
 
-  /* ---- Colonne Actifs (facon "Top repositories" GitHub) : pleine hauteur,
-     bleed jusqu'aux bords reels de .content (cf. base.html padding:32 32 72) ---- */
-  .col-left{
-    background:#010101; border-right:1px solid var(--border);
-    margin:-32px 0 -72px -32px; padding:24px 16px 40px 32px;
+  .asset{
+    display:flex; align-items:center; gap:9px; padding:9px 11px; border-radius:var(--r-sm);
+    color:var(--ink-soft); font-size:13px; position:relative;
   }
-  .col-left .card-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
-  .col-left .card-head h2{ font-size:15px; font-weight:700; }
-  .btn-add{ display:flex; align-items:center; gap:5px; font-size:11.5px; font-weight:700; padding:6px 12px; border-radius:6px; background:var(--accent); color:var(--accent-fg); border:none; cursor:pointer; text-decoration:none; }
-  .btn-add svg{ width:12px; height:12px; stroke:currentColor; stroke-width:2.8; fill:none; }
-
-  .actif-search{ margin-bottom:10px; }
-  .actif-search input{ width:100%; padding:7px 10px; background:var(--surface-2); border:1px solid var(--border); border-radius:6px; color:var(--text); font-family:inherit; font-size:12px; }
-
-  .actif-filters{ display:flex; flex-wrap:wrap; gap:5px; margin-bottom:16px; }
-  .actif-filters a{ flex:1 1 auto; min-width:0; text-align:center; padding:5px 6px; font-size:10.5px; font-weight:600; border:1px solid var(--border); border-radius:5px; color:var(--text-muted); text-decoration:none; white-space:nowrap; }
-  .actif-filters a.active{ border-color:var(--accent); color:var(--accent); background:var(--accent-dim); }
-
-  .actif-list{ border-top:1px solid var(--border); }
-  .actif-row{ display:flex; justify-content:space-between; align-items:center; padding:9px 2px; border-bottom:1px solid var(--border); color:var(--text-muted); text-decoration:none; font-size:12.5px; gap:8px; }
-  .actif-row:last-child{ border-bottom:none; }
-  .actif-row:hover{ background:rgba(255,255,255,0.03); color:var(--text); }
-  .actif-row.sel{ background:var(--accent-dim); color:var(--text); box-shadow:inset 2px 0 0 var(--accent); }
-  .actif-row .name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .actif-row .ver{ color:var(--text-faint); font-size:11px; margin-left:5px; }
-  .actif-badge{ background:var(--bg); color:var(--text-muted); font-size:10.5px; padding:1px 7px; border-radius:999px; font-family:var(--font-mono); flex-shrink:0; }
-  .actif-group{ margin-top:6px; border-radius:6px; overflow:hidden; }
-  .actif-group-label{
-    display:flex; align-items:center; gap:6px; font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:0.06em;
-    padding:6px 8px; margin-bottom:2px; border-radius:5px 5px 0 0;
+  .asset:hover{ background:var(--surface-2); color:var(--ink); }
+  .asset.on{ background:var(--accent-soft); color:var(--ink); font-weight:600; }
+  .asset.on::before{ content:''; position:absolute; left:0; top:7px; bottom:7px; width:3px; border-radius:0 3px 3px 0; background:var(--accent); }
+  .asset .nm{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .asset .ver{ color:var(--ink-faint); font-size:11.5px; margin-left:6px; font-weight:400; }
+  .asset .ct{
+    font-family:var(--mono); font-size:11px; background:var(--surface-3); color:var(--ink-faint);
+    padding:1px 7px; border-radius:var(--r-pill); flex-shrink:0;
   }
-  .actif-group-label.technique{ color:var(--info); background:rgba(29,78,216,0.12); }
-  .actif-group-label.normatif{ color:var(--violet); background:rgba(163,113,247,0.12); }
-  .actif-group-label .gdot{ width:6px; height:6px; border-radius:50%; }
-  .actif-group-label.technique .gdot{ background:var(--info); }
-  .actif-group-label.normatif .gdot{ background:var(--violet); }
+  .asset.on .ct{ background:var(--accent); color:var(--accent-ink); }
+  .asset.muted{ color:var(--ink-faint); font-style:italic; font-size:12px; cursor:default; }
+  .asset.muted:hover{ background:none; color:var(--ink-faint); }
+  .asset-group{
+    display:flex; align-items:center; gap:8px; padding:16px 11px 7px;
+    font-family:var(--mono); font-size:10px; text-transform:uppercase; letter-spacing:0.13em;
+    color:var(--ink-faint); font-weight:600;
+  }
+  .asset-group .gdot{ width:6px; height:6px; border-radius:50%; }
+  .asset-group.technique .gdot{ background:var(--accent); }
+  .asset-group.normatif .gdot{ background:var(--violet); }
+  .asset-group::after{ content:''; flex:1; height:1px; background:var(--border); }
 
-  /* ---- Popup d'ajout d'actif ---- */
-  .modal-overlay{ position:fixed; inset:0; background:rgba(1,4,9,0.7); z-index:90; display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity .12s ease; }
-  .modal-overlay.open{ opacity:1; pointer-events:auto; }
-  .modal-box{ background:var(--surface-2); border:1px solid var(--border); border-radius:8px; padding:20px 22px; width:100%; max-width:480px; margin:20px; position:relative; box-shadow:0 20px 60px rgba(0,0,0,0.6); transform:translateY(-8px) scale(0.98); transition:transform .14s ease; }
-  .modal-overlay.open .modal-box{ transform:translateY(0) scale(1); }
-  .modal-box h2{ font-size:13px; font-weight:700; margin-bottom:16px; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-muted); }
-  .modal-close{ position:absolute; top:14px; right:14px; width:28px; height:28px; display:flex; align-items:center; justify-content:center; border-radius:7px; background:none; border:none; color:var(--text-muted); cursor:pointer; }
-  .modal-close:hover{ background:rgba(255,255,255,0.06); color:var(--text); }
-  .add-row{ display:flex; gap:10px; margin-bottom:10px; }
-  .add-row.type-toggle{ gap:6px; }
+  /* ---- Filtres du feed ---- */
+  .filters{ display:flex; gap:7px; flex-wrap:wrap; align-items:center; }
+  .filters .sep{ flex:1; }
+  .feed-count{ display:flex; align-items:baseline; gap:9px; }
+  .feed-count .n{ font-family:var(--mono); font-size:19px; font-weight:600; letter-spacing:-0.03em; }
+  .feed-count .w{ color:var(--ink-soft); font-size:13px; }
+
+  /* ---- Cartes de renseignement ---- */
+  .rcard{
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg);
+    margin-bottom:11px; overflow:hidden; box-shadow:var(--shadow); position:relative;
+  }
+  .rcard::before{ content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--faib); }
+  .rcard.critique::before{ background:var(--crit); }
+  .rcard.elevee::before{ background:var(--elev); }
+  .rcard.moyenne::before{ background:var(--moy); }
+  .rcard.faible::before{ background:var(--faib); }
+  .rcard:hover{ border-color:var(--border-strong); }
+
+  .rcard-main{ padding:15px 18px 15px 21px; display:flex; flex-direction:column; gap:8px; cursor:pointer; }
+  .rcard-top{ display:flex; align-items:center; gap:11px; }
+  .rcard-title{ flex:1; min-width:0; font-size:14.5px; font-weight:600; letter-spacing:-0.01em; line-height:1.45; }
+  .badge-new{
+    font-family:var(--mono); font-size:9.5px; font-weight:600; text-transform:uppercase;
+    letter-spacing:0.09em; background:var(--accent); color:var(--accent-ink);
+    padding:2px 7px; border-radius:5px; flex-shrink:0;
+  }
+  .rcard-when{ font-family:var(--mono); font-size:11.5px; color:var(--ink-faint); flex-shrink:0; }
+  .rcard-desc{ font-size:13px; color:var(--ink-soft); line-height:1.6; }
+  .rcard-meta{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .rchev{ margin-left:auto; color:var(--ink-faint); display:flex; transition:transform .16s ease; }
+  .rchev svg{ width:14px; height:14px; stroke:currentColor; stroke-width:2.2; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+  .rchev.open{ transform:rotate(90deg); color:var(--accent); }
+
+  .rdetail{ display:none; border-top:1px solid var(--border); background:var(--surface-2); }
+  .rdetail.open{ display:block; }
+  .rdetail-inner{ padding:18px 18px 18px 21px; }
+  .rfield{ margin-bottom:16px; }
+  .rfield:last-child{ margin-bottom:0; }
+  .rfield .val{ font-size:13px; color:var(--ink-soft); line-height:1.6; }
+  .rside{ display:flex; gap:32px; flex-wrap:wrap; }
+  .rside .rfield{ flex:1; min-width:150px; }
+
+  .cvss-box{
+    display:flex; gap:14px; align-items:center; background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--r-md); padding:18px 22px; flex-wrap:wrap;
+  }
+  .cvss-score{ flex-shrink:0; text-align:center; padding-right:26px; border-right:1px solid var(--border); }
+  .cvss-score .n{ font-family:var(--mono); font-size:34px; font-weight:600; line-height:1; letter-spacing:-0.04em; }
+  .cvss-score .n.critique{ color:var(--crit); } .cvss-score .n.elevee{ color:var(--elev); }
+  .cvss-score .n.moyenne{ color:var(--moy); } .cvss-score .n.faible{ color:var(--faib); }
+  .cvss-score .v{ font-size:10px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:0.08em; margin-top:7px; font-weight:600; }
+  .cvss-radar text.lbl{ fill:var(--ink-faint); font-size:8.5px; font-family:var(--body); text-transform:uppercase; letter-spacing:0.04em; }
+  .cvss-radar text.val{ fill:var(--ink); font-size:9.5px; font-weight:600; font-family:var(--mono); }
+
+  /* ---- Derniers traitements ---- */
+  .rens-right{ position:sticky; top:122px; }
+  .dt-row{ display:block; padding:11px 16px; border-bottom:1px solid var(--border); color:var(--ink-soft); font-size:12.5px; }
+  .dt-row:last-child{ border-bottom:none; }
+  .dt-row:hover{ background:var(--surface-2); }
+  .dt-when{ font-family:var(--mono); font-size:11px; color:var(--ink-faint); margin-bottom:4px; }
+  .dt-line{ color:var(--ink); line-height:1.5; }
+  .dt-line .sv{ font-weight:600; }
+  .dt-line .sv.critique{ color:var(--crit); } .dt-line .sv.elevee{ color:var(--elev); }
+  .dt-line .sv.moyenne{ color:var(--moy); } .dt-line .sv.faible{ color:var(--faib); }
+
+  /* ---- Formulaire d'ajout dans la modale ---- */
+  .add-row{ display:flex; gap:12px; margin-bottom:14px; }
+  .add-row > div{ min-width:0; flex:1; }
+  .add-row.type-toggle{ gap:7px; }
   .type-radio{ flex:1; }
   .type-radio input{ display:none; }
-  .type-radio label{ display:block; text-align:center; padding:7px; border:1px solid var(--border); border-radius:5px; font-size:12px; color:var(--text-muted); cursor:pointer; }
-  .type-radio input:checked + label{ border-color:var(--accent); color:var(--accent); background:var(--accent-dim); }
-  .modal-box input[type=text]{ flex:1; padding:8px 10px; background:var(--bg); border:1px solid var(--border); border-radius:5px; color:var(--text); font-family:inherit; font-size:12.5px; min-width:0; }
-  .modal-box select{
-    flex:1; min-width:0; padding:8px 30px 8px 10px; background-color:var(--bg); color:var(--text);
-    border:1px solid var(--border); border-radius:5px; font-family:inherit; font-size:12.5px;
-    appearance:none; -webkit-appearance:none; -moz-appearance:none;
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239BA4AF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-    background-repeat:no-repeat; background-position:right 8px center; background-size:14px;
+  .type-radio label{
+    display:block; text-align:center; padding:8px; border:1px solid var(--border); border-radius:var(--r-sm);
+    font-size:12.5px; font-weight:600; color:var(--ink-soft); cursor:pointer; background:var(--surface-2);
   }
-  .modal-box select:disabled{ color:var(--text-faint); cursor:not-allowed; }
-  .modal-box .lbl{ font-size:10px; text-transform:uppercase; color:var(--text-faint); margin-bottom:4px; display:block; }
+  .type-radio label:hover{ border-color:var(--border-strong); color:var(--ink); }
+  .type-radio input:checked + label{ border-color:var(--accent); color:var(--accent); background:var(--accent-soft); }
+  .modal-box input[type=text], .modal-box select{ width:100%; }
   .fields-technique, .fields-normatif{ display:none; }
   .fields-technique.show, .fields-normatif.show{ display:flex; }
-  .add-row-sep{ text-align:center; font-size:10.5px; color:var(--text-faint); margin:2px 0 10px; }
-
-  /* ---- Combobox de recherche produit (catalogue d'actifs) ---- */
-  .combo{ position:relative; }
-  .combo-list{ position:absolute; top:calc(100% + 4px); left:0; right:0; max-height:220px; overflow-y:auto; background:var(--bg); border:1px solid var(--border); border-radius:6px; box-shadow:0 8px 24px rgba(0,0,0,0.5); z-index:60; }
-  .combo-opt{ padding:8px 10px; font-size:12.5px; color:var(--text-muted); cursor:pointer; }
-  .combo-opt:hover{ background:rgba(255,255,255,0.06); color:var(--text); }
-  .combo-opt b{ color:var(--text); font-weight:600; }
-  .combo-opt .combo-sub{ color:var(--text-faint); }
-  .combo-empty{ padding:10px; font-size:11.5px; color:var(--text-faint); }
-  .btn-primary{ padding:8px 16px; background:var(--accent); border:none; border-radius:5px; color:#fff; font-weight:600; font-size:12.5px; cursor:pointer; font-family:inherit; }
-
-  /* ---- Colonne centrale : feed ---- */
-  .feed-toolbar{ display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap; }
-  .feed-toolbar a{ font-size:11.5px; font-weight:600; padding:6px 12px; border-radius:6px; border:1px solid var(--border); color:var(--text-muted); text-decoration:none; background:var(--surface-2); }
-  .feed-toolbar a.active{ border-color:var(--accent); color:var(--accent); background:var(--accent-dim); }
-  .feed-head{ margin-bottom:14px; }
-  .feed-head .count{ font-size:18px; font-weight:700; font-family:var(--font-mono); }
-  .feed-head .sub{ color:var(--text-muted); font-size:12px; margin-left:8px; }
-
-  .r-card{ background:var(--surface-2); border:1px solid var(--border); border-left:3px solid var(--sev-faible); border-radius:8px; margin-bottom:12px; overflow:hidden; }
-  .r-card.critique{ border-left-color:var(--sev-critique); }
-  .r-card.elevee{ border-left-color:var(--sev-elevee); }
-  .r-card.moyenne{ border-left-color:var(--sev-moyenne); }
-  .r-card.faible{ border-left-color:var(--sev-faible); }
-  .r-card-main{ padding:14px 16px; cursor:pointer; }
-  .r-card-top{ display:flex; align-items:center; gap:10px; margin-bottom:6px; }
-  .r-dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; }
-  .r-dot.critique{ background:var(--sev-critique); } .r-dot.elevee{ background:var(--sev-elevee); }
-  .r-dot.moyenne{ background:var(--sev-moyenne); } .r-dot.faible{ background:var(--sev-faible); }
-  .r-title{ font-size:13.5px; font-weight:600; flex:1; min-width:0; }
-  .badge-nouveau{ font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:#fff; background:var(--accent); padding:1px 6px; border-radius:3px; }
-  .r-date{ color:var(--text-faint); font-size:11px; font-family:var(--font-mono); flex-shrink:0; }
-  .r-excerpt{ font-size:12px; color:var(--text-muted); line-height:1.55; margin:0 0 10px; padding-left:18px; }
-  .r-meta-row{ display:flex; align-items:center; gap:10px; padding-left:18px; flex-wrap:wrap; }
-  .status-pill{ font-size:10.5px; padding:2px 9px; border-radius:999px; background:var(--bg); color:var(--text-muted); width:fit-content; font-weight:600; }
-  .status-pill.a_traiter{ background:none; border:1.5px dashed var(--st-attente); color:var(--st-attente); }
-  .status-pill.en_cours{ background:rgba(29,78,216,0.18); color:var(--st-encours); }
-  .status-pill.clos{ background:rgba(0,224,3,0.18); color:var(--st-clos); }
-  .status-pill.non_applicable{ background:rgba(255,255,255,0.06); color:var(--st-na); }
-  .tag-mono{ font-size:11px; color:var(--text-faint); font-family:var(--font-mono); }
-  .source-link{ color:var(--accent); text-decoration:none; }
-  .source-link:hover{ text-decoration:underline; }
-  .nature-tag{ font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; padding:2px 8px; border-radius:4px; font-family:var(--font-body); }
-  .nature-tag.vulnerabilite{ background:rgba(248,81,73,0.15); color:var(--danger); }
-  .nature-tag.correctif{ background:rgba(0,224,3,0.15); color:var(--good); }
-  .nature-tag.reglementaire{ background:rgba(163,113,247,0.15); color:var(--violet); }
-  .nature-tag.information{ background:rgba(255,255,255,0.08); color:var(--text-muted); }
-  .r-chev{ margin-left:auto; color:var(--text-faint); font-size:11px; transition:transform .12s ease; }
-  .r-chev.open{ transform:rotate(90deg); color:var(--accent); }
-
-  .r-detail{ display:none; border-top:1px solid var(--border); background:rgba(0,0,0,0.18); }
-  .r-detail.open{ display:block; }
-  .r-detail-inner{ padding:16px; }
-  .r-field{ margin-bottom:14px; }
-  .r-field .lbl{ font-size:10px; text-transform:uppercase; color:var(--text-faint); font-weight:600; letter-spacing:0.05em; margin-bottom:4px; font-family:var(--font-mono); }
-  .r-field .val{ font-size:12.5px; color:var(--text-muted); line-height:1.55; }
-  .r-side{ display:flex; gap:28px; }
-  .r-side .r-field{ flex:1; }
-  .r-actions{ display:flex; gap:8px; }
-  .btn-traiter{ font-size:11.5px; font-weight:600; padding:7px 14px; border-radius:6px; background:var(--accent); color:#fff; border:none; text-decoration:none; cursor:pointer; }
-
-  .cvss-box{ display:flex; gap:8px; align-items:center; background:rgba(0,0,0,0.2); border:1px solid var(--border); border-radius:6px; padding:16px 20px; flex-wrap:wrap; }
-  .cvss-score{ flex-shrink:0; text-align:center; padding-right:24px; border-right:1px solid var(--border); align-self:center; }
-  .cvss-score .n{ font-size:30px; font-weight:700; font-family:var(--font-mono); line-height:1; }
-  .cvss-score .n.critique{ color:var(--sev-critique); } .cvss-score .n.elevee{ color:var(--sev-elevee); }
-  .cvss-score .n.moyenne{ color:var(--sev-moyenne); } .cvss-score .n.faible{ color:var(--sev-faible); }
-  .cvss-score .v{ font-size:9.5px; color:var(--text-faint); text-transform:uppercase; letter-spacing:0.04em; margin-top:6px; font-weight:600; }
-  .cvss-radar text.lbl{ fill:var(--text-faint); font-size:8.5px; font-family:var(--font-body); text-transform:uppercase; letter-spacing:0.02em; }
-  .cvss-radar text.val{ fill:var(--text); font-size:9px; font-weight:600; font-family:var(--font-body); }
-
-  /* ---- Colonne droite : derniers traitements ---- */
-  .col-right .card-head{ padding:12px 14px; font-size:13px; font-weight:600; border-bottom:1px solid var(--border); }
-  .dt-row{ display:block; padding:10px 14px; border-bottom:1px solid var(--border); text-decoration:none; color:var(--text-muted); font-size:12px; }
-  .dt-row:last-child{ border-bottom:none; }
-  .dt-row:hover{ background:rgba(255,255,255,0.03); }
-  .dt-when{ color:var(--text-faint); font-size:10.5px; margin-bottom:4px; }
-  .dt-line{ color:var(--text); }
-  .dt-line .sev{ font-weight:700; }
-  .dt-line .sev.critique{ color:var(--sev-critique); } .dt-line .sev.elevee{ color:var(--sev-elevee); }
-  .dt-line .sev.moyenne{ color:var(--sev-moyenne); } .dt-line .sev.faible{ color:var(--sev-faible); }
-  .dt-line .st{ color:var(--text-faint); }
-  .col-right-empty{ padding:20px 14px; color:var(--text-faint); font-size:12px; }
+  .add-row-sep{
+    display:flex; align-items:center; gap:12px; text-align:center; font-size:11px;
+    color:var(--ink-faint); margin:4px 0 14px;
+  }
+  .add-row-sep::before, .add-row-sep::after{ content:''; flex:1; height:1px; background:var(--border); }
 </style>
 {% endblock %}
+
+{% block side %}
+<aside class="side">
+  <div class="side-head">
+    <h2>Actifs</h2>
+    <button type="button" class="btn primary" style="padding:6px 12px; font-size:12px;" onclick="openAddActif()">
+      <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Ajouter
+    </button>
+  </div>
+
+  <div class="side-search">
+    <input type="text" id="actif-search-input" value="{{ q_actif }}" placeholder="Rechercher un actif…" oninput="filterActifs(this.value)">
+  </div>
+  <div class="side-filters">
+    <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri_actifs=az" class="chip {% if tri_actifs == 'az' %}active{% endif %}">A–Z</a>
+    <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri_actifs=nb" class="chip {% if tri_actifs == 'nb' %}active{% endif %}">Nb.</a>
+    <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri_actifs=critique" class="chip {% if tri_actifs == 'critique' %}active{% endif %}">Critiques</a>
+  </div>
+
+  <div class="actif-list">
+    <a href="?tri_actifs={{ tri_actifs }}" class="asset all {% if not actif_selectionne and not type_selectionne %}on{% endif %}">
+      <span class="nm" style="font-weight:600;">Tous les actifs</span>
+      <span class="ct">{{ nb_actifs }}</span>
+    </a>
+
+    <div class="asset-group technique"><span class="gdot"></span>Technique</div>
+    {% for actif in actifs_technique %}
+      <a href="?actif={{ actif.pk }}&tri_actifs={{ tri_actifs }}" class="asset {% if actif_selectionne.pk == actif.pk %}on{% endif %}">
+        <span class="nm">{{ actif }}{% if actif.version %}<span class="ver mono">{{ actif.version }}</span>{% endif %}</span>
+        <span class="ct">{{ actif.traitements.count }}</span>
+      </a>
+    {% empty %}
+      <span class="asset muted">Aucun actif technique</span>
+    {% endfor %}
+
+    <div class="asset-group normatif"><span class="gdot"></span>Normatif</div>
+    {% for actif in actifs_normatif %}
+      <a href="?actif={{ actif.pk }}&tri_actifs={{ tri_actifs }}" class="asset {% if actif_selectionne.pk == actif.pk %}on{% endif %}">
+        <span class="nm">{{ actif }}</span>
+        <span class="ct">{{ actif.traitements.count }}</span>
+      </a>
+    {% empty %}
+      <span class="asset muted">Aucun référentiel</span>
+    {% endfor %}
+  </div>
+</aside>
+{% endblock %}
+
 {% block content %}
-<div class="layout-outer">
 
-  <div class="col-left">
-    <div class="card-head">
-      <h2>Actifs</h2>
-      <button type="button" class="btn-add" onclick="openAddActif()"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Ajouter</button>
-    </div>
-    <div class="actif-search">
-      <input type="text" id="actif-search-input" value="{{ q_actif }}" placeholder="Rechercher un actif…" oninput="filterActifs(this.value)">
-    </div>
-    <div class="actif-filters">
-      <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri_actifs=az" class="{% if tri_actifs == 'az' %}active{% endif %}">A–Z</a>
-      <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri_actifs=nb" class="{% if tri_actifs == 'nb' %}active{% endif %}">Nb.</a>
-      <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri_actifs=critique" class="{% if tri_actifs == 'critique' %}active{% endif %}">Critiques</a>
-    </div>
-    <div class="actif-list">
-      <a href="?tri_actifs={{ tri_actifs }}" class="actif-row all {% if not actif_selectionne and not type_selectionne %}sel{% endif %}" style="font-weight:600;"><span class="name">Tous les actifs</span><span class="actif-badge">{{ nb_actifs }}</span></a>
-
-      <div class="actif-group-label technique"><span class="gdot"></span>Technique</div>
-      {% for actif in actifs_technique %}
-        <a href="?actif={{ actif.pk }}&tri_actifs={{ tri_actifs }}" class="actif-row {% if actif_selectionne.pk == actif.pk %}sel{% endif %}">
-          <span class="name">{{ actif }}{% if actif.version %}<span class="ver mono">{{ actif.version }}</span>{% endif %}</span>
-          <span class="actif-badge">{{ actif.traitements.count }}</span>
-        </a>
-      {% empty %}
-        <div class="actif-row" style="cursor:default;">Aucun actif technique</div>
-      {% endfor %}
-
-      <div class="actif-group-label normatif"><span class="gdot"></span>Normatif</div>
-      {% for actif in actifs_normatif %}
-        <a href="?actif={{ actif.pk }}&tri_actifs={{ tri_actifs }}" class="actif-row {% if actif_selectionne.pk == actif.pk %}sel{% endif %}">
-          <span class="name">{{ actif }}</span>
-          <span class="actif-badge">{{ actif.traitements.count }}</span>
-        </a>
-      {% empty %}
-        <div class="actif-row" style="cursor:default;">Aucun référentiel</div>
-      {% endfor %}
-    </div>
-  </div>
-
-  <div class="col-main">
-  <div class="page-header">
+<div class="page-head">
+  <div>
     <h1 class="page-title">Renseignements</h1>
-    <div class="page-header-stats">
-      <div class="stat-tile"><div class="stat-num">{{ nb_total_renseignements }}</div><div class="stat-lbl">Total</div></div>
-      <div class="stat-tile warn"><div class="stat-num">{{ nb_a_traiter }}</div><div class="stat-lbl">À traiter</div></div>
-      <div class="stat-tile danger"><div class="stat-num">{{ nb_critiques }}</div><div class="stat-lbl">Critiques</div></div>
-      <div class="stat-tile"><div class="stat-num">{{ nb_nouveaux }}</div><div class="stat-lbl">Nouveaux</div></div>
-    </div>
+    <p class="sub">Filtré sur vos actifs déclarés. Le flux complet est dans <a href="{% url 'panel:actualites' %}" style="color:var(--accent);">Actualités</a>.</p>
   </div>
-  <div class="layout">
+  <div class="stat-row">
+    <div class="stat"><div class="stat-v tabular">{{ nb_total_renseignements }}</div><div class="stat-l">Total</div></div>
+    <div class="stat r"><div class="stat-v tabular">{{ nb_a_traiter }}</div><div class="stat-l">À traiter</div></div>
+    <div class="stat c"><div class="stat-v tabular">{{ nb_critiques }}</div><div class="stat-l">Critiques</div></div>
+    <div class="stat n"><div class="stat-v tabular">{{ nb_nouveaux }}</div><div class="stat-l">Nouveaux</div></div>
+  </div>
+</div>
 
-  <div class="col-center">
-    <div class="feed-toolbar">
-      <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri=date" class="{% if tri == 'date' %}active{% endif %}">Date</a>
-      <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri=statut" class="{% if tri == 'statut' %}active{% endif %}">Traitement</a>
-      <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri=criticite" class="{% if tri == 'criticite' %}active{% endif %}">Criticité</a>
-      <span style="margin-left:auto;"></span>
-      <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri={{ tri }}" class="{% if not criticite_filtre %}active{% endif %}">Toutes criticités</a>
-      <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri={{ tri }}&criticite=critique" class="{% if criticite_filtre == 'critique' %}active{% endif %}">Critique</a>
-      <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri={{ tri }}&criticite=elevee" class="{% if criticite_filtre == 'elevee' %}active{% endif %}">Élevée</a>
-      <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri={{ tri }}&criticite=faible" class="{% if criticite_filtre == 'faible' %}active{% endif %}">Faible</a>
-    </div>
-    <div class="feed-head">
-      <span class="count">{{ items|length }}</span><span class="sub">{% if actif_selectionne %}{{ actif_selectionne }}{% elif type_selectionne == 'technique' %}Technique{% elif type_selectionne == 'normatif' %}Normatif{% else %}Tous les actifs{% endif %}</span>
-    </div>
+<div class="filters">
+  <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri=date" class="chip {% if tri == 'date' %}active{% endif %}">Date</a>
+  <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri=statut" class="chip {% if tri == 'statut' %}active{% endif %}">Traitement</a>
+  <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri=criticite" class="chip {% if tri == 'criticite' %}active{% endif %}">Criticité</a>
+  <span class="sep"></span>
+  <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri={{ tri }}" class="chip {% if not criticite_filtre %}active{% endif %}">Toutes criticités</a>
+  <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri={{ tri }}&criticite=critique" class="chip {% if criticite_filtre == 'critique' %}active{% endif %}">Critique</a>
+  <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri={{ tri }}&criticite=elevee" class="chip {% if criticite_filtre == 'elevee' %}active{% endif %}">Élevée</a>
+  <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri={{ tri }}&criticite=faible" class="chip {% if criticite_filtre == 'faible' %}active{% endif %}">Faible</a>
+</div>
 
+<div class="feed-count">
+  <span class="n tabular">{{ items|length }}</span>
+  <span class="w">{% if actif_selectionne %}{{ actif_selectionne }}{% elif type_selectionne == 'technique' %}Technique{% elif type_selectionne == 'normatif' %}Normatif{% else %}Tous les actifs{% endif %}</span>
+</div>
+
+<div class="rens-grid">
+  <div>
     {% for item in items %}
-      {% with t=traitements_par_id|get_item:item.id_renseignement_bdp %}
-      <div class="r-card {{ item.criticite }}" data-id="{{ item.id_renseignement_bdp }}">
-        <div class="r-card-main" onclick="toggleDetail(this)">
-          <div class="r-card-top">
-            <span class="r-dot {{ item.criticite }}"></span>
-            <span class="r-title">{{ item.reference_courte|default:item.source }} — {{ item.titre }}</span>
-            {% if item.id_renseignement_bdp not in consultes %}<span class="badge-nouveau">Nouveau</span>{% endif %}
-            <span class="r-date">{{ item.decouvert_le|timesince }}</span>
+      {% with t=traitements_par_id|get_item:item.id_renseignement_bdp p=paliers_par_id|get_item:item.id_renseignement_bdp %}
+      <article class="rcard {{ item.criticite }}" data-id="{{ item.id_renseignement_bdp }}">
+        <div class="rcard-main" onclick="toggleDetail(this)">
+          <div class="rcard-top">
+            <span class="sev {{ item.criticite }}"></span>
+            <span class="rcard-title">{{ item.reference_courte|default:item.source }} — {{ item.titre }}</span>
+            {% if item.id_renseignement_bdp not in consultes %}<span class="badge-new">Nouveau</span>{% endif %}
+            <span class="rcard-when">{{ item.decouvert_le|timesince }}</span>
           </div>
-          <p class="r-excerpt">{{ item.description|truncatewords:26 }}</p>
-          <div class="r-meta-row">
+          <p class="rcard-desc">{{ item.description|truncatewords:26 }}</p>
+          <div class="rcard-meta">
             {% if item.url_source %}
-              <a class="tag-mono source-link" href="{{ item.url_source }}" target="_blank" rel="noopener" onclick="event.stopPropagation()">{{ item.source }} ↗</a>
+              <a class="source-link" href="{{ item.url_source }}" target="_blank" rel="noopener" onclick="event.stopPropagation()">{{ item.source }} ↗</a>
             {% else %}
               <span class="tag-mono">{{ item.source }}</span>
             {% endif %}
@@ -255,32 +237,56 @@
             {% else %}
               <span class="status-pill a_traiter">+ Traitement</span>
             {% endif %}
-            <span class="r-chev">▸</span>
+            {% if p %}
+              <span class="conf" title="Pourquoi ce renseignement vous est remonté : correspondance « {{ p.palier }} » avec un de vos actifs.">
+                {{ p.palier }}
+                <span class="conf-bar"><span class="conf-fill" style="width:{{ p.pourcent }}%"></span></span>
+              </span>
+            {% endif %}
+            <span class="rchev"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span>
           </div>
         </div>
-        <div class="r-detail"><div class="r-detail-inner">
-          <div class="r-side">
-            <div class="r-field"><div class="lbl">Source</div><div class="val">
-              {% if item.url_source %}<a class="source-link" href="{{ item.url_source }}" target="_blank" rel="noopener">{{ item.source }} — vérifier l'article ↗</a>{% else %}{{ item.source }}{% endif %}
-            </div></div>
-            <div class="r-field"><div class="lbl">Découvert le</div><div class="val mono">{{ item.decouvert_le|date:"d/m/Y H:i" }}</div></div>
+
+        <div class="rdetail"><div class="rdetail-inner">
+          <div class="rside">
+            <div class="rfield">
+              <span class="lbl">Source</span>
+              <div class="val">
+                {% if item.url_source %}<a class="source-link" href="{{ item.url_source }}" target="_blank" rel="noopener">{{ item.source }} — vérifier l'article ↗</a>{% else %}{{ item.source }}{% endif %}
+              </div>
+            </div>
+            <div class="rfield">
+              <span class="lbl">Découvert le</span>
+              <div class="val mono">{{ item.decouvert_le|date:"d/m/Y H:i" }}</div>
+            </div>
+            {% if p %}
+            <div class="rfield">
+              <span class="lbl">Correspondance</span>
+              <div class="val mono">{{ p.palier }} — {{ p.pourcent }} %</div>
+            </div>
+            {% endif %}
+          </div>
+
+          <div class="rfield">
+            <span class="lbl">Description</span>
+            <div class="val">{{ item.description }}</div>
           </div>
 
           {% with radar=item.cvss_radar %}
           {% if radar %}
-          <div class="r-field">
-            <div class="lbl">Analyse CVSS</div>
+          <div class="rfield">
+            <span class="lbl">Analyse CVSS</span>
             <div class="cvss-box">
               <div class="cvss-score">
                 <div class="n {{ item.criticite }}">{{ item.cvss_score|floatformat:1 }}</div>
                 <div class="v">{{ item.get_criticite_display }}</div>
               </div>
-              <svg class="cvss-radar" viewBox="0 0 220 220" width="170" height="170">
+              <svg class="cvss-radar" viewBox="0 0 220 220" width="180" height="180">
                 <polygon points="{{ radar.grid_points }}" fill="none" stroke="var(--border)" stroke-width="1"/>
                 {% for a in radar.axes %}
                   <line x1="{{ radar.cx }}" y1="{{ radar.cy }}" x2="{{ a.sx }}" y2="{{ a.sy }}" stroke="var(--border)" stroke-width="1"/>
                 {% endfor %}
-                <polygon points="{{ radar.points }}" fill="rgba(255,59,59,0.25)" stroke="var(--sev-critique)" stroke-width="1.5"/>
+                <polygon points="{{ radar.points }}" fill="var(--crit-soft)" stroke="var(--crit)" stroke-width="1.6"/>
                 {% for a in radar.axes %}
                   <text class="lbl" x="{{ a.x }}" y="{{ a.y }}" text-anchor="{{ a.anchor }}">{{ a.label }}</text>
                   <text class="val" x="{{ a.x }}" y="{{ a.y|add:11 }}" text-anchor="{{ a.anchor }}">{{ a.valeur }}</text>
@@ -292,35 +298,62 @@
           {% endwith %}
 
           {% if t and t.justificatif %}
-            <div class="r-field"><div class="lbl">Justificatif</div><div class="val">{{ t.justificatif }}</div></div>
+            <div class="rfield"><span class="lbl">Justificatif</span><div class="val">{{ t.justificatif }}</div></div>
           {% endif %}
 
-          <div class="r-actions">
-            <a class="btn-traiter" href="{% url 'panel:traiter_renseignement' item.id_renseignement_bdp %}?next={{ request.get_full_path|urlencode }}">{% if t %}Modifier le traitement{% else %}Traiter{% endif %}</a>
-          </div>
+          <a class="btn primary" href="{% url 'panel:traiter_renseignement' item.id_renseignement_bdp %}?next={{ request.get_full_path|urlencode }}">
+            {% if t %}Modifier le traitement{% else %}Traiter ce renseignement{% endif %}
+          </a>
         </div></div>
+      </article>
+      {% endwith %}
+    {% empty %}
+      <div class="card">
+        <div class="card-empty" style="padding:52px 24px;">
+          <span class="empty-ico"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/></svg></span>
+          <div>
+            {% if actif_selectionne %}
+              Aucun renseignement ne concerne <b>{{ actif_selectionne }}</b> pour le moment.
+            {% elif nb_actifs %}
+              Aucun renseignement ne concerne vos actifs déclarés.<br>
+              Le flux brut reste consultable dans <a href="{% url 'panel:actualites' %}" style="color:var(--accent);">Actualités</a>.
+            {% else %}
+              Déclarez d'abord un actif : la veille ne peut rien vous remonter sans savoir ce que vous exploitez.
+            {% endif %}
+          </div>
+          {% if not nb_actifs %}
+            <button type="button" class="btn primary" onclick="openAddActif()">
+              <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Déclarer mon premier actif
+            </button>
+          {% endif %}
+        </div>
       </div>
-      {% endwith %}
-    {% empty %}
-      <div class="col-right-empty">Aucun renseignement pour le moment{% if actif_selectionne %} pour cet actif{% endif %}.</div>
     {% endfor %}
   </div>
 
-  <div class="col-right card">
-    <div class="card-head">Derniers traitements</div>
-    {% for t in derniers_traitements %}
-      {% with r=renseignements_par_id|get_item:t.id_renseignement_bdp %}
-      <a class="dt-row" href="{% url 'panel:traiter_renseignement' t.id_renseignement_bdp %}">
-        <div class="dt-when">Il y a {{ t.maj_le|timesince }}</div>
-        <div class="dt-line">• {{ t.actif|default:"—" }} — {% if r %}{{ r.reference_courte|default:r.source }} — <span class="sev {{ r.criticite }}">{{ r.get_criticite_display }}</span>{% else %}Renseignement retiré de la BDP{% endif %} — <span class="st">{{ t.get_statut_display }}</span></div>
-      </a>
-      {% endwith %}
-    {% empty %}
-      <div class="col-right-empty">Aucun traitement pour le moment.</div>
-    {% endfor %}
-  </div>
-
-  </div>
+  <div class="rens-right">
+    <div class="card">
+      <div class="card-head">
+        <span class="dot" style="background:var(--faib)"></span>
+        <h2>Derniers traitements</h2>
+        <a class="more" href="{% url 'panel:traitement' %}">Tout voir</a>
+      </div>
+      <div class="card-list">
+        {% for t in derniers_traitements %}
+          {% with r=renseignements_par_id|get_item:t.id_renseignement_bdp %}
+          <a class="dt-row" href="{% url 'panel:traiter_renseignement' t.id_renseignement_bdp %}">
+            <div class="dt-when">Il y a {{ t.maj_le|timesince }}</div>
+            <div class="dt-line">{{ t.actif|default:"—" }} — {% if r %}{{ r.reference_courte|default:r.source }} — <span class="sv {{ r.criticite }}">{{ r.get_criticite_display }}</span>{% else %}Renseignement retiré de la BDP{% endif %} — {{ t.get_statut_display }}</div>
+          </a>
+          {% endwith %}
+        {% empty %}
+          <div class="card-empty">
+            <span class="empty-ico"><svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 3h6v3H9z"/><path d="M9 12l2 2 4-4"/></svg></span>
+            Aucun traitement pour le moment.
+          </div>
+        {% endfor %}
+      </div>
+    </div>
   </div>
 </div>
 
@@ -337,14 +370,14 @@
 {% block extra_scripts %}
 <script>
   function toggleDetail(head){
-    const card = head.closest('.r-card');
-    const chev = head.querySelector('.r-chev');
+    const card = head.closest('.rcard');
+    const chev = head.querySelector('.rchev');
     const detail = head.nextElementSibling;
     const opening = !chev.classList.contains('open');
     chev.classList.toggle('open');
     detail.classList.toggle('open');
     if (opening) {
-      const badge = head.querySelector('.badge-nouveau');
+      const badge = head.querySelector('.badge-new');
       if (badge) {
         badge.remove();
         postJSON('/renseignements/' + card.dataset.id + '/consulter/');
@@ -352,28 +385,22 @@
     }
   }
 
-  function openAddActif(){
-    document.getElementById('add-actif-overlay').classList.add('open');
-  }
-  function closeAddActif(){
-    document.getElementById('add-actif-overlay').classList.remove('open');
-  }
-  document.addEventListener('keydown', function(e){
-    if (e.key === 'Escape') closeAddActif();
-  });
+  function openAddActif(){ document.getElementById('add-actif-overlay').classList.add('open'); }
+  function closeAddActif(){ document.getElementById('add-actif-overlay').classList.remove('open'); }
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeAddActif(); });
 
   function filterActifs(q){
     q = q.trim().toLowerCase();
-    document.querySelectorAll('.actif-list .actif-row:not(.all)').forEach(function(row){
-      const name = row.querySelector('.name');
+    document.querySelectorAll('.actif-list .asset:not(.all)').forEach(function(row){
+      const name = row.querySelector('.nm');
       if (!name) return;
       row.hidden = q.length > 0 && !name.textContent.toLowerCase().includes(q);
     });
-    document.querySelectorAll('.actif-group-label').forEach(function(label){
+    document.querySelectorAll('.asset-group').forEach(function(label){
       let sib = label.nextElementSibling;
       let anyVisible = false;
-      while (sib && !sib.classList.contains('actif-group-label')) {
-        if (sib.classList.contains('actif-row') && !sib.hidden) anyVisible = true;
+      while (sib && !sib.classList.contains('asset-group')) {
+        if (sib.classList.contains('asset') && !sib.hidden) anyVisible = true;
         sib = sib.nextElementSibling;
       }
       label.hidden = q.length > 0 && !anyVisible;

@@ -104,6 +104,18 @@ def vue_ensemble(request):
     activite_max = max((a["n"] for a in activite), default=0) or 1
 
     derniere_collecte = max((r.cree_le for r in tous_renseignements), default=None)
+
+    # --- Parcours de mise en route ---
+    # Le panel etait muet a l'arrivee : rien n'indiquait qu'il faut declarer
+    # des actifs AVANT que la veille puisse remonter quoi que ce soit. Ces
+    # trois jalons pilotent le bandeau de demarrage du tableau de bord, qui
+    # disparait une fois les trois franchis.
+    nb_actifs_technique = ActifClient.objects.filter(type="technique").count()
+    nb_referentiels = ActifClient.objects.filter(type="normatif").count()
+    a_traite_au_moins_un = Traitement.objects.exclude(statut="a_traiter").exists()
+    etapes_faites = sum(
+        [bool(nb_actifs_technique), bool(nb_referentiels), a_traite_au_moins_un]
+    )
     derniers_renseignements_pertinents = sorted(
         renseignements_pertinents, key=lambda r: r.decouvert_le, reverse=True
     )[:5]
@@ -131,6 +143,11 @@ def vue_ensemble(request):
             "nb_ouverts": len(ouverts),
             "nb_total_renseignements": len(renseignements_pertinents),
             "nb_actifs": ActifClient.objects.count(),
+            "nb_actifs_technique": nb_actifs_technique,
+            "nb_referentiels": nb_referentiels,
+            "a_traite_au_moins_un": a_traite_au_moins_un,
+            "onboarding_termine": etapes_faites == 3,
+            "onboarding_restant": 3 - etapes_faites,
         },
     )
 
@@ -142,6 +159,22 @@ def renseignements(request):
     traitements à droite."""
     actifs = list(ActifClient.objects.all())
 
+    # Un seul passage de Matching pour toute la vue — il etait relance a
+    # chaque besoin. On garde aussi le palier/la confiance de chaque
+    # correspondance pour pouvoir expliquer a l'utilisateur POURQUOI un
+    # renseignement lui est remonte.
+    resultats = calculer_matching()
+    paliers_par_id = {}
+    for r in resultats:
+        cle = r.renseignement.id_renseignement_bdp
+        precedent = paliers_par_id.get(cle)
+        if precedent is None or r.confiance > precedent["confiance"]:
+            paliers_par_id[cle] = {
+                "confiance": r.confiance,
+                "palier": r.palier,
+                "pourcent": int(round(r.confiance * 100)),
+            }
+
     q_actif = request.GET.get("q_actif", "").strip()
     if q_actif:
         actifs = [a for a in actifs if q_actif.lower() in str(a).lower()]
@@ -152,7 +185,7 @@ def renseignements(request):
     elif tri_actifs == "critique":
         # priorite aux actifs ayant le plus de renseignements critiques
         crit_par_actif = Counter()
-        for r in calculer_matching():
+        for r in resultats:
             if r.renseignement.criticite == "critique":
                 crit_par_actif[r.actif.pk] += 1
         actifs.sort(key=lambda a: (-crit_par_actif.get(a.pk, 0), str(a)))
@@ -175,11 +208,11 @@ def renseignements(request):
     # tout le flux BDP brut (qui vit dans Actualites) — la BDP contient des
     # milliers d'avis sur des produits que le client ne possede meme pas.
     renseignements_pertinents = list(
-        {r.renseignement.id_renseignement_bdp: r.renseignement for r in calculer_matching()}.values()
+        {r.renseignement.id_renseignement_bdp: r.renseignement for r in resultats}.values()
     )
 
     if actif_selectionne:
-        items = [r.renseignement for r in calculer_matching(actifs=[actif_selectionne])]
+        items = [r.renseignement for r in resultats if r.actif.pk == actif_selectionne.pk]
     elif type_selectionne:
         items = [r for r in renseignements_pertinents if r.type == type_selectionne]
     else:
@@ -230,6 +263,7 @@ def renseignements(request):
             "nb_actifs": len(actifs),
             "items": items,
             "traitements_par_id": traitements_par_id,
+            "paliers_par_id": paliers_par_id,
             "consultes": consultes,
             "actif_selectionne": actif_selectionne,
             "type_selectionne": type_selectionne,
@@ -333,6 +367,12 @@ def traiter_renseignement(request, id_renseignement_bdp):
             "t": t,
             "erreurs": erreurs,
             "statut_soumis": statut_soumis,
+            # Calcule ici et non dans le gabarit : `t` est None tant que le
+            # renseignement n'a jamais ete traite, et {% with %} — contrairement
+            # a {% if %} — laisse remonter l'echec de resolution de `t.statut`
+            # (VariableDoesNotExist), ce qui renvoyait une 500 au premier clic
+            # sur "Traiter".
+            "statut_actuel": statut_soumis or (t.statut if t else "a_traiter"),
             "form_data": request.POST if request.method == "POST" else None,
             "next": request.GET.get("next", ""),
         },

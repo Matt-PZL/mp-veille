@@ -1,12 +1,40 @@
 {% extends "base.html" %}
 {% block title %}Organisation{% endblock %}
+{% block nav_organisation %}active{% endblock %}
 {% block content %}
-<div class="page">
-<div class="page-header">
-  <h1 class="page-title">Organisation</h1>
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Organisation</h1>
+    <p class="sub">Périmètre et paramètres de l'entreprise cliente.</p>
+  </div>
 </div>
-  <div style="background:var(--surface-2); border:1px solid var(--border); border-radius:8px; padding:32px; text-align:center; color:var(--text-muted); font-size:12.5px;">
-    Cette section n'a pas encore de contenu défini — à construire. La gestion des actifs a déménagé vers <a href="{% url 'panel:gestion_actifs' %}" style="color:var(--accent);">Gestion des actifs</a>.
+
+<div class="grid">
+  <div class="card col-8">
+    <div class="card-head">
+      <span class="dot" style="background:var(--ink-faint)"></span>
+      <h2>Section à construire</h2>
+    </div>
+    <div class="card-empty" style="padding:52px 24px;">
+      <span class="empty-ico"><svg viewBox="0 0 24 24"><path d="M4 19V5a2 2 0 0 1 2-2h11l3 3v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M8 8h6M8 12h8M8 16h5"/></svg></span>
+      <div>
+        Le contenu de cette section n'est pas encore spécifié.<br>
+        La gestion des actifs et des référentiels se fait dans <a href="{% url 'panel:gestion_actifs' %}" style="color:var(--accent);">Actifs</a>.
+      </div>
+      <a class="btn primary" href="{% url 'panel:gestion_actifs' %}">Aller aux actifs</a>
+    </div>
+  </div>
+
+  <div class="card col-4">
+    <div class="card-head">
+      <span class="dot" style="background:var(--accent)"></span>
+      <h2>Votre périmètre</h2>
+    </div>
+    <div class="card-list">
+      <div class="row"><span class="txt">Actifs déclarés</span><span class="meta">{{ rail_nb_actifs }}</span></div>
+      <div class="row"><span class="txt">Traitements ouverts</span><span class="meta">{{ rail_nb_a_traiter }}</span></div>
+      <div class="row"><span class="txt">Traitements au total</span><span class="meta">{{ rail_nb_traitements }}</span></div>
+    </div>
   </div>
 </div>
 {% endblock %}

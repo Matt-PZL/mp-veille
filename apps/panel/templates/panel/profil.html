@@ -2,43 +2,75 @@
 {% block title %}Profil{% endblock %}
 {% block extra_head %}
 <style>
-  .card{ background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:24px; }
-  .field{ margin-bottom:16px; }
-  .field .lbl{ font-size:10px; text-transform:uppercase; color:var(--text-faint); margin-bottom:6px; display:block; letter-spacing:0.04em; }
-  select{ width:100%; padding:8px 10px; background:var(--bg); border:1px solid var(--border); border-radius:5px; color:var(--text); font-family:inherit; font-size:12.5px; }
-  .btn-primary{ padding:8px 16px; background:var(--accent); border:none; border-radius:5px; color:#fff; font-weight:600; font-size:12.5px; cursor:pointer; font-family:inherit; }
+  .account{
+    display:flex; align-items:center; gap:13px; padding:14px 16px; margin-bottom:22px;
+    background:var(--surface-2); border:1px solid var(--border); border-radius:var(--r-md);
+  }
+  .account .av{
+    width:38px; height:38px; border-radius:50%; background:var(--accent-soft); color:var(--accent);
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+    font-family:var(--mono); font-weight:700; font-size:14px; text-transform:uppercase;
+  }
+  .account .who{ min-width:0; }
+  .account .who .k{ font-family:var(--mono); font-size:10px; text-transform:uppercase; letter-spacing:0.11em; color:var(--ink-faint); font-weight:600; }
+  .account .who .v{ font-size:14px; color:var(--ink); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 </style>
 {% endblock %}
 {% block content %}
-<div class="page" style="max-width:420px;">
-<div class="page-header">
-  <h1 class="page-title">Gestion du profil</h1>
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Profil</h1>
+    <p class="sub">Compte et préférences de notification.</p>
+  </div>
 </div>
-  <div class="card">
-    <div class="field">
-      <span class="lbl">Compte</span>
-      <div>{{ user.email|default:user.username }}</div>
+
+<div class="grid">
+  <div class="card col-5">
+    <div class="card-head">
+      <span class="dot" style="background:var(--accent)"></span>
+      <h2>Compte et notifications</h2>
     </div>
-    <form method="post">
-      {% csrf_token %}
-      <div class="field">
-        <span class="lbl">Seuil de criticité des notifications</span>
-        <select name="seuil_criticite">
-          <option value="critique" {% if prefs.seuil_criticite == 'critique' %}selected{% endif %}>Critique uniquement</option>
-          <option value="elevee" {% if prefs.seuil_criticite == 'elevee' %}selected{% endif %}>Élevée et plus</option>
-          <option value="moyenne" {% if prefs.seuil_criticite == 'moyenne' %}selected{% endif %}>Moyenne et plus</option>
-        </select>
+    <div class="card-body">
+      <div class="account">
+        <span class="av">{{ user.username|slice:":2" }}</span>
+        <span class="who">
+          <div class="k">Compte</div>
+          <div class="v">{{ user.email|default:user.username }}</div>
+        </span>
       </div>
-      <div class="field">
-        <span class="lbl">Fréquence des alertes</span>
-        <select name="frequence">
-          <option value="immediat" {% if prefs.frequence == 'immediat' %}selected{% endif %}>Immédiat</option>
-          <option value="quotidien" {% if prefs.frequence == 'quotidien' %}selected{% endif %}>Quotidien</option>
-          <option value="hebdo" {% if prefs.frequence == 'hebdo' %}selected{% endif %}>Hebdomadaire</option>
-        </select>
-      </div>
-      <button type="submit" class="btn-primary">Enregistrer</button>
-    </form>
+
+      <form method="post">
+        {% csrf_token %}
+        <div class="f-field">
+          <label class="lbl">Seuil de criticité des notifications</label>
+          <select name="seuil_criticite">
+            <option value="critique" {% if prefs.seuil_criticite == 'critique' %}selected{% endif %}>Critique uniquement</option>
+            <option value="elevee" {% if prefs.seuil_criticite == 'elevee' %}selected{% endif %}>Élevée et plus</option>
+            <option value="moyenne" {% if prefs.seuil_criticite == 'moyenne' %}selected{% endif %}>Moyenne et plus</option>
+          </select>
+        </div>
+        <div class="f-field">
+          <label class="lbl">Fréquence des alertes</label>
+          <select name="frequence">
+            <option value="immediat" {% if prefs.frequence == 'immediat' %}selected{% endif %}>Immédiat</option>
+            <option value="quotidien" {% if prefs.frequence == 'quotidien' %}selected{% endif %}>Quotidien</option>
+            <option value="hebdo" {% if prefs.frequence == 'hebdo' %}selected{% endif %}>Hebdomadaire</option>
+          </select>
+        </div>
+        <button type="submit" class="btn primary" style="margin-top:20px;">Enregistrer</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="card col-4">
+    <div class="card-head">
+      <span class="dot" style="background:var(--gold)"></span>
+      <h2>Bon à savoir</h2>
+    </div>
+    <div class="card-body" style="font-size:12.5px; color:var(--ink-soft); line-height:1.65;">
+      Ces préférences sont enregistrées, mais l'envoi des alertes n'est pas encore branché —
+      aucune notification ne part pour l'instant.
+    </div>
   </div>
 </div>
 {% endblock %}
