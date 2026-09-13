@@ -126,12 +126,25 @@ def vue_ensemble(request):
 
 @login_required
 def renseignements(request):
-    """01 · Renseignements sur les actifs — axe actifs (en arborescence
-    technique/normatif) a gauche, liste a droite."""
+    """01 · Renseignements sur les actifs — panneau Actifs (façon "Top
+    repositories") à gauche, feed de renseignements au centre, derniers
+    traitements à droite."""
     actifs = list(ActifClient.objects.all())
+
+    q_actif = request.GET.get("q_actif", "").strip()
+    if q_actif:
+        actifs = [a for a in actifs if q_actif.lower() in str(a).lower()]
+
     tri_actifs = request.GET.get("tri_actifs", "az")
     if tri_actifs == "nb":
         actifs.sort(key=lambda a: a.traitements.count(), reverse=True)
+    elif tri_actifs == "critique":
+        # priorite aux actifs ayant le plus de renseignements critiques
+        crit_par_actif = Counter()
+        for r in calculer_matching():
+            if r.renseignement.criticite == "critique":
+                crit_par_actif[r.actif.pk] += 1
+        actifs.sort(key=lambda a: (-crit_par_actif.get(a.pk, 0), str(a)))
     else:
         actifs.sort(key=lambda a: str(a))
     actifs_technique = [a for a in actifs if a.type == "technique"]
@@ -140,7 +153,7 @@ def renseignements(request):
     actif_selectionne = None
     actif_id = request.GET.get("actif")
     if actif_id:
-        actif_selectionne = next((a for a in actifs if str(a.pk) == actif_id), None)
+        actif_selectionne = next((a for a in ActifClient.objects.all() if str(a.pk) == actif_id), None)
 
     type_selectionne = request.GET.get("type") if not actif_selectionne else None
     if type_selectionne not in ("technique", "normatif"):
@@ -156,13 +169,26 @@ def renseignements(request):
     traitements_par_id = {t.id_renseignement_bdp: t for t in Traitement.objects.all()}
     consultes = set(RenseignementConsulte.objects.values_list("id_renseignement_bdp", flat=True))
 
+    criticite_filtre = request.GET.get("criticite")
+    if criticite_filtre in dict(Renseignement.CRITICITE_CHOICES):
+        items = [r for r in items if r.criticite == criticite_filtre]
+
     tri = request.GET.get("tri", "date")
     if tri == "statut":
         items.sort(key=lambda r: _ORDRE_STATUT.get(
             getattr(traitements_par_id.get(r.id_renseignement_bdp), "statut", "a_traiter"), 0
         ))
+    elif tri == "criticite":
+        items.sort(key=lambda r: _ORDRE_CRITICITE.get(r.criticite, 9))
     else:
         items.sort(key=lambda r: r.decouvert_le, reverse=True)
+
+    renseignements_par_id = {r.id_renseignement_bdp: r for r in Renseignement.objects.all()}
+    derniers_traitements = list(
+        Traitement.objects.select_related("actif")
+        .exclude(statut="a_traiter")
+        .order_by("-maj_le")[:5]
+    )
 
     return render(
         request,
@@ -176,8 +202,12 @@ def renseignements(request):
             "consultes": consultes,
             "actif_selectionne": actif_selectionne,
             "type_selectionne": type_selectionne,
+            "criticite_filtre": criticite_filtre,
             "tri": tri,
             "tri_actifs": tri_actifs,
+            "q_actif": q_actif,
+            "derniers_traitements": derniers_traitements,
+            "renseignements_par_id": renseignements_par_id,
         },
     )
 
@@ -190,32 +220,85 @@ def marquer_consulte(request, id_renseignement_bdp):
 
 
 @login_required
-def definir_traitement(request, id_renseignement_bdp):
-    """Choix direct du statut (À traiter/En cours/Clos/Non applicable) +
-    justificatif, depuis l'écran Renseignements — cree le Traitement s'il
-    n'existe pas encore."""
+def traiter_renseignement(request, id_renseignement_bdp):
+    """Page dediee de traitement d'un renseignement (brief : quelque chose
+    de plus serieux que le choix rapide precedent).
+
+    Le statut choisi impose des informations differentes, avec blocage reel
+    cote serveur (pas seulement visuel) :
+      - Démarré : plan d'action + date prévisionnelle + passage CAB obligatoires
+      - Clos / Non applicable : justificatif obligatoire (preuve fichier optionnelle pour Clos)
+    """
+    renseignement = get_object_or_404(Renseignement, id_renseignement_bdp=id_renseignement_bdp)
+    t = Traitement.objects.filter(id_renseignement_bdp=id_renseignement_bdp).first()
+    erreurs = {}
+    statut_soumis = None
+
     if request.method == "POST":
-        renseignement = get_object_or_404(Renseignement, id_renseignement_bdp=id_renseignement_bdp)
-        statut = request.POST.get("statut")
+        statut_soumis = request.POST.get("statut")
         justificatif = request.POST.get("justificatif", "").strip()
-        if statut in dict(Traitement.STATUT_CHOICES):
-            actif = _actif_pour_renseignement(renseignement.id_renseignement_bdp)
-            t, created = Traitement.objects.get_or_create(
-                id_renseignement_bdp=renseignement.id_renseignement_bdp,
-                defaults={"statut": statut, "actif": actif, "justificatif": justificatif},
-            )
-            if created:
-                HistoriqueTraitement.objects.create(traitement=t, evenement="Découvert")
-                if statut != "a_traiter":
-                    HistoriqueTraitement.objects.create(traitement=t, evenement=t.get_statut_display())
+        plan_action = request.POST.get("plan_action", "").strip()
+        echeance_str = request.POST.get("echeance", "").strip()
+        passage_cab = request.POST.get("passage_cab")
+        fichier = request.FILES.get("preuve_fichier")
+        echeance_val = None
+
+        if statut_soumis not in dict(Traitement.STATUT_CHOICES):
+            erreurs["statut"] = "Choisissez un statut valide."
+        elif statut_soumis == "en_cours":
+            if not plan_action:
+                erreurs["plan_action"] = "Le plan d'action est obligatoire pour démarrer le traitement."
+            if not echeance_str:
+                erreurs["echeance"] = "La date prévisionnelle est obligatoire."
             else:
-                statut_a_change = t.statut != statut
-                t.statut = statut
+                try:
+                    echeance_val = datetime.strptime(echeance_str, "%Y-%m-%d").date()
+                except ValueError:
+                    erreurs["echeance"] = "Date invalide."
+            if passage_cab not in ("oui", "non"):
+                erreurs["passage_cab"] = "Précisez si un passage en CAB est nécessaire."
+        elif statut_soumis in ("clos", "non_applicable"):
+            if not justificatif:
+                erreurs["justificatif"] = "Un justificatif est obligatoire pour clore ou marquer non applicable."
+
+        if not erreurs:
+            createur = t is None
+            if t is None:
+                t = Traitement(id_renseignement_bdp=id_renseignement_bdp, actif=_actif_pour_renseignement(id_renseignement_bdp))
+            ancien_statut = t.statut if not createur else None
+
+            t.statut = statut_soumis
+            if justificatif:
                 t.justificatif = justificatif
-                t.save()
-                if statut_a_change:
+            if statut_soumis == "en_cours":
+                t.plan_action = plan_action
+                t.echeance = echeance_val
+                t.passage_cab = passage_cab == "oui"
+            if fichier:
+                t.preuve_fichier = fichier
+            t.save()
+
+            if createur:
+                HistoriqueTraitement.objects.create(traitement=t, evenement="Découvert")
+                if statut_soumis != "a_traiter":
                     HistoriqueTraitement.objects.create(traitement=t, evenement=t.get_statut_display())
-    return redirect(request.POST.get("next") or "panel:renseignements")
+            elif ancien_statut != statut_soumis:
+                HistoriqueTraitement.objects.create(traitement=t, evenement=t.get_statut_display())
+
+            return redirect(request.POST.get("next") or "panel:renseignements")
+
+    return render(
+        request,
+        "panel/traiter.html",
+        {
+            "renseignement": renseignement,
+            "t": t,
+            "erreurs": erreurs,
+            "statut_soumis": statut_soumis,
+            "form_data": request.POST if request.method == "POST" else None,
+            "next": request.GET.get("next", ""),
+        },
+    )
 
 
 @login_required
@@ -255,25 +338,6 @@ def traitement(request):
             "aujourdhui": timezone.localdate(),
         },
     )
-
-
-@login_required
-def marquer_traitement(request, pk):
-    """Ecrit directement (id_client implicite via session, statut, horodatage[,
-    justificatif]) dans la BDC — jamais via le Matching (brief section 2)."""
-    t = get_object_or_404(Traitement, pk=pk)
-    if request.method == "POST":
-        nouveau_statut = request.POST.get("statut")
-        justificatif = request.POST.get("justificatif", "")
-        if nouveau_statut in dict(Traitement.STATUT_CHOICES):
-            t.statut = nouveau_statut
-            if justificatif:
-                t.justificatif = justificatif
-            t.save()
-            HistoriqueTraitement.objects.create(
-                traitement=t, evenement=t.get_statut_display()
-            )
-    return redirect("panel:traitement")
 
 
 @login_required

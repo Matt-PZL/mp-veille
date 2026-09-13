@@ -125,16 +125,7 @@
               {% endfor %}
             </div></div>
             <div class="actions">
-              {% if t.statut == 'a_traiter' or t.statut == 'en_cours' %}
-              <form method="post" action="{% url 'panel:marquer_traitement' t.pk %}" onclick="event.stopPropagation()" style="display:contents;">
-                {% csrf_token %}
-                {% if t.statut == 'a_traiter' %}
-                  <button class="btn" type="submit" name="statut" value="en_cours">Marquer traité</button>
-                {% else %}
-                  <button class="btn" type="submit" name="statut" value="clos">Clôturer</button>
-                {% endif %}
-              </form>
-              {% endif %}
+              <a class="btn" style="text-decoration:none; display:inline-block;" href="{% url 'panel:traiter_renseignement' t.id_renseignement_bdp %}?next={{ request.get_full_path|urlencode }}" onclick="event.stopPropagation()">Modifier le traitement</a>
               <a class="btn ghost" style="text-decoration:none; display:inline-block;" href="{% url 'panel:export_traitement_pdf' t.pk %}" onclick="event.stopPropagation()">Exporter en PDF</a>
               {% if r %}<a class="link-out" href="{% url 'panel:renseignements' %}{% if t.actif %}?actif={{ t.actif.pk }}{% endif %}">Voir le renseignement →</a>{% endif %}
             </div>

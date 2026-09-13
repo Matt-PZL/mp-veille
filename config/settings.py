@@ -87,6 +87,13 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
+# Preuves de traitement (fichiers uploades a la cloture) — donnee BDC.
+# Pas chiffre au niveau stockage pour ce POC (limite connue, a traiter en V2 :
+# storage applicatif chiffre, contrairement aux champs texte deja chiffres).
+MEDIA_URL = "media/"
+MEDIA_ROOT = BASE_DIR / "media"
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 Mo
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 LOGIN_URL = "accounts:login"

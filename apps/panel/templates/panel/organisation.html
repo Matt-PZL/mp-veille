@@ -63,7 +63,7 @@
   {% endfor %}
 </div>
 
-<div class="add-card">
+<div class="add-card" id="add-card">
   <h2>Ajouter un actif ou un référentiel</h2>
   <form method="post" action="{% url 'panel:ajouter_actif' %}">
     {% csrf_token %}

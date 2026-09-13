@@ -41,7 +41,7 @@ class Traitement(models.Model):
 
     STATUT_CHOICES = [
         ("a_traiter", "À traiter"),
-        ("en_cours", "En cours de traitement"),
+        ("en_cours", "Démarré"),
         ("clos", "Clos"),
         ("non_applicable", "Non applicable"),
     ]
@@ -55,8 +55,18 @@ class Traitement(models.Model):
 
     statut = models.CharField(max_length=20, choices=STATUT_CHOICES, default="a_traiter")
     # Sensible -> chiffre. "clos" et "non_applicable" l'exigent (voir apps/panel).
+    # Sert de justificatif general ET de "preuve texte" a la cloture.
     justificatif = EncryptedTextField(blank=True, default="")
-    echeance = models.DateField(null=True, blank=True, help_text="Delai de traitement previsionnel")
+    echeance = models.DateField(null=True, blank=True, help_text="Date previsionnelle de traitement")
+
+    # --- Champs specifiques au statut "Démarré" ---
+    plan_action = EncryptedTextField(blank=True, default="")
+    passage_cab = models.BooleanField(
+        null=True, blank=True, help_text="Oui/Non — non renseigne si null"
+    )
+
+    # --- Champ specifique au statut "Clos" (preuve fichier, optionnelle) ---
+    preuve_fichier = models.FileField(upload_to="preuves/%Y/%m/", null=True, blank=True)
 
     maj_le = models.DateTimeField(auto_now=True)
 

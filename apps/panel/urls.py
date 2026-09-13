@@ -8,9 +8,9 @@ urlpatterns = [
     path("", views.vue_ensemble, name="dashboard"),
     path("renseignements/", views.renseignements, name="renseignements"),
     path(
-        "renseignements/<uuid:id_renseignement_bdp>/traitement/",
-        views.definir_traitement,
-        name="definir_traitement",
+        "renseignements/<uuid:id_renseignement_bdp>/traiter/",
+        views.traiter_renseignement,
+        name="traiter_renseignement",
     ),
     path(
         "renseignements/<uuid:id_renseignement_bdp>/consulter/",
@@ -18,7 +18,6 @@ urlpatterns = [
         name="marquer_consulte",
     ),
     path("traitement/", views.traitement, name="traitement"),
-    path("traitement/<int:pk>/marquer/", views.marquer_traitement, name="marquer_traitement"),
     path("traitement/<int:pk>/echeance/", views.definir_echeance, name="definir_echeance"),
     path("traitement/<int:pk>/pdf/", views.export_traitement_pdf, name="export_traitement_pdf"),
     path("actualites/", views.actualites, name="actualites"),

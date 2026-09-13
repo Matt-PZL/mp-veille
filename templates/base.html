@@ -8,10 +8,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#0D1117; --surface:#0D1117; --surface-2:#161B22; --border:#30363D;
+    --bg:#0D1117; --surface:#010101; --surface-2:#161B22; --border:#30363D;
     --text:#E6EDF3; --text-muted:#9BA4AF; --text-faint:#6E7681;
     --accent:#1D4ED8; --accent-fg:#FFFFFF; --accent-dim:rgba(29,78,216,0.16); --accent-dim2:rgba(29,78,216,0.26);
-    --sev-critique:#F85149; --sev-elevee:#D29922; --sev-moyenne:#E3B341; --sev-faible:#6E7681;
+    --sev-critique:#FF3B3B; --sev-elevee:#F0954A; --sev-moyenne:#E3A83F; --sev-faible:#3FB950;
     --st-attente:#D29922; --st-encours:#1D4ED8; --st-clos:#3FB950; --st-na:#6E7681;
     --good:#3FB950; --warn:#D29922; --info:#1D4ED8; --danger:#F85149; --violet:#A371F7;
     --font-display:'Archivo',sans-serif; --font-body:'IBM Plex Sans',sans-serif; --font-mono:'IBM Plex Mono',monospace;
@@ -60,7 +60,7 @@
   .drawer-overlay{ position:fixed; inset:0; background:rgba(1,4,9,0.7); z-index:49; opacity:0; pointer-events:none; transition:opacity .15s ease; }
   .drawer-overlay.open{ opacity:1; pointer-events:auto; }
   .drawer{
-    position:fixed; top:0; left:0; bottom:0; width:280px; background:var(--surface-2); border-right:1px solid var(--border);
+    position:fixed; top:0; left:0; bottom:0; width:280px; background:var(--surface); border-right:1px solid var(--border);
     z-index:50; transform:translateX(-100%); transition:transform .18s ease; display:flex; flex-direction:column; padding:16px 10px;
   }
   .drawer.open{ transform:translateX(0); }

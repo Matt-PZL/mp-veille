@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% block title %}Traiter — {{ renseignement.titre }}{% endblock %}
+{% block page_title %}Traiter un renseignement{% endblock %}
+{% block nav_renseignements %}active{% endblock %}
+{% block extra_head %}
+<style>
+  .wrap-narrow{ max-width:640px; margin:0 auto; }
+  .back-link{ display:inline-flex; align-items:center; gap:6px; color:var(--text-muted); text-decoration:none; font-size:12.5px; margin-bottom:18px; }
+  .back-link:hover{ color:var(--text); }
+
+  .r-summary{ background:var(--surface-2); border:1px solid var(--border); border-radius:8px; padding:16px 18px; margin-bottom:20px; }
+  .r-summary .top{ display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+  .r-dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .r-dot.critique{ background:var(--sev-critique); } .r-dot.elevee{ background:var(--sev-elevee); }
+  .r-dot.moyenne{ background:var(--sev-moyenne); } .r-dot.faible{ background:var(--sev-faible); }
+  .r-summary h1{ font-size:15px; font-weight:700; }
+  .r-summary p{ font-size:12.5px; color:var(--text-muted); line-height:1.55; margin-top:6px; }
+  .r-summary .meta{ font-size:11px; color:var(--text-faint); margin-top:8px; font-family:var(--font-mono); }
+
+  .statut-tabs{ display:flex; gap:6px; margin-bottom:20px; flex-wrap:wrap; }
+  .statut-tab{ flex:1; min-width:120px; }
+  .statut-tab input{ display:none; }
+  .statut-tab label{ display:block; text-align:center; padding:10px 8px; border:1.5px solid var(--border); border-radius:7px; font-size:12.5px; font-weight:600; color:var(--text-muted); cursor:pointer; }
+  .statut-tab input:checked + label{ color:#fff; }
+  .statut-tab.a_traiter input:checked + label{ border-color:var(--st-attente); background:var(--st-attente); color:#1a1200; }
+  .statut-tab.en_cours input:checked + label{ border-color:var(--st-encours); background:var(--st-encours); }
+  .statut-tab.clos input:checked + label{ border-color:var(--st-clos); background:var(--st-clos); color:#04170F; }
+  .statut-tab.non_applicable input:checked + label{ border-color:var(--st-na); background:var(--st-na); color:#04170F; }
+
+  .form-card{ background:var(--surface-2); border:1px solid var(--border); border-radius:8px; padding:20px; }
+  .f-field{ margin-bottom:18px; }
+  .f-field:last-child{ margin-bottom:0; }
+  .f-field .lbl{ display:block; font-size:11.5px; font-weight:600; color:var(--text); margin-bottom:6px; }
+  .f-field .lbl .req{ color:var(--sev-critique); margin-left:3px; }
+  .f-field .hint{ font-size:11px; color:var(--text-faint); margin-top:5px; }
+  .f-field .err{ font-size:11.5px; color:var(--sev-critique); margin-top:6px; font-weight:600; }
+  .f-field textarea, .f-field input[type=date], .f-field input[type=file]{
+    width:100%; padding:9px 11px; background:var(--bg); border:1px solid var(--border); border-radius:6px;
+    color:var(--text); font-family:inherit; font-size:12.5px;
+  }
+  .f-field textarea{ resize:vertical; min-height:80px; }
+  .cab-toggle{ display:flex; gap:8px; }
+  .cab-toggle label{ flex:1; text-align:center; padding:8px; border:1.5px solid var(--border); border-radius:6px; font-size:12px; font-weight:600; color:var(--text-muted); cursor:pointer; }
+  .cab-toggle input{ display:none; }
+  .cab-toggle input:checked + label{ border-color:var(--accent); background:var(--accent-dim); color:var(--text); }
+  .existing-file{ font-size:11.5px; color:var(--text-muted); margin-bottom:8px; }
+  .existing-file a{ color:var(--accent); }
+
+  .section-group[hidden]{ display:none; }
+  .btn-submit{ padding:10px 20px; background:var(--accent); border:none; border-radius:7px; color:#fff; font-weight:600; font-size:13px; cursor:pointer; font-family:inherit; margin-top:6px; }
+
+  .historique{ margin-top:20px; }
+  .historique h2{ font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-faint); margin-bottom:10px; font-weight:600; }
+  .hist-row{ font-size:12px; color:var(--text-muted); padding:6px 0; border-bottom:1px solid var(--border); }
+  .hist-row:last-child{ border-bottom:none; }
+  .hist-row b{ color:var(--text); }
+</style>
+{% endblock %}
+{% block content %}
+<div class="wrap-narrow">
+  <a class="back-link" href="{{ next|default:request.path|default:'/renseignements/' }}">← Retour</a>
+
+  <div class="r-summary">
+    <div class="top">
+      <span class="r-dot {{ renseignement.criticite }}"></span>
+      <h1>{{ renseignement.reference_externe|default:renseignement.source }} — {{ renseignement.titre }}</h1>
+    </div>
+    <p>{{ renseignement.description }}</p>
+    <div class="meta">{{ renseignement.source }} · découvert le {{ renseignement.decouvert_le|date:"d/m/Y H:i" }}{% if renseignement.cvss_score %} · CVSS {{ renseignement.cvss_score|floatformat:1 }}{% endif %}</div>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" id="traiter-form">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ next }}">
+
+    <div class="statut-tabs">
+      {% with statut_actuel=statut_soumis|default:t.statut|default:"a_traiter" %}
+      <div class="statut-tab a_traiter">
+        <input type="radio" name="statut" value="a_traiter" id="st-a_traiter" onchange="onStatutChange()" {% if statut_actuel == 'a_traiter' %}checked{% endif %}>
+        <label for="st-a_traiter">À traiter</label>
+      </div>
+      <div class="statut-tab en_cours">
+        <input type="radio" name="statut" value="en_cours" id="st-en_cours" onchange="onStatutChange()" {% if statut_actuel == 'en_cours' %}checked{% endif %}>
+        <label for="st-en_cours">Démarré</label>
+      </div>
+      <div class="statut-tab clos">
+        <input type="radio" name="statut" value="clos" id="st-clos" onchange="onStatutChange()" {% if statut_actuel == 'clos' %}checked{% endif %}>
+        <label for="st-clos">Clos</label>
+      </div>
+      <div class="statut-tab non_applicable">
+        <input type="radio" name="statut" value="non_applicable" id="st-na" onchange="onStatutChange()" {% if statut_actuel == 'non_applicable' %}checked{% endif %}>
+        <label for="st-na">Non applicable</label>
+      </div>
+      {% endwith %}
+    </div>
+    {% if erreurs.statut %}<div class="f-field"><div class="err">{{ erreurs.statut }}</div></div>{% endif %}
+
+    <div class="form-card">
+
+      <div class="section-group" data-for="en_cours">
+        <div class="f-field">
+          <label class="lbl">Plan d'action<span class="req">*</span></label>
+          <textarea name="plan_action" placeholder="Décrire les actions prévues pour traiter ce renseignement…">{% if form_data %}{{ form_data.plan_action }}{% else %}{{ t.plan_action|default:"" }}{% endif %}</textarea>
+          {% if erreurs.plan_action %}<div class="err">{{ erreurs.plan_action }}</div>{% endif %}
+        </div>
+        <div class="f-field">
+          <label class="lbl">Date prévisionnelle<span class="req">*</span></label>
+          <input type="date" name="echeance" value="{% if form_data %}{{ form_data.echeance }}{% else %}{{ t.echeance|date:'Y-m-d'|default:'' }}{% endif %}">
+          {% if erreurs.echeance %}<div class="err">{{ erreurs.echeance }}</div>{% endif %}
+        </div>
+        <div class="f-field">
+          <label class="lbl">Passage en CAB nécessaire ?<span class="req">*</span></label>
+          <div class="cab-toggle">
+            <input type="radio" name="passage_cab" value="oui" id="cab-oui" {% if t.passage_cab == True %}checked{% endif %}><label for="cab-oui">Oui</label>
+            <input type="radio" name="passage_cab" value="non" id="cab-non" {% if t.passage_cab == False %}checked{% endif %}><label for="cab-non">Non</label>
+          </div>
+          {% if erreurs.passage_cab %}<div class="err">{{ erreurs.passage_cab }}</div>{% endif %}
+        </div>
+      </div>
+
+      <div class="section-group" data-for="clos,non_applicable">
+        <div class="f-field">
+          <label class="lbl">Justificatif<span class="req">*</span></label>
+          <textarea name="justificatif" placeholder="Preuve textuelle : ce qui a été fait, pourquoi ce renseignement est clos ou non applicable…">{% if form_data %}{{ form_data.justificatif }}{% else %}{{ t.justificatif|default:"" }}{% endif %}</textarea>
+          {% if erreurs.justificatif %}<div class="err">{{ erreurs.justificatif }}</div>{% endif %}
+        </div>
+        <div class="f-field" data-for="clos">
+          <label class="lbl">Preuve fichier <span class="hint" style="display:inline;">(optionnel)</span></label>
+          {% if t.preuve_fichier %}<div class="existing-file">Fichier actuel : <a href="{{ t.preuve_fichier.url }}" target="_blank">{{ t.preuve_fichier.name }}</a></div>{% endif %}
+          <input type="file" name="preuve_fichier">
+        </div>
+      </div>
+
+      <button type="submit" class="btn-submit">Enregistrer</button>
+    </div>
+  </form>
+
+  {% if t.historique.all %}
+  <div class="historique">
+    <h2>Historique</h2>
+    {% for h in t.historique.all %}
+      <div class="hist-row"><b>{{ h.evenement }}</b> — {{ h.horodatage|date:"d/m/Y H:i" }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+{% block extra_scripts %}
+<script>
+  function onStatutChange(){
+    const statut = document.querySelector('input[name=statut]:checked').value;
+    // Chaque element [data-for] est evalue independamment de ses parents :
+    // le champ fichier (data-for="clos") reste cache en non_applicable meme
+    // si son groupe parent (data-for="clos,non_applicable") est visible.
+    document.querySelectorAll('[data-for]').forEach(function(g){
+      const show = g.dataset.for.split(',').includes(statut);
+      g.hidden = !show;
+      g.querySelectorAll('textarea, input[type=date]').forEach(function(el){
+        el.required = show;
+      });
+    });
+  }
+  onStatutChange();
+</script>
+{% endblock %}

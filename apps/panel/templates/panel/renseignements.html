@@ -5,216 +5,247 @@
 {% block nav_renseignements %}active{% endblock %}
 {% block extra_head %}
 <style>
-  .wrap{ background:var(--surface); border:1px solid var(--border); border-radius:6px; overflow:hidden; display:grid; grid-template-columns:280px 1fr; }
-  .left{ border-right:1px solid var(--border); overflow-y:auto; }
-  .left-head{ padding:12px 16px; border-bottom:1px solid var(--border); font-weight:600; font-size:13px; }
-  .item-row{ display:flex; justify-content:space-between; align-items:center; padding:11px 16px; border-bottom:1px solid var(--border); color:var(--text-muted); text-decoration:none; }
-  .item-row:hover{ background:rgba(255,255,255,0.025); color:var(--text); }
-  .item-row.sel{ background:var(--accent-dim); border-left:2px solid var(--accent); padding-left:14px; color:var(--text); }
-  .item-row.all{ font-weight:600; color:var(--text); }
-  .item-row .badge{ background:var(--border); color:var(--text-muted); font-size:11px; padding:2px 8px; border-radius:4px; font-family:var(--font-mono); }
-  .item-row .ver{ color:var(--text-faint); font-size:11.5px; margin-left:6px; }
+  .layout{ display:grid; grid-template-columns:260px 1fr 280px; gap:20px; align-items:start; }
+  @media (max-width:1200px){ .layout{ grid-template-columns:240px 1fr; } .col-right{ display:none; } }
+  @media (max-width:820px){ .layout{ grid-template-columns:1fr; } .col-left{ display:none; } }
 
-  .tree-group{ border-bottom:1px solid var(--border); }
-  .tree-head{ display:flex; justify-content:space-between; align-items:center; padding:9px 16px; color:var(--text-muted); text-decoration:none; font-size:11.5px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; cursor:pointer; }
-  .tree-head:hover{ background:rgba(255,255,255,0.02); }
-  .tree-head.sel{ color:var(--accent); }
-  .tree-head .fchev{ display:inline-block; transition:transform .12s ease; margin-right:6px; font-size:9px; color:var(--text-faint); }
-  .tree-head .fchev.closed{ transform:rotate(-90deg); }
-  .tree-children{ }
-  .tree-children.collapsed{ display:none; }
-  .tree-children .item-row{ padding-left:28px; }
-  .tree-children .item-row.sel{ padding-left:26px; }
+  .card{ background:var(--surface-2); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
 
-  .right{ display:flex; flex-direction:column; }
-  .right-head{ padding:12px 16px; border-bottom:1px solid var(--border); }
-  .right-head .count{ font-weight:700; font-size:16px; color:var(--text); font-family:var(--font-mono); }
-  .right-head .sub{ font-weight:400; color:var(--text-faint); font-size:12px; display:block; margin-top:2px; }
-  .toolbar{ display:grid; grid-template-columns:1fr 150px 60px; align-items:center; padding:9px 16px; border-bottom:1px solid var(--border); font-size:10px; text-transform:uppercase; color:var(--text-faint); font-weight:600; letter-spacing:0.05em; font-family:var(--font-mono); }
-  .toolbar a{ color:inherit; text-decoration:none; }
-  .toolbar a.active{ color:var(--accent); }
+  /* ---- Colonne Actifs (facon "Top repositories") ---- */
+  .col-left .card-head{ display:flex; align-items:center; justify-content:space-between; padding:12px 14px; }
+  .col-left .card-head h2{ font-size:13px; font-weight:600; }
+  .btn-add{ display:flex; align-items:center; gap:5px; font-size:11.5px; font-weight:600; padding:5px 10px; border-radius:6px; background:var(--good); color:#04170F; border:none; cursor:pointer; text-decoration:none; }
+  .btn-add svg{ width:12px; height:12px; stroke:currentColor; stroke-width:2.5; fill:none; }
 
-  .r-head{ display:grid; grid-template-columns:1fr 150px 60px; align-items:center; padding:11px 16px; border-bottom:1px solid var(--border); font-size:12.5px; cursor:pointer; }
-  .r-head:hover{ background:rgba(255,255,255,0.02); }
-  .r-head .t{ display:flex; align-items:center; gap:8px; color:var(--text); }
-  .chev{ color:var(--text-faint); font-size:10px; margin-right:2px; display:inline-block; transition:transform .12s ease; }
-  .chev.open{ transform:rotate(90deg); color:var(--accent); }
-  .dot{ width:7px; height:7px; border-radius:50%; flex-shrink:0; }
-  .dot.critique{ background:var(--sev-critique); } .dot.elevee{ background:var(--sev-elevee); }
-  .dot.moyenne{ background:var(--sev-moyenne); } .dot.faible{ background:var(--sev-faible); }
-  .badge-nouveau{ font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:var(--accent-ink,#06101F); background:var(--accent); padding:1px 6px; border-radius:3px; margin-left:6px; }
-  .status-pill{ font-size:10.5px; padding:2px 9px; border-radius:4px; background:var(--border); color:var(--text-muted); width:fit-content; font-weight:600; }
+  .actif-search{ margin:0 14px 10px; }
+  .actif-search input{ width:100%; padding:7px 10px; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text); font-family:inherit; font-size:12px; }
+
+  .actif-filters{ display:flex; flex-wrap:wrap; gap:5px; margin:0 14px 12px; }
+  .actif-filters a{ flex:1 1 auto; min-width:0; text-align:center; padding:5px 6px; font-size:10.5px; font-weight:600; border:1px solid var(--border); border-radius:5px; color:var(--text-muted); text-decoration:none; white-space:nowrap; }
+  .actif-filters a.active{ border-color:var(--accent); color:var(--accent); background:var(--accent-dim); }
+
+  .actif-list{ border-top:1px solid var(--border); }
+  .actif-row{ display:flex; justify-content:space-between; align-items:center; padding:9px 14px; border-bottom:1px solid var(--border); color:var(--text-muted); text-decoration:none; font-size:12.5px; gap:8px; }
+  .actif-row:last-child{ border-bottom:none; }
+  .actif-row:hover{ background:rgba(255,255,255,0.03); color:var(--text); }
+  .actif-row.sel{ background:var(--accent-dim); color:var(--text); box-shadow:inset 2px 0 0 var(--accent); }
+  .actif-row .name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .actif-row .ver{ color:var(--text-faint); font-size:11px; margin-left:5px; }
+  .actif-badge{ background:var(--bg); color:var(--text-muted); font-size:10.5px; padding:1px 7px; border-radius:999px; font-family:var(--font-mono); flex-shrink:0; }
+  .actif-group-label{ font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-faint); padding:9px 14px 4px; }
+
+  /* ---- Colonne centrale : feed ---- */
+  .feed-toolbar{ display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap; }
+  .feed-toolbar a{ font-size:11.5px; font-weight:600; padding:6px 12px; border-radius:6px; border:1px solid var(--border); color:var(--text-muted); text-decoration:none; background:var(--surface-2); }
+  .feed-toolbar a.active{ border-color:var(--accent); color:var(--accent); background:var(--accent-dim); }
+  .feed-head{ margin-bottom:14px; }
+  .feed-head .count{ font-size:18px; font-weight:700; font-family:var(--font-mono); }
+  .feed-head .sub{ color:var(--text-muted); font-size:12px; margin-left:8px; }
+
+  .r-card{ background:var(--surface-2); border:1px solid var(--border); border-left:3px solid var(--sev-faible); border-radius:8px; margin-bottom:12px; overflow:hidden; }
+  .r-card.critique{ border-left-color:var(--sev-critique); }
+  .r-card.elevee{ border-left-color:var(--sev-elevee); }
+  .r-card.moyenne{ border-left-color:var(--sev-moyenne); }
+  .r-card.faible{ border-left-color:var(--sev-faible); }
+  .r-card-main{ padding:14px 16px; cursor:pointer; }
+  .r-card-top{ display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+  .r-dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .r-dot.critique{ background:var(--sev-critique); } .r-dot.elevee{ background:var(--sev-elevee); }
+  .r-dot.moyenne{ background:var(--sev-moyenne); } .r-dot.faible{ background:var(--sev-faible); }
+  .r-title{ font-size:13.5px; font-weight:600; flex:1; min-width:0; }
+  .badge-nouveau{ font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:#fff; background:var(--accent); padding:1px 6px; border-radius:3px; }
+  .r-date{ color:var(--text-faint); font-size:11px; font-family:var(--font-mono); flex-shrink:0; }
+  .r-excerpt{ font-size:12px; color:var(--text-muted); line-height:1.55; margin:0 0 10px; padding-left:18px; }
+  .r-meta-row{ display:flex; align-items:center; gap:10px; padding-left:18px; flex-wrap:wrap; }
+  .status-pill{ font-size:10.5px; padding:2px 9px; border-radius:999px; background:var(--bg); color:var(--text-muted); width:fit-content; font-weight:600; }
   .status-pill.a_traiter{ background:none; border:1.5px dashed var(--st-attente); color:var(--st-attente); }
-  .status-pill.en_cours{ background:rgba(59,111,224,0.15); color:var(--st-encours); }
-  .status-pill.clos{ background:rgba(76,154,115,0.15); color:var(--st-clos); }
-  .status-pill.non_applicable{ background:rgba(255,255,255,0.05); color:var(--st-na); }
-  .date{ color:var(--text-faint); font-size:11.5px; font-family:var(--font-mono); }
-  .just{ display:block; font-size:10.5px; color:var(--text-faint); font-style:italic; margin-top:2px; }
+  .status-pill.en_cours{ background:rgba(29,78,216,0.18); color:var(--st-encours); }
+  .status-pill.clos{ background:rgba(63,185,80,0.18); color:var(--st-clos); }
+  .status-pill.non_applicable{ background:rgba(255,255,255,0.06); color:var(--st-na); }
+  .tag-mono{ font-size:11px; color:var(--text-faint); font-family:var(--font-mono); }
+  .r-chev{ margin-left:auto; color:var(--text-faint); font-size:11px; transition:transform .12s ease; }
+  .r-chev.open{ transform:rotate(90deg); color:var(--accent); }
 
-  .r-detail{ display:none; background:rgba(0,0,0,0.16); }
+  .r-detail{ display:none; border-top:1px solid var(--border); background:rgba(0,0,0,0.18); }
   .r-detail.open{ display:block; }
-  .r-detail-inner{ padding:14px 16px 16px 34px; }
+  .r-detail-inner{ padding:16px; }
   .r-field{ margin-bottom:14px; }
-  .r-field .lbl{ font-size:10px; text-transform:uppercase; color:var(--text-faint); font-weight:600; letter-spacing:0.05em; margin-bottom:3px; font-family:var(--font-mono); }
+  .r-field .lbl{ font-size:10px; text-transform:uppercase; color:var(--text-faint); font-weight:600; letter-spacing:0.05em; margin-bottom:4px; font-family:var(--font-mono); }
   .r-field .val{ font-size:12.5px; color:var(--text-muted); line-height:1.55; }
   .r-side{ display:flex; gap:28px; }
   .r-side .r-field{ flex:1; }
+  .r-actions{ display:flex; gap:8px; }
+  .btn-traiter{ font-size:11.5px; font-weight:600; padding:7px 14px; border-radius:6px; background:var(--accent); color:#fff; border:none; text-decoration:none; cursor:pointer; }
 
-  .cvss-box{ display:flex; gap:8px; align-items:center; background:rgba(0,0,0,0.18); border:1px solid var(--border); border-radius:6px; padding:16px 20px; flex-wrap:wrap; }
+  .cvss-box{ display:flex; gap:8px; align-items:center; background:rgba(0,0,0,0.2); border:1px solid var(--border); border-radius:6px; padding:16px 20px; flex-wrap:wrap; }
   .cvss-score{ flex-shrink:0; text-align:center; padding-right:24px; border-right:1px solid var(--border); align-self:center; }
   .cvss-score .n{ font-size:30px; font-weight:700; font-family:var(--font-mono); line-height:1; }
   .cvss-score .n.critique{ color:var(--sev-critique); } .cvss-score .n.elevee{ color:var(--sev-elevee); }
   .cvss-score .n.moyenne{ color:var(--sev-moyenne); } .cvss-score .n.faible{ color:var(--sev-faible); }
   .cvss-score .v{ font-size:9.5px; color:var(--text-faint); text-transform:uppercase; letter-spacing:0.04em; margin-top:6px; font-weight:600; }
-  .cvss-radar{ flex-shrink:0; }
   .cvss-radar text.lbl{ fill:var(--text-faint); font-size:8.5px; font-family:var(--font-body); text-transform:uppercase; letter-spacing:0.02em; }
   .cvss-radar text.val{ fill:var(--text); font-size:9px; font-weight:600; font-family:var(--font-body); }
-  .cvss-legend{ flex:1; min-width:180px; display:grid; grid-template-columns:1fr 1fr; gap:8px 20px; padding-left:12px; }
-  .cvss-legend .lbl{ font-size:9.5px; text-transform:uppercase; color:var(--text-faint); letter-spacing:0.03em; }
-  .cvss-legend .val{ font-size:12px; color:var(--text); font-weight:600; margin-top:1px; }
 
-  .statut-form{ display:flex; flex-direction:column; gap:8px; }
-  .statut-choices{ display:flex; gap:6px; flex-wrap:wrap; }
-  .statut-choice{ font-size:11px; font-weight:600; padding:5px 11px; border-radius:4px; cursor:pointer; font-family:inherit; background:none; border:1px solid var(--border); color:var(--text-muted); }
-  .statut-choice:hover{ border-color:var(--text-faint); color:var(--text); }
-  .statut-choice.sel.a_traiter{ border-color:var(--st-attente); color:var(--st-attente); background:rgba(224,138,60,0.12); }
-  .statut-choice.sel.en_cours{ border-color:var(--st-encours); color:var(--st-encours); background:rgba(59,111,224,0.12); }
-  .statut-choice.sel.clos{ border-color:var(--st-clos); color:var(--st-clos); background:rgba(76,154,115,0.12); }
-  .statut-choice.sel.non_applicable{ border-color:var(--st-na); color:var(--st-na); background:rgba(255,255,255,0.06); }
-  .statut-form textarea{ background:var(--bg); border:1px solid var(--border); border-radius:5px; color:var(--text); font-family:inherit; font-size:12px; padding:8px 10px; resize:vertical; }
-
-  .sort-toggle{ display:flex; border:1px solid var(--border); border-radius:5px; overflow:hidden; font-size:10.5px; }
-  .sort-toggle a{ padding:4px 9px; color:var(--text-faint); font-family:var(--font-mono); text-decoration:none; }
-  .sort-toggle a.active{ background:var(--accent); color:#fff; }
+  /* ---- Colonne droite : derniers traitements ---- */
+  .col-right .card-head{ padding:12px 14px; font-size:13px; font-weight:600; border-bottom:1px solid var(--border); }
+  .dt-row{ display:block; padding:10px 14px; border-bottom:1px solid var(--border); text-decoration:none; color:var(--text-muted); font-size:12px; }
+  .dt-row:last-child{ border-bottom:none; }
+  .dt-row:hover{ background:rgba(255,255,255,0.03); }
+  .dt-when{ color:var(--text-faint); font-size:10.5px; margin-bottom:4px; }
+  .dt-line{ color:var(--text); }
+  .dt-line .sev{ font-weight:700; }
+  .dt-line .sev.critique{ color:var(--sev-critique); } .dt-line .sev.elevee{ color:var(--sev-elevee); }
+  .dt-line .sev.moyenne{ color:var(--sev-moyenne); } .dt-line .sev.faible{ color:var(--sev-faible); }
+  .dt-line .st{ color:var(--text-faint); }
+  .col-right-empty{ padding:20px 14px; color:var(--text-faint); font-size:12px; }
 </style>
 {% endblock %}
 {% block content %}
-<h1 class="section">Renseignements sur les actifs</h1>
-<div class="page">
-<div class="wrap">
-  <div class="left">
-    <div class="left-head"><span>Actifs</span>
-      <div class="sort-toggle">
-        <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri_actifs=az" class="{% if tri_actifs == 'az' %}active{% endif %}">A–Z</a>
-        <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri_actifs=nb" class="{% if tri_actifs == 'nb' %}active{% endif %}">Nb.</a>
-      </div>
-    </div>
-    <a href="?tri_actifs={{ tri_actifs }}" class="item-row all {% if not actif_selectionne and not type_selectionne %}sel{% endif %}"><span>Tous les actifs</span><span class="badge">{{ nb_actifs }}</span></a>
+<div class="layout">
 
-    <div class="tree-group">
-      <a href="?type=technique&tri_actifs={{ tri_actifs }}" class="tree-head {% if type_selectionne == 'technique' %}sel{% endif %}">
-        <span><span class="fchev">▾</span>Technique</span><span class="badge">{{ actifs_technique|length }}</span>
-      </a>
-      <div class="tree-children">
-        {% for actif in actifs_technique %}
-          <a href="?actif={{ actif.pk }}&tri_actifs={{ tri_actifs }}" class="item-row {% if actif_selectionne.pk == actif.pk %}sel{% endif %}">
-            <span>{{ actif }}{% if actif.version %}<span class="ver mono">{{ actif.version }}</span>{% endif %}</span>
-            <span class="badge">{{ actif.traitements.count }}</span>
-          </a>
-        {% empty %}
-          <div class="item-row" style="color:var(--text-faint); cursor:default;">Aucun actif technique</div>
-        {% endfor %}
-      </div>
+  <div class="col-left card">
+    <div class="card-head">
+      <h2>Actifs</h2>
+      <a href="{% url 'panel:organisation' %}#add-card" class="btn-add"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Ajouter</a>
     </div>
-
-    <div class="tree-group">
-      <a href="?type=normatif&tri_actifs={{ tri_actifs }}" class="tree-head {% if type_selectionne == 'normatif' %}sel{% endif %}">
-        <span><span class="fchev">▾</span>Normatif</span><span class="badge">{{ actifs_normatif|length }}</span>
-      </a>
-      <div class="tree-children">
-        {% for actif in actifs_normatif %}
-          <a href="?actif={{ actif.pk }}&tri_actifs={{ tri_actifs }}" class="item-row {% if actif_selectionne.pk == actif.pk %}sel{% endif %}">
-            <span>{{ actif }}</span>
-            <span class="badge">{{ actif.traitements.count }}</span>
-          </a>
-        {% empty %}
-          <div class="item-row" style="color:var(--text-faint); cursor:default;">Aucun référentiel</div>
-        {% endfor %}
-      </div>
+    <form class="actif-search" method="get">
+      {% if actif_selectionne %}<input type="hidden" name="actif" value="{{ actif_selectionne.pk }}">{% endif %}
+      <input type="text" name="q_actif" value="{{ q_actif }}" placeholder="Rechercher un actif…" onchange="this.form.submit()">
+    </form>
+    <div class="actif-filters">
+      <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri_actifs=az" class="{% if tri_actifs == 'az' %}active{% endif %}">A–Z</a>
+      <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri_actifs=nb" class="{% if tri_actifs == 'nb' %}active{% endif %}">Nb.</a>
+      <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri_actifs=critique" class="{% if tri_actifs == 'critique' %}active{% endif %}">Critiques</a>
     </div>
-  </div>
-  <div class="right">
-    <div class="right-head"><span class="count">{{ items|length }} Renseignement{{ items|length|pluralize }}</span><span class="sub">{% if actif_selectionne %}{{ actif_selectionne }}{% elif type_selectionne == 'technique' %}Technique{% elif type_selectionne == 'normatif' %}Normatif{% else %}Tous les actifs{% endif %}</span></div>
-    <div class="toolbar">
-      <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri=date" class="{% if tri == 'date' %}active{% endif %}">Renseignement</a>
-      <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri=statut" class="{% if tri == 'statut' %}active{% endif %}">Traitement</a>
-      <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri=date" class="{% if tri == 'date' %}active{% endif %}">Date</a>
-    </div>
-    <div>
-      {% for item in items %}
-        {% with t=traitements_par_id|get_item:item.id_renseignement_bdp %}
-        <div class="r-group" data-id="{{ item.id_renseignement_bdp }}">
-          <div class="r-head" onclick="toggleDetail(this)">
-            <span class="t"><span class="chev">▸</span><span class="dot {{ item.criticite }}"></span>{{ item.reference_externe|default:item.source }} — {{ item.titre }}{% if item.id_renseignement_bdp not in consultes %}<span class="badge-nouveau">Nouveau</span>{% endif %}</span>
-            {% if t %}
-              <span><span class="status-pill {{ t.statut }}">{{ t.get_statut_display }}</span>{% if t.justificatif %}<span class="just">justif. : {{ t.justificatif }}</span>{% endif %}</span>
-            {% else %}
-              <span class="status-pill a_traiter">+ Traitement</span>
-            {% endif %}
-            <span class="date mono">{{ item.decouvert_le|timesince }}</span>
-          </div>
-          <div class="r-detail"><div class="r-detail-inner">
-            <div class="r-field"><div class="lbl">Description</div><div class="val">{{ item.description }}</div></div>
-            <div class="r-side">
-              <div class="r-field"><div class="lbl">Sources</div><div class="val">{{ item.source }}</div></div>
-              <div class="r-field"><div class="lbl">Découvert le</div><div class="val mono">{{ item.decouvert_le|date:"d/m/Y H:i" }}</div></div>
-            </div>
+    <div class="actif-list">
+      <a href="?tri_actifs={{ tri_actifs }}" class="actif-row {% if not actif_selectionne and not type_selectionne %}sel{% endif %}" style="font-weight:600;"><span class="name">Tous les actifs</span><span class="actif-badge">{{ nb_actifs }}</span></a>
 
-            {% with radar=item.cvss_radar %}
-            {% if radar %}
-            <div class="r-field">
-              <div class="lbl">Analyse CVSS</div>
-              <div class="cvss-box">
-                <div class="cvss-score">
-                  <div class="n {{ item.criticite }}">{{ item.cvss_score|floatformat:1 }}</div>
-                  <div class="v">{{ item.get_criticite_display }}</div>
-                </div>
-                <svg class="cvss-radar" viewBox="0 0 220 220" width="185" height="185">
-                  <polygon points="{{ radar.grid_points }}" fill="none" stroke="var(--border)" stroke-width="1"/>
-                  {% for a in radar.axes %}
-                    <line x1="{{ radar.cx }}" y1="{{ radar.cy }}" x2="{{ a.sx }}" y2="{{ a.sy }}" stroke="var(--border)" stroke-width="1"/>
-                  {% endfor %}
-                  <polygon points="{{ radar.points }}" fill="rgba(214,85,90,0.28)" stroke="var(--sev-critique)" stroke-width="1.5"/>
-                  {% for a in radar.axes %}
-                    <text class="lbl" x="{{ a.x }}" y="{{ a.y }}" text-anchor="{{ a.anchor }}">{{ a.label }}</text>
-                    <text class="val" x="{{ a.x }}" y="{{ a.y|add:11 }}" text-anchor="{{ a.anchor }}">{{ a.valeur }}</text>
-                  {% endfor %}
-                </svg>
-              </div>
-            </div>
-            {% endif %}
-            {% endwith %}
-
-            <div class="r-field">
-              <div class="lbl">Traitement</div>
-              <form method="post" action="{% url 'panel:definir_traitement' item.id_renseignement_bdp %}" class="statut-form" onclick="event.stopPropagation()">
-                {% csrf_token %}
-                <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                <div class="statut-choices">
-                  <button type="submit" name="statut" value="a_traiter" class="statut-choice a_traiter {% if not t or t.statut == 'a_traiter' %}sel{% endif %}">À traiter</button>
-                  <button type="submit" name="statut" value="en_cours" class="statut-choice en_cours {% if t.statut == 'en_cours' %}sel{% endif %}">En cours</button>
-                  <button type="submit" name="statut" value="clos" class="statut-choice clos {% if t.statut == 'clos' %}sel{% endif %}">Clos</button>
-                  <button type="submit" name="statut" value="non_applicable" class="statut-choice non_applicable {% if t.statut == 'non_applicable' %}sel{% endif %}">Non applicable</button>
-                </div>
-                <textarea name="justificatif" rows="2" placeholder="Justificatif (obligatoire pour Clos / Non applicable)">{{ t.justificatif|default:"" }}</textarea>
-              </form>
-            </div>
-          </div></div>
-        </div>
-        {% endwith %}
+      <div class="actif-group-label">Technique</div>
+      {% for actif in actifs_technique %}
+        <a href="?actif={{ actif.pk }}&tri_actifs={{ tri_actifs }}" class="actif-row {% if actif_selectionne.pk == actif.pk %}sel{% endif %}">
+          <span class="name">{{ actif }}{% if actif.version %}<span class="ver mono">{{ actif.version }}</span>{% endif %}</span>
+          <span class="actif-badge">{{ actif.traitements.count }}</span>
+        </a>
       {% empty %}
-        <div style="padding:32px 16px; color:var(--text-faint);">Aucun renseignement pour le moment{% if actif_selectionne %} pour cet actif{% endif %}.</div>
+        <div class="actif-row" style="cursor:default;">Aucun actif technique</div>
+      {% endfor %}
+
+      <div class="actif-group-label">Normatif</div>
+      {% for actif in actifs_normatif %}
+        <a href="?actif={{ actif.pk }}&tri_actifs={{ tri_actifs }}" class="actif-row {% if actif_selectionne.pk == actif.pk %}sel{% endif %}">
+          <span class="name">{{ actif }}</span>
+          <span class="actif-badge">{{ actif.traitements.count }}</span>
+        </a>
+      {% empty %}
+        <div class="actif-row" style="cursor:default;">Aucun référentiel</div>
       {% endfor %}
     </div>
   </div>
-</div>
+
+  <div class="col-center">
+    <div class="feed-toolbar">
+      <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri=date" class="{% if tri == 'date' %}active{% endif %}">Date</a>
+      <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri=statut" class="{% if tri == 'statut' %}active{% endif %}">Traitement</a>
+      <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri=criticite" class="{% if tri == 'criticite' %}active{% endif %}">Criticité</a>
+      <span style="margin-left:auto;"></span>
+      <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri={{ tri }}" class="{% if not criticite_filtre %}active{% endif %}">Toutes criticités</a>
+      <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri={{ tri }}&criticite=critique" class="{% if criticite_filtre == 'critique' %}active{% endif %}">Critique</a>
+      <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri={{ tri }}&criticite=elevee" class="{% if criticite_filtre == 'elevee' %}active{% endif %}">Élevée</a>
+      <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri={{ tri }}&criticite=faible" class="{% if criticite_filtre == 'faible' %}active{% endif %}">Faible</a>
+    </div>
+    <div class="feed-head">
+      <span class="count">{{ items|length }}</span><span class="sub">{% if actif_selectionne %}{{ actif_selectionne }}{% elif type_selectionne == 'technique' %}Technique{% elif type_selectionne == 'normatif' %}Normatif{% else %}Tous les actifs{% endif %}</span>
+    </div>
+
+    {% for item in items %}
+      {% with t=traitements_par_id|get_item:item.id_renseignement_bdp %}
+      <div class="r-card {{ item.criticite }}" data-id="{{ item.id_renseignement_bdp }}">
+        <div class="r-card-main" onclick="toggleDetail(this)">
+          <div class="r-card-top">
+            <span class="r-dot {{ item.criticite }}"></span>
+            <span class="r-title">{{ item.reference_externe|default:item.source }} — {{ item.titre }}</span>
+            {% if item.id_renseignement_bdp not in consultes %}<span class="badge-nouveau">Nouveau</span>{% endif %}
+            <span class="r-date">{{ item.decouvert_le|timesince }}</span>
+          </div>
+          <p class="r-excerpt">{{ item.description|truncatewords:26 }}</p>
+          <div class="r-meta-row">
+            <span class="tag-mono">{{ item.source }}</span>
+            {% if item.cvss_score %}<span class="tag-mono">CVSS {{ item.cvss_score|floatformat:1 }}</span>{% endif %}
+            {% if t %}
+              <span class="status-pill {{ t.statut }}">{{ t.get_statut_display }}</span>
+            {% else %}
+              <span class="status-pill a_traiter">+ Traitement</span>
+            {% endif %}
+            <span class="r-chev">▸</span>
+          </div>
+        </div>
+        <div class="r-detail"><div class="r-detail-inner">
+          <div class="r-side">
+            <div class="r-field"><div class="lbl">Sources</div><div class="val">{{ item.source }}</div></div>
+            <div class="r-field"><div class="lbl">Découvert le</div><div class="val mono">{{ item.decouvert_le|date:"d/m/Y H:i" }}</div></div>
+          </div>
+
+          {% with radar=item.cvss_radar %}
+          {% if radar %}
+          <div class="r-field">
+            <div class="lbl">Analyse CVSS</div>
+            <div class="cvss-box">
+              <div class="cvss-score">
+                <div class="n {{ item.criticite }}">{{ item.cvss_score|floatformat:1 }}</div>
+                <div class="v">{{ item.get_criticite_display }}</div>
+              </div>
+              <svg class="cvss-radar" viewBox="0 0 220 220" width="170" height="170">
+                <polygon points="{{ radar.grid_points }}" fill="none" stroke="var(--border)" stroke-width="1"/>
+                {% for a in radar.axes %}
+                  <line x1="{{ radar.cx }}" y1="{{ radar.cy }}" x2="{{ a.sx }}" y2="{{ a.sy }}" stroke="var(--border)" stroke-width="1"/>
+                {% endfor %}
+                <polygon points="{{ radar.points }}" fill="rgba(255,59,59,0.25)" stroke="var(--sev-critique)" stroke-width="1.5"/>
+                {% for a in radar.axes %}
+                  <text class="lbl" x="{{ a.x }}" y="{{ a.y }}" text-anchor="{{ a.anchor }}">{{ a.label }}</text>
+                  <text class="val" x="{{ a.x }}" y="{{ a.y|add:11 }}" text-anchor="{{ a.anchor }}">{{ a.valeur }}</text>
+                {% endfor %}
+              </svg>
+            </div>
+          </div>
+          {% endif %}
+          {% endwith %}
+
+          {% if t and t.justificatif %}
+            <div class="r-field"><div class="lbl">Justificatif</div><div class="val">{{ t.justificatif }}</div></div>
+          {% endif %}
+
+          <div class="r-actions">
+            <a class="btn-traiter" href="{% url 'panel:traiter_renseignement' item.id_renseignement_bdp %}?next={{ request.get_full_path|urlencode }}">{% if t %}Modifier le traitement{% else %}Traiter{% endif %}</a>
+          </div>
+        </div></div>
+      </div>
+      {% endwith %}
+    {% empty %}
+      <div class="col-right-empty">Aucun renseignement pour le moment{% if actif_selectionne %} pour cet actif{% endif %}.</div>
+    {% endfor %}
+  </div>
+
+  <div class="col-right card">
+    <div class="card-head">Derniers traitements</div>
+    {% for t in derniers_traitements %}
+      {% with r=renseignements_par_id|get_item:t.id_renseignement_bdp %}
+      <a class="dt-row" href="{% url 'panel:traiter_renseignement' t.id_renseignement_bdp %}">
+        <div class="dt-when">Il y a {{ t.maj_le|timesince }}</div>
+        <div class="dt-line">• {{ t.actif|default:"—" }} — {{ r.reference_externe|default:r.source|default:"" }} — <span class="sev {{ r.criticite }}">{{ r.get_criticite_display|default:"" }}</span> — <span class="st">{{ t.get_statut_display }}</span></div>
+      </a>
+      {% endwith %}
+    {% empty %}
+      <div class="col-right-empty">Aucun traitement pour le moment.</div>
+    {% endfor %}
+  </div>
+
 </div>
 {% endblock %}
 {% block extra_scripts %}
 <script>
   function toggleDetail(head){
-    const group = head.closest('.r-group');
-    const chev = head.querySelector('.chev');
+    const card = head.closest('.r-card');
+    const chev = head.querySelector('.r-chev');
     const detail = head.nextElementSibling;
     const opening = !chev.classList.contains('open');
     chev.classList.toggle('open');
@@ -223,14 +254,9 @@
       const badge = head.querySelector('.badge-nouveau');
       if (badge) {
         badge.remove();
-        postJSON('/renseignements/' + group.dataset.id + '/consulter/');
+        postJSON('/renseignements/' + card.dataset.id + '/consulter/');
       }
     }
   }
-  document.querySelectorAll('.tree-head').forEach(function(h){
-    h.addEventListener('click', function(e){
-      // laisse le lien filtrer par type, mais permet aussi de replier visuellement au clic sur le chevron seul
-    });
-  });
 </script>
 {% endblock %}
