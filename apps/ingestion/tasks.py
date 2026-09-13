@@ -20,6 +20,7 @@ from django.utils import timezone
 
 from apps.bdc.models import ActifClient
 from apps.bdp.models import Renseignement
+from apps.catalogue.models import ActifCatalogueProduit, ActifCatalogueVersion
 from apps.matching.services import calculer_matching
 
 NVD_API = "https://services.nvd.nist.gov/rest/json/cves/2.0"
@@ -31,6 +32,9 @@ CERT_FR_PAGE = "https://www.cert.ssi.gouv.fr/avis/{ref}/"
 CERT_FR_LOOKBACK_JOURS = 30
 
 CNIL_RSS = "https://www.cnil.fr/fr/rss.xml"
+
+ENDOFLIFE_INDEX = "https://endoflife.date/api/v1/products"
+ENDOFLIFE_DETAIL = "https://endoflife.date/api/v1/products/{slug}"
 
 _UA = {"User-Agent": "veille-saas/0.1 (POC interne, contact: matt)"}
 
@@ -380,10 +384,146 @@ def collecter_referentiels_normatifs():
     return total
 
 
+# ---- Catalogue d'actifs (categorie > editeur > produit > versions) --------
+# endoflife.date : ~470 produits reels (OS, bases de donnees, langages,
+# frameworks, et meme des appliances reseau comme PAN-OS/FortiOS), avec leurs
+# versions et leur etat de maintenance — bien plus solide qu'une liste tapee
+# a la main, et assez petit (~470 produits) pour etre rafraichi entierement
+# a chaque cycle sans mecanisme d'incrementalite complexe.
+
+_CATEGORIE_ENDOFLIFE = {
+    "os": "Système d'exploitation",
+    "lang": "Langage / runtime",
+    "database": "Base de données",
+    "server-app": "Applicatif serveur",
+    "framework": "Framework",
+    "app": "Application",
+    "service": "Service cloud",
+    "device": "Matériel / appliance",
+    "standard": "Standard",
+}
+# Certains editeurs reseau/securite sont classes "os" par endoflife.date (ex:
+# PAN-OS, FortiOS) — on les regroupe a part, plus parlant pour un client ESN
+# que de les noyer dans "Systeme d'exploitation" a cote de Debian/Windows.
+_TAGS_PARE_FEU = {"palo-alto-networks", "fortinet", "stormshield", "cisco", "checkpoint", "sonicwall", "watchguard", "juniper"}
+
+_EDITEURS_CONNUS = {
+    "microsoft": "Microsoft", "debian": "Debian Project", "canonical": "Canonical",
+    "redhat": "Red Hat", "fortinet": "Fortinet", "paloaltonetworks": "Palo Alto Networks",
+    "cisco": "Cisco", "stormshield": "Stormshield", "oracle": "Oracle",
+    "apache": "Apache Software Foundation", "mongodb": "MongoDB Inc.",
+    "postgresql": "PostgreSQL Global Development Group", "python": "Python Software Foundation",
+    "nodejs": "Node.js Foundation", "docker": "Docker Inc.", "vmware": "VMware",
+    "google": "Google", "amazon": "Amazon", "ibm": "IBM", "suse": "SUSE",
+    "almalinux": "AlmaLinux OS Foundation", "rocky": "Rocky Linux Foundation",
+    "mysql": "Oracle", "elastic": "Elastic", "hashicorp": "HashiCorp",
+    "kubernetes": "Cloud Native Computing Foundation", "gitlab": "GitLab Inc.",
+    "atlassian": "Atlassian", "wordpress": "WordPress Foundation",
+}
+
+
+def _humaniser_editeur(slug: str) -> str:
+    if not slug:
+        return "Éditeur non précisé"
+    cle = slug.lower().replace("-", "").replace("_", "")
+    if cle in _EDITEURS_CONNUS:
+        return _EDITEURS_CONNUS[cle]
+    return slug.replace("-", " ").replace("_", " ").title()
+
+
+def _vendor_depuis_cpe(identifiers: list) -> str:
+    """Extrait le segment 'vendor' d'un identifiant CPE 2.3 ou 2.2."""
+    for ident in identifiers:
+        if ident.get("type") != "cpe":
+            continue
+        id_ = ident.get("id", "")
+        if id_.startswith("cpe:2.3:"):
+            parts = id_.split(":")
+            if len(parts) > 3:
+                return parts[3]
+        elif id_.startswith("cpe:/"):
+            parts = id_[len("cpe:/"):].split(":")
+            if len(parts) > 1:
+                return parts[1]
+    return ""
+
+
+def _categorie_produit(categorie_endoflife: str, tags: list) -> str:
+    if any(t in _TAGS_PARE_FEU for t in tags):
+        return "Pare-feu / Réseau"
+    return _CATEGORIE_ENDOFLIFE.get(categorie_endoflife, "Autre")
+
+
+def _parser_date_iso(texte):
+    if not texte:
+        return None
+    try:
+        return datetime.strptime(texte, "%Y-%m-%d").date()
+    except ValueError:
+        return None
+
+
+@shared_task
+def collecter_catalogue_actifs():
+    """Peuple le catalogue de reference des actifs declarables depuis
+    endoflife.date (~470 produits : OS, bases de donnees, langages,
+    frameworks, appliances reseau connues, avec leurs versions et leur etat
+    de maintenance). Objectif : le client trouve toujours son actif quand il
+    le cherche, au lieu de dependre d'une liste figee tapee a la main."""
+    try:
+        index = _get_json(ENDOFLIFE_INDEX)
+    except (urllib.error.URLError, TimeoutError, ValueError):
+        return {"produits": 0, "versions": 0}
+
+    total_produits = 0
+    total_versions = 0
+
+    for entree in index.get("result", []):
+        slug = entree.get("name")
+        if not slug:
+            continue
+
+        time.sleep(0.15)
+        try:
+            detail = _get_json(ENDOFLIFE_DETAIL.format(slug=slug)).get("result", {})
+        except (urllib.error.URLError, TimeoutError, ValueError):
+            continue
+
+        vendor_slug = _vendor_depuis_cpe(detail.get("identifiers", []))
+        editeur = _humaniser_editeur(vendor_slug or slug)
+        categorie = _categorie_produit(entree.get("category", ""), entree.get("tags", []))
+        produit_nom = detail.get("label") or entree.get("label") or slug
+
+        produit, _created = ActifCatalogueProduit.objects.update_or_create(
+            categorie=categorie, editeur=editeur, produit=produit_nom,
+            defaults={"source": "endoflife", "identifiant_source": slug},
+        )
+        total_produits += 1
+
+        versions_vues = set()
+        for release in detail.get("releases", []):
+            version = (release.get("latest") or {}).get("name") or release.get("name")
+            if not version or version in versions_vues:
+                continue
+            versions_vues.add(version)
+            ActifCatalogueVersion.objects.update_or_create(
+                produit=produit, version=version,
+                defaults={
+                    "label": release.get("label", ""),
+                    "maintenue": bool(release.get("isMaintained", True)),
+                    "sortie_le": _parser_date_iso(release.get("releaseDate")),
+                },
+            )
+            total_versions += 1
+
+    return {"produits": total_produits, "versions": total_versions}
+
+
 @shared_task
 def cycle_ingestion():
     """Orchestre un cycle complet de collecte puis declenche le Matching."""
     collecter_nvd_cve()
     collecter_cert_fr()
     collecter_referentiels_normatifs()
+    collecter_catalogue_actifs()
     calculer_matching()

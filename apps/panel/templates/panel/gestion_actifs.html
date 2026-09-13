@@ -85,6 +85,9 @@
   .modal-box .lbl{ font-size:10px; text-transform:uppercase; color:var(--text-faint); margin-bottom:4px; display:block; }
   .fields-technique, .fields-normatif{ display:none; }
   .fields-technique.show, .fields-normatif.show{ display:flex; }
+  .add-row-sep{ text-align:center; font-size:10.5px; color:var(--text-faint); margin:2px 0 10px; }
+  .combo-opt b{ color:var(--text); font-weight:600; }
+  .combo-opt .combo-sub{ color:var(--text-faint); }
   .modal-box input[type=text]{ flex:1; padding:8px 10px; background:var(--bg); border:1px solid var(--border); border-radius:5px; color:var(--text); font-family:inherit; font-size:12.5px; min-width:0; }
   .modal-box select{
     flex:1; min-width:0; padding:8px 30px 8px 10px; background-color:var(--bg); color:var(--text);
@@ -138,7 +141,7 @@
           {% endif %}
           <div class="at-actions">
             {% if actif.type == 'technique' %}
-              <button type="button" onclick="openVersionModal({{ actif.pk }}, '{{ actif|escapejs }}', '{{ actif.version|escapejs }}')"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>Monter en version</button>
+              <button type="button" onclick="openVersionModal({{ actif.pk }}, '{{ actif|escapejs }}', '{{ actif.version|escapejs }}', '{{ actif.produit|escapejs }}')"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>Monter en version</button>
             {% endif %}
             <button type="button" onclick="openDeleteModal({{ actif.pk }}, '{{ actif|escapejs }}')"><svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>Supprimer</button>
           </div>
@@ -186,14 +189,16 @@
           <input type="text" class="combo-input" id="version-combo-input" autocomplete="off" placeholder="Rechercher un actif technique…" oninput="comboFilter('version')" onfocus="comboFilter('version')">
           <div class="combo-list" id="version-combo-list" hidden>
             {% for actif in actifs %}{% if actif.type == 'technique' %}
-              <div class="combo-opt" data-pk="{{ actif.pk }}" data-nom="{{ actif|escapejs }}" data-version="{{ actif.version|escapejs }}" onclick="comboSelect('version', this)">{{ actif }}{% if actif.version %} ({{ actif.version }}){% endif %}</div>
+              <div class="combo-opt" data-pk="{{ actif.pk }}" data-nom="{{ actif|escapejs }}" data-version="{{ actif.version|escapejs }}" data-produit="{{ actif.produit|escapejs }}" onclick="comboSelect('version', this)">{{ actif }}{% if actif.version %} ({{ actif.version }}){% endif %}</div>
             {% endif %}{% endfor %}
           </div>
         </div>
       </div>
       <div class="f-field">
         <label class="lbl">Nouvelle version</label>
-        <input type="text" name="version" id="version-input" placeholder="ex : 11.1.3">
+        <input type="text" name="version" id="version-input" list="version-datalist" placeholder="ex : 11.1.3">
+        <datalist id="version-datalist"></datalist>
+        <div class="hint" id="version-hint" style="font-size:11px; color:var(--text-faint); margin-top:5px;"></div>
       </div>
       <button type="submit" class="btn-primary">Enregistrer</button>
     </form>
@@ -231,6 +236,16 @@
 {% endblock %}
 {% block extra_scripts %}
 <script>
+  const VERSIONS_CONNUES = {{ versions_json|default:"{}"|safe }};
+
+  function suggererVersions(produit){
+    const datalist = document.getElementById('version-datalist');
+    const hint = document.getElementById('version-hint');
+    const versions = VERSIONS_CONNUES[produit] || [];
+    datalist.innerHTML = versions.map(v => '<option value="' + v + '">').join('');
+    hint.textContent = versions.length ? ('Versions connues : ' + versions.slice(0, 5).join(', ') + (versions.length > 5 ? '…' : '')) : '';
+  }
+
   function closeModal(id){ document.getElementById(id).classList.remove('open'); }
   function openModal(id){ document.getElementById(id).classList.add('open'); }
   document.addEventListener('keydown', function(e){
@@ -244,7 +259,7 @@
 
   function openAddActif(){ openModal('add-actif-overlay'); }
 
-  function openVersionModal(pk, nom, version){
+  function openVersionModal(pk, nom, version, produit){
     openModal('version-overlay');
     const input = document.getElementById('version-combo-input');
     document.getElementById('version-combo-list').hidden = true;
@@ -257,6 +272,7 @@
       document.getElementById('version-form').action = '';
       document.getElementById('version-input').value = '';
     }
+    suggererVersions(produit || '');
   }
   function openDeleteModal(pk, nom){
     openModal('delete-overlay');
@@ -285,6 +301,7 @@
     if (prefix === 'version') {
       document.getElementById('version-form').action = '/actifs/' + pk + '/version/';
       document.getElementById('version-input').value = opt.dataset.version || '';
+      suggererVersions(opt.dataset.produit || '');
     } else if (prefix === 'delete') {
       document.getElementById('delete-form').action = '/actifs/' + pk + '/retirer/';
     }

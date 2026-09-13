@@ -13,6 +13,16 @@
       <label for="type-normatif">Normatif</label>
     </div>
   </div>
+
+  <div class="add-row fields-technique show" id="fields-technique-search">
+    <div style="flex:1; position:relative;" class="combo">
+      <span class="lbl">Rechercher un produit (ex : ubuntu, debian, pan-os…)</span>
+      <input type="text" id="produit-search-input" autocomplete="off" placeholder="Tapez le nom du produit…" oninput="produitSearchFilter()" onfocus="produitSearchFilter()">
+      <div class="combo-list" id="produit-search-list" hidden></div>
+    </div>
+  </div>
+  <div class="add-row-sep fields-technique show">ou choisissez par catégorie</div>
+
   <div class="add-row fields-technique show" id="fields-technique">
     <div style="flex:1;"><span class="lbl">Catégorie</span>
       <select name="categorie" id="sel-categorie" onchange="onCategorieChange()">
@@ -27,11 +37,15 @@
   </div>
   <div class="add-row fields-technique show">
     <div style="flex:1;"><span class="lbl">Produit</span>
-      <select name="produit" id="sel-produit" disabled>
+      <select name="produit" id="sel-produit" onchange="onProduitChange()" disabled>
         <option value="">— Choisir un éditeur d'abord —</option>
       </select>
     </div>
-    <div style="flex:1;"><span class="lbl">Version (optionnel)</span><input type="text" name="version" placeholder="11.1.2"></div>
+    <div style="flex:1;">
+      <span class="lbl">Version (optionnel)</span>
+      <input type="text" name="version" id="input-version" list="versions-connues-list" placeholder="11.1.2">
+      <datalist id="versions-connues-list"></datalist>
+    </div>
   </div>
   <div class="add-row fields-normatif" id="fields-normatif">
     <div style="flex:1;"><span class="lbl">Référentiel</span>
@@ -45,6 +59,19 @@
 </form>
 <script>
   const TAXONOMIE = {{ taxonomie_json|safe }};
+  const VERSIONS_CONNUES = {{ versions_json|default:"{}"|safe }};
+
+  // Index plat "produit -> {categorie, editeur}" pour la recherche libre —
+  // le catalogue (~470 produits) rend le parcours par categorie/editeur
+  // fastidieux si on ne sait pas d'avance ou ranger son produit.
+  const INDEX_PRODUITS = [];
+  for (const categorie in TAXONOMIE) {
+    for (const editeur in TAXONOMIE[categorie]) {
+      for (const produit of TAXONOMIE[categorie][editeur]) {
+        INDEX_PRODUITS.push({ produit, editeur, categorie });
+      }
+    }
+  }
 
   function toggleTypeFields(){
     const technique = document.getElementById('type-technique').checked;
@@ -84,6 +111,51 @@
       fillSelect(produitSelect, [], '— Choisir un éditeur d’abord —');
     }
   }
+
+  function onProduitChange(){
+    const produit = document.getElementById('sel-produit').value;
+    const datalist = document.getElementById('versions-connues-list');
+    const versionInput = document.getElementById('input-version');
+    const versions = VERSIONS_CONNUES[produit] || [];
+    datalist.innerHTML = versions.map(v => '<option value="' + v + '">').join('');
+    versionInput.placeholder = versions.length ? ('ex : ' + versions[0]) : '11.1.2';
+  }
+
+  function produitSearchFilter(){
+    const q = document.getElementById('produit-search-input').value.trim().toLowerCase();
+    const list = document.getElementById('produit-search-list');
+    if (!q) { list.hidden = true; list.innerHTML = ''; return; }
+    const matches = INDEX_PRODUITS.filter(e => e.produit.toLowerCase().includes(q)).slice(0, 30);
+    if (!matches.length) {
+      list.innerHTML = '<div class="combo-empty">Aucun produit ne correspond — vous pouvez aussi choisir par catégorie ci-dessous.</div>';
+    } else {
+      list.innerHTML = matches.map(e =>
+        '<div class="combo-opt" onclick="produitSearchSelect(\'' + e.categorie.replace(/'/g, "\\'") + '\', \'' + e.editeur.replace(/'/g, "\\'") + '\', \'' + e.produit.replace(/'/g, "\\'") + '\')">' +
+        '<b>' + e.produit + '</b><span class="combo-sub"> — ' + e.editeur + ' · ' + e.categorie + '</span></div>'
+      ).join('');
+    }
+    list.hidden = false;
+  }
+
+  function produitSearchSelect(categorie, editeur, produit){
+    document.getElementById('produit-search-input').value = produit;
+    document.getElementById('produit-search-list').hidden = true;
+
+    const catSelect = document.getElementById('sel-categorie');
+    catSelect.value = categorie;
+    onCategorieChange();
+    const eduSelect = document.getElementById('sel-editeur');
+    eduSelect.value = editeur;
+    onEditeurChange();
+    const prodSelect = document.getElementById('sel-produit');
+    prodSelect.value = produit;
+    onProduitChange();
+  }
+
+  document.addEventListener('click', function(e){
+    const list = document.getElementById('produit-search-list');
+    if (list && !list.hidden && !list.parentElement.contains(e.target)) list.hidden = true;
+  });
 
   fillSelect(document.getElementById('sel-categorie'), Object.keys(TAXONOMIE), '— Choisir —');
 </script>

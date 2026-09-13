@@ -203,7 +203,7 @@ def renseignements(request):
 
     import json
 
-    from .taxonomie import REFERENTIELS_NORMATIFS, TAXONOMIE_TECHNIQUE
+    from .taxonomie import REFERENTIELS_NORMATIFS, taxonomie_technique, versions_connues
 
     # Stats de l'en-tete : uniquement ce qui concerne le client (matche a un
     # actif/referentiel declare), pas tout le flux BDP — la BDP contient des
@@ -237,7 +237,8 @@ def renseignements(request):
             "q_actif": q_actif,
             "derniers_traitements": derniers_traitements,
             "renseignements_par_id": renseignements_par_id,
-            "taxonomie_json": json.dumps(TAXONOMIE_TECHNIQUE),
+            "taxonomie_json": json.dumps(taxonomie_technique()),
+            "versions_json": json.dumps(versions_connues()),
             "referentiels": REFERENTIELS_NORMATIFS,
             "nb_total_renseignements": len(renseignements_pertinents),
             "nb_nouveaux": nb_nouveaux,
@@ -541,7 +542,7 @@ def gestion_actifs(request):
     modifications, sur le meme principe que Renseignements."""
     import json
 
-    from .taxonomie import REFERENTIELS_NORMATIFS, TAXONOMIE_TECHNIQUE
+    from .taxonomie import REFERENTIELS_NORMATIFS, taxonomie_technique, versions_connues
 
     actifs = list(ActifClient.objects.all())
 
@@ -579,7 +580,8 @@ def gestion_actifs(request):
             "q": q,
             "type_filtre": type_filtre,
             "tri": tri,
-            "taxonomie_json": json.dumps(TAXONOMIE_TECHNIQUE),
+            "taxonomie_json": json.dumps(taxonomie_technique()),
+            "versions_json": json.dumps(versions_connues()),
             "referentiels": REFERENTIELS_NORMATIFS,
         },
     )

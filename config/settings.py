@@ -22,6 +22,7 @@ INSTALLED_APPS = [
     "apps.accounts",
     "apps.bdp",
     "apps.bdc",
+    "apps.catalogue",
     "apps.matching",
     "apps.ingestion",
     "apps.panel",
