@@ -85,6 +85,19 @@ def _contenu_modifie(existant: Renseignement, item: dict) -> bool:
     )
 
 
+def _resume(texte: str, n: int = 100) -> str:
+    """Premiere phrase (ou premiers n caracteres) d'un texte long, pour un
+    titre court — la reference (CVE/CERTFR-ID) est deja affichee separement
+    par les gabarits via `reference_courte`, jamais repetee dans le titre."""
+    texte = (texte or "").strip()
+    if not texte:
+        return ""
+    fin = texte.find(". ")
+    if 0 < fin < n:
+        return texte[:fin].strip()
+    return texte[:n].rstrip() + ("…" if len(texte) > n else "")
+
+
 def _nvd_description(cve: dict) -> str:
     for d in cve.get("descriptions", []):
         if d.get("lang") == "en":
@@ -155,10 +168,11 @@ def collecter_nvd_cve():
                 publie = timezone.make_aware(publie, timezone.get_default_timezone())
 
             score, vecteur = _nvd_cvss(cve)
+            description = _nvd_description(cve)[:2000] or "(pas de description disponible)"
             normaliser_et_ecrire_bdp({
                 "type": "technique",
-                "titre": f"{cve_id} — {actif.produit}",
-                "description": _nvd_description(cve)[:2000] or "(pas de description disponible)",
+                "titre": f"{actif.produit} — {_resume(description)}",
+                "description": description,
                 "source": "NVD",
                 "url_source": f"https://nvd.nist.gov/vuln/detail/{cve_id}",
                 "reference_externe": cve_id,
@@ -178,14 +192,20 @@ def collecter_nvd_cve():
 
 def _certfr_criticite(risks: list) -> str:
     """CERT-FR ne fournit pas de score CVSS par avis (contrairement a NVD) :
-    on deduit une criticite indicative a partir des categories d'impact
-    (`risks`) declarees par l'avis, de la plus grave a la plus benigne."""
-    texte = " ".join(r.get("description", "") for r in risks).lower()
+    on deduit une criticite indicative a partir du PREMIER risque declare
+    par l'avis (CERT-FR liste les impacts par ordre de gravite decroissante :
+    se baser sur l'ensemble de la liste ferait passer "critique" la quasi-
+    totalite des avis multi-CVE, qui listent presque toujours l'execution de
+    code arbitraire parmi 5-6 impacts possibles meme quand ce n'est pas le
+    plus probable pour l'ensemble des CVE couverts)."""
+    if not risks:
+        return "faible"
+    texte = risks[0].get("description", "").lower()
     if "code arbitraire" in texte:
         return "critique"
     if "élévation de privilèges" in texte or "contournement" in texte:
         return "elevee"
-    if "déni de service" in texte:
+    if "déni de service" in texte or "confidentialité" in texte or "intégrité" in texte:
         return "moyenne"
     return "faible"
 
@@ -241,7 +261,8 @@ def collecter_cert_fr(lookback_jours: int = CERT_FR_LOOKBACK_JOURS):
 
         criticite = _certfr_criticite(detail.get("risks", []))
         url_avis = CERT_FR_PAGE.format(ref=ref)
-        description = (detail.get("summary") or detail.get("title") or "")[:2000] or (
+        titre_avis = detail.get("title", "")
+        description = (detail.get("summary") or titre_avis or "")[:2000] or (
             "(pas de description disponible)"
         )
 
@@ -256,7 +277,7 @@ def collecter_cert_fr(lookback_jours: int = CERT_FR_LOOKBACK_JOURS):
 
             normaliser_et_ecrire_bdp({
                 "type": "technique",
-                "titre": f"{ref} — {nom_produit}",
+                "titre": f"{nom_produit} — {titre_avis}" if titre_avis else nom_produit,
                 "description": description,
                 "source": "CERT-FR",
                 "url_source": url_avis,
@@ -274,7 +295,7 @@ def collecter_cert_fr(lookback_jours: int = CERT_FR_LOOKBACK_JOURS):
             # visible dans Actualites, simplement non matche a un actif.
             normaliser_et_ecrire_bdp({
                 "type": "technique",
-                "titre": f"{ref} — {detail.get('title', '')}",
+                "titre": titre_avis or ref,
                 "description": description,
                 "source": "CERT-FR",
                 "url_source": url_avis,

@@ -83,6 +83,16 @@ class Renseignement(models.Model):
     def __str__(self):
         return f"{self.titre} ({self.id_renseignement_bdp})"
 
+    @property
+    def reference_courte(self):
+        """Reference a afficher a l'utilisateur. En interne, certaines sources
+        (CERT-FR) ont besoin d'une reference_externe composee (`AVIS::produit`)
+        pour que chaque couple avis/produit reste identifie de facon unique
+        sans casser le versionning — mais cette partie technique ne doit
+        jamais fuiter dans l'UI, seule la reference publique (avant `::`)
+        a du sens pour un humain."""
+        return self.reference_externe.split("::", 1)[0]
+
     _CVSS_LABELS = {
         "AV": {"N": "Réseau", "A": "Adjacent", "L": "Local", "P": "Physique"},
         "AC": {"L": "Faible", "H": "Élevée"},

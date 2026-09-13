@@ -58,7 +58,7 @@
     <div class="feed-card {{ item.criticite }}">
       <div class="feed-meta">
         {% if item.url_source %}<a class="src" href="{{ item.url_source }}" target="_blank" rel="noopener">{{ item.source }} ↗</a>{% else %}<span class="src">{{ item.source }}</span>{% endif %}
-        {% if item.reference_externe %}<span class="ref">{{ item.reference_externe }}</span>{% endif %}
+        {% if item.reference_externe %}<span class="ref">{{ item.reference_courte }}</span>{% endif %}
         {% if item.get_nature_display %}<span class="nature-tag {{ item.nature }}">{{ item.get_nature_display }}</span>{% endif %}
         {% if item.criticite %}<span class="sev {{ item.criticite }}">{{ item.get_criticite_display }}</span>{% endif %}
         {% if item.cvss_score %}<span class="ref">CVSS {{ item.cvss_score|floatformat:1 }}</span>{% endif %}

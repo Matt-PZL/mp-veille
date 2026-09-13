@@ -131,7 +131,7 @@
   <div class="card">
     <h2><span class="hdot" style="background:var(--danger)"></span>Renseignements prioritaires</h2>
     {% for r in prioritaires %}
-      <div class="row"><span><span class="dot-sev {{ r.criticite }}"></span>{{ r.reference_externe|default:r.source }} — {{ r.titre|truncatechars:38 }}</span><span class="meta">{{ r.decouvert_le|timesince }}</span></div>
+      <div class="row"><span><span class="dot-sev {{ r.criticite }}"></span>{{ r.reference_courte|default:r.source }} — {{ r.titre|truncatechars:38 }}</span><span class="meta">{{ r.decouvert_le|timesince }}</span></div>
     {% empty %}
       <div class="card-empty"><div class="big">🔥</div>Aucun renseignement à prioriser.</div>
     {% endfor %}
@@ -162,7 +162,7 @@
   <div class="card">
     <h2><span class="hdot" style="background:var(--text-muted)"></span>Derniers renseignements</h2>
     {% for item in derniers_renseignements %}
-      <div class="row"><span><span class="dot-sev {{ item.criticite }}"></span>{{ item.reference_externe|default:item.source }} — {{ item.titre|truncatechars:36 }}</span><span class="meta">{{ item.decouvert_le|timesince }}</span></div>
+      <div class="row"><span><span class="dot-sev {{ item.criticite }}"></span>{{ item.reference_courte|default:item.source }} — {{ item.titre|truncatechars:36 }}</span><span class="meta">{{ item.decouvert_le|timesince }}</span></div>
     {% empty %}
       <div class="card-empty">Aucun renseignement — l'ingestion n'a pas encore tourné.</div>
     {% endfor %}

@@ -67,7 +67,7 @@
   <div class="r-summary">
     <div class="top">
       <span class="r-dot {{ renseignement.criticite }}"></span>
-      <h1>{{ renseignement.reference_externe|default:renseignement.source }} — {{ renseignement.titre }}</h1>
+      <h1>{{ renseignement.reference_courte|default:renseignement.source }} — {{ renseignement.titre }}</h1>
     </div>
     <p>{{ renseignement.description }}</p>
     <div class="meta">
