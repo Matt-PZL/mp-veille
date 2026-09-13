@@ -7,13 +7,17 @@
   .layout{ display:grid; grid-template-columns:1fr 280px; gap:20px; align-items:start; }
   @media (max-width:900px){ .layout{ grid-template-columns:1fr; } }
 
-  .stat-line{ color:var(--text-muted); font-size:12.5px; margin-bottom:16px; }
-  .stat-line b{ color:var(--text); font-family:var(--font-mono); }
+  .stat-tiles{ display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap; }
+  .stat-tile{ background:var(--surface-2); border:1px solid var(--border); border-top:3px solid var(--accent); border-radius:8px; padding:14px 20px; min-width:130px; }
+  .stat-tile.tech{ border-top-color:var(--info); }
+  .stat-tile.norm{ border-top-color:var(--violet); }
+  .stat-num{ font-size:26px; font-weight:700; font-family:var(--font-mono); line-height:1.1; }
+  .stat-lbl{ font-size:10.5px; color:var(--text-muted); margin-top:6px; text-transform:uppercase; letter-spacing:0.04em; font-weight:600; }
 
   .toolbar-actions{ display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
   .toolbar-actions button{ display:flex; align-items:center; gap:6px; font-size:12px; font-weight:600; padding:8px 14px; border-radius:6px; border:1px solid var(--border); background:var(--surface-2); color:var(--text-muted); cursor:pointer; font-family:inherit; }
   .toolbar-actions button:hover{ color:var(--text); border-color:var(--text-faint); }
-  .toolbar-actions button.primary{ background:#00E003; border-color:#00E003; color:#E7E7E7; }
+  .toolbar-actions button.primary{ background:#00E003; border-color:#00E003; color:#070707; }
   .toolbar-actions button svg{ width:13px; height:13px; stroke:currentColor; stroke-width:2; fill:none; }
 
   .filters-row{ display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; align-items:center; }
@@ -27,7 +31,6 @@
   .at-tag{ font-size:10px; text-transform:uppercase; color:var(--text-faint); font-family:var(--font-mono); width:64px; flex-shrink:0; }
   .at-name{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .at-name .ver{ color:var(--text-faint); font-size:11px; margin-left:6px; }
-  .at-meta{ color:var(--text-faint); font-size:11px; font-family:var(--font-mono); width:90px; flex-shrink:0; }
   .at-actions{ display:flex; gap:6px; flex-shrink:0; }
   .at-actions button{ font-size:11px; font-weight:600; padding:5px 10px; border-radius:5px; border:1px solid var(--border); background:none; color:var(--text-muted); cursor:pointer; font-family:inherit; }
   .at-actions button:hover{ color:var(--text); border-color:var(--text-faint); }
@@ -55,7 +58,7 @@
   .modal-close:hover{ background:rgba(255,255,255,0.06); color:var(--text); }
   .f-field{ margin-bottom:14px; }
   .f-field .lbl{ display:block; font-size:10px; text-transform:uppercase; color:var(--text-faint); margin-bottom:5px; font-weight:600; }
-  .f-field select, .f-field input[type=text]{ width:100%; padding:8px 10px; background:var(--bg); border:1px solid var(--border); border-radius:5px; color:var(--text); font-family:inherit; font-size:12.5px; }
+  .f-field input[type=text]{ width:100%; padding:8px 10px; background:var(--bg); border:1px solid var(--border); border-radius:5px; color:var(--text); font-family:inherit; font-size:12.5px; }
   .btn-primary{ padding:8px 16px; background:var(--accent); border:none; border-radius:5px; color:#fff; font-weight:600; font-size:12.5px; cursor:pointer; font-family:inherit; }
   .mode-toggle{ display:flex; gap:8px; margin-bottom:14px; }
   .mode-toggle label{ flex:1; text-align:center; padding:8px; border:1.5px solid var(--border); border-radius:6px; font-size:12px; font-weight:600; color:var(--text-muted); cursor:pointer; }
@@ -63,6 +66,14 @@
   .mode-toggle input:checked + label{ border-color:var(--danger); background:rgba(248,81,73,0.12); color:var(--text); }
   .messages{ margin-bottom:16px; }
   .messages li{ list-style:none; background:var(--accent-dim); border:1px solid var(--accent); color:var(--accent); padding:8px 12px; border-radius:5px; font-size:12px; }
+
+  /* ---- Combobox recherche (Monter en version / Supprimer) ---- */
+  .combo{ position:relative; }
+  .combo-list{ position:absolute; top:calc(100% + 4px); left:0; right:0; max-height:200px; overflow-y:auto; background:var(--bg); border:1px solid var(--border); border-radius:6px; box-shadow:0 8px 24px rgba(0,0,0,0.5); z-index:60; }
+  .combo-opt{ padding:8px 10px; font-size:12.5px; color:var(--text-muted); cursor:pointer; }
+  .combo-opt:hover{ background:rgba(255,255,255,0.06); color:var(--text); }
+  .combo-opt[hidden]{ display:none; }
+  .combo-empty{ padding:8px 10px; font-size:12px; color:var(--text-faint); }
 
   .add-row{ display:flex; gap:10px; margin-bottom:10px; }
   .add-row.type-toggle{ gap:6px; }
@@ -73,6 +84,15 @@
   .modal-box .lbl{ font-size:10px; text-transform:uppercase; color:var(--text-faint); margin-bottom:4px; display:block; }
   .fields-technique, .fields-normatif{ display:none; }
   .fields-technique.show, .fields-normatif.show{ display:flex; }
+  .modal-box input[type=text]{ flex:1; min-width:0; }
+  .modal-box select{
+    flex:1; min-width:0; padding:8px 30px 8px 10px; background-color:var(--bg); color:var(--text);
+    border:1px solid var(--border); border-radius:5px; font-family:inherit; font-size:12.5px;
+    appearance:none; -webkit-appearance:none; -moz-appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239BA4AF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 8px center; background-size:14px;
+  }
+  .modal-box select:disabled{ color:var(--text-faint); cursor:not-allowed; }
 </style>
 {% endblock %}
 {% block content %}
@@ -80,7 +100,11 @@
 <div class="page" style="max-width:1080px;">
 {% if messages %}<ul class="messages">{% for m in messages %}<li>{{ m }}</li>{% endfor %}</ul>{% endif %}
 
-<p class="stat-line"><b>{{ total }}</b> actifs/référentiels — <b>{{ nb_technique }}</b> technique{{ nb_technique|pluralize }}, <b>{{ nb_normatif }}</b> normatif{{ nb_normatif|pluralize }}</p>
+<div class="stat-tiles">
+  <div class="stat-tile"><div class="stat-num">{{ total }}</div><div class="stat-lbl">Total actifs</div></div>
+  <div class="stat-tile tech"><div class="stat-num">{{ nb_technique }}</div><div class="stat-lbl">Technique</div></div>
+  <div class="stat-tile norm"><div class="stat-num">{{ nb_normatif }}</div><div class="stat-lbl">Normatif</div></div>
+</div>
 
 <div class="layout">
   <div class="col-main">
@@ -95,11 +119,9 @@
 
     <form class="filters-row" method="get">
       <input type="text" name="q" value="{{ q }}" placeholder="Rechercher un actif…" onchange="this.form.submit()">
-      <a href="?q={{ q }}&tri={{ tri }}" class="{% if not type_filtre %}active{% endif %}">Tous</a>
-      <a href="?q={{ q }}&tri={{ tri }}&type=technique" class="{% if type_filtre == 'technique' %}active{% endif %}">Technique</a>
-      <a href="?q={{ q }}&tri={{ tri }}&type=normatif" class="{% if type_filtre == 'normatif' %}active{% endif %}">Normatif</a>
-      <a href="?q={{ q }}&type={{ type_filtre }}&tri=az" class="{% if tri == 'az' %}active{% endif %}">A–Z</a>
-      <a href="?q={{ q }}&type={{ type_filtre }}&tri=nb" class="{% if tri == 'nb' %}active{% endif %}">Nb.</a>
+      <a href="?q={{ q }}" class="{% if not type_filtre %}active{% endif %}">Tous</a>
+      <a href="?q={{ q }}&type=technique" class="{% if type_filtre == 'technique' %}active{% endif %}">Technique</a>
+      <a href="?q={{ q }}&type=normatif" class="{% if type_filtre == 'normatif' %}active{% endif %}">Normatif</a>
     </form>
 
     <div class="actif-table">
@@ -107,7 +129,6 @@
         <div class="at-row">
           <span class="at-tag">{{ actif.type }}</span>
           <span class="at-name">{{ actif }}{% if actif.version %}<span class="ver mono">{{ actif.version }}</span>{% endif %}</span>
-          <span class="at-meta">{{ actif.traitements.count }} renseignement{{ actif.traitements.count|pluralize }}</span>
           <div class="at-actions">
             {% if actif.type == 'technique' %}
               <button type="button" onclick="openVersionModal({{ actif.pk }}, '{{ actif|escapejs }}', '{{ actif.version|escapejs }}')">Monter en version</button>
@@ -154,10 +175,14 @@
       <input type="hidden" name="next" value="{{ request.get_full_path }}">
       <div class="f-field">
         <label class="lbl">Actif</label>
-        <select id="version-select" onchange="onVersionSelectChange()">
-          <option value="">— Choisir —</option>
-          {% for actif in actifs %}{% if actif.type == 'technique' %}<option value="{{ actif.pk }}" data-nom="{{ actif|escapejs }}" data-version="{{ actif.version|escapejs }}">{{ actif }}{% if actif.version %} ({{ actif.version }}){% endif %}</option>{% endif %}{% endfor %}
-        </select>
+        <div class="combo">
+          <input type="text" class="combo-input" id="version-combo-input" autocomplete="off" placeholder="Rechercher un actif technique…" oninput="comboFilter('version')" onfocus="comboFilter('version')">
+          <div class="combo-list" id="version-combo-list" hidden>
+            {% for actif in actifs %}{% if actif.type == 'technique' %}
+              <div class="combo-opt" data-pk="{{ actif.pk }}" data-nom="{{ actif|escapejs }}" data-version="{{ actif.version|escapejs }}" onclick="comboSelect('version', this)">{{ actif }}{% if actif.version %} ({{ actif.version }}){% endif %}</div>
+            {% endif %}{% endfor %}
+          </div>
+        </div>
       </div>
       <div class="f-field">
         <label class="lbl">Nouvelle version</label>
@@ -178,10 +203,14 @@
       <input type="hidden" name="next" value="{{ request.get_full_path }}">
       <div class="f-field">
         <label class="lbl">Actif</label>
-        <select id="delete-select" onchange="onDeleteSelectChange()">
-          <option value="">— Choisir —</option>
-          {% for actif in actifs %}<option value="{{ actif.pk }}" data-nom="{{ actif|escapejs }}">{{ actif }}</option>{% endfor %}
-        </select>
+        <div class="combo">
+          <input type="text" class="combo-input" id="delete-combo-input" autocomplete="off" placeholder="Rechercher un actif…" oninput="comboFilter('delete')" onfocus="comboFilter('delete')">
+          <div class="combo-list" id="delete-combo-list" hidden>
+            {% for actif in actifs %}
+              <div class="combo-opt" data-pk="{{ actif.pk }}" data-nom="{{ actif|escapejs }}" onclick="comboSelect('delete', this)">{{ actif }}</div>
+            {% endfor %}
+          </div>
+        </div>
       </div>
       <div class="mode-toggle">
         <input type="radio" name="mode" value="conserver" id="mode-conserver" checked><label for="mode-conserver">Conserver l'historique</label>
@@ -200,33 +229,58 @@
   document.addEventListener('keydown', function(e){
     if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.open').forEach(function(m){ m.classList.remove('open'); });
   });
+  document.addEventListener('click', function(e){
+    document.querySelectorAll('.combo-list').forEach(function(list){
+      if (!list.hidden && !list.parentElement.contains(e.target)) list.hidden = true;
+    });
+  });
 
   function openAddActif(){ openModal('add-actif-overlay'); }
 
   function openVersionModal(pk, nom, version){
     openModal('version-overlay');
-    const select = document.getElementById('version-select');
-    if (pk) { select.value = pk; onVersionSelectChange(); }
-    else { select.value = ''; document.getElementById('version-form').action = ''; document.getElementById('version-input').value = ''; }
+    const input = document.getElementById('version-combo-input');
+    document.getElementById('version-combo-list').hidden = true;
+    if (pk) {
+      input.value = nom + (version ? ' (' + version + ')' : '');
+      document.getElementById('version-form').action = '/actifs/' + pk + '/version/';
+      document.getElementById('version-input').value = version || '';
+    } else {
+      input.value = '';
+      document.getElementById('version-form').action = '';
+      document.getElementById('version-input').value = '';
+    }
   }
-  function onVersionSelectChange(){
-    const select = document.getElementById('version-select');
-    const opt = select.options[select.selectedIndex];
-    const pk = select.value;
-    document.getElementById('version-form').action = pk ? '/actifs/' + pk + '/version/' : '';
-    document.getElementById('version-input').value = opt ? (opt.dataset.version || '') : '';
-  }
-
   function openDeleteModal(pk, nom){
     openModal('delete-overlay');
-    const select = document.getElementById('delete-select');
-    if (pk) { select.value = pk; onDeleteSelectChange(); }
-    else { select.value = ''; document.getElementById('delete-form').action = ''; }
+    const input = document.getElementById('delete-combo-input');
+    document.getElementById('delete-combo-list').hidden = true;
+    if (pk) {
+      input.value = nom;
+      document.getElementById('delete-form').action = '/actifs/' + pk + '/retirer/';
+    } else {
+      input.value = '';
+      document.getElementById('delete-form').action = '';
+    }
   }
-  function onDeleteSelectChange(){
-    const select = document.getElementById('delete-select');
-    const pk = select.value;
-    document.getElementById('delete-form').action = pk ? '/actifs/' + pk + '/retirer/' : '';
+
+  function comboFilter(prefix){
+    const q = document.getElementById(prefix + '-combo-input').value.trim().toLowerCase();
+    document.getElementById(prefix + '-combo-list').hidden = false;
+    document.querySelectorAll('#' + prefix + '-combo-list .combo-opt').forEach(function(opt){
+      opt.hidden = q.length > 0 && !opt.textContent.toLowerCase().includes(q);
+    });
+  }
+  function comboSelect(prefix, opt){
+    document.getElementById(prefix + '-combo-input').value = opt.textContent.trim();
+    document.getElementById(prefix + '-combo-list').hidden = true;
+    const pk = opt.dataset.pk;
+    if (prefix === 'version') {
+      document.getElementById('version-form').action = '/actifs/' + pk + '/version/';
+      document.getElementById('version-input').value = opt.dataset.version || '';
+    } else if (prefix === 'delete') {
+      document.getElementById('delete-form').action = '/actifs/' + pk + '/retirer/';
+    }
   }
 </script>
 {% endblock %}

@@ -11,11 +11,14 @@
 
   .card{ background:var(--surface-2); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
 
-  /* ---- Colonne Actifs (facon "Top repositories" GitHub : pas d'encadre) ---- */
-  .col-left{ border-right:1px solid var(--border); padding-right:16px; }
+  /* ---- Colonne Actifs (facon "Top repositories" GitHub) ---- */
+  .col-left{
+    background:#010101; border-right:1px solid var(--border);
+    margin:-32px 0 -72px -32px; padding:24px 16px 24px 32px;
+  }
   .col-left .card-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
   .col-left .card-head h2{ font-size:15px; font-weight:700; }
-  .btn-add{ display:flex; align-items:center; gap:5px; font-size:11.5px; font-weight:700; padding:6px 12px; border-radius:6px; background:#00E003; color:#E7E7E7; border:none; cursor:pointer; text-decoration:none; }
+  .btn-add{ display:flex; align-items:center; gap:5px; font-size:11.5px; font-weight:700; padding:6px 12px; border-radius:6px; background:#00E003; color:#070707; border:none; cursor:pointer; text-decoration:none; }
   .btn-add svg{ width:12px; height:12px; stroke:currentColor; stroke-width:2.8; fill:none; }
 
   .actif-search{ margin-bottom:10px; }
@@ -49,7 +52,14 @@
   .type-radio input{ display:none; }
   .type-radio label{ display:block; text-align:center; padding:7px; border:1px solid var(--border); border-radius:5px; font-size:12px; color:var(--text-muted); cursor:pointer; }
   .type-radio input:checked + label{ border-color:var(--accent); color:var(--accent); background:var(--accent-dim); }
-  .modal-box input[type=text], .modal-box select{ flex:1; padding:8px 10px; background:var(--bg); border:1px solid var(--border); border-radius:5px; color:var(--text); font-family:inherit; font-size:12.5px; min-width:0; }
+  .modal-box input[type=text]{ flex:1; padding:8px 10px; background:var(--bg); border:1px solid var(--border); border-radius:5px; color:var(--text); font-family:inherit; font-size:12.5px; min-width:0; }
+  .modal-box select{
+    flex:1; min-width:0; padding:8px 30px 8px 10px; background-color:var(--bg); color:var(--text);
+    border:1px solid var(--border); border-radius:5px; font-family:inherit; font-size:12.5px;
+    appearance:none; -webkit-appearance:none; -moz-appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239BA4AF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 8px center; background-size:14px;
+  }
   .modal-box select:disabled{ color:var(--text-faint); cursor:not-allowed; }
   .modal-box .lbl{ font-size:10px; text-transform:uppercase; color:var(--text-faint); margin-bottom:4px; display:block; }
   .fields-technique, .fields-normatif{ display:none; }
