@@ -43,20 +43,27 @@ def vue_ensemble(request):
     def statut_de(r):
         return getattr(traitements_par_id.get(r.id_renseignement_bdp), "statut", "a_traiter")
 
-    ouverts = [r for r in tous_renseignements if statut_de(r) in _OUVERTS]
+    # KPI/priorites du dashboard : uniquement ce qui concerne le client (matche
+    # a un actif/referentiel declare), pas toute la BDP — sinon les chiffres
+    # se gonflent avec des renseignements sur des produits qu'il ne possede
+    # meme pas (meme principe que sur Renseignements, cf. calculer_matching).
+    resultats_matching = calculer_matching()
+    actifs_couverts = {r.actif for r in resultats_matching}
+    actifs_sans_renseignement = [a for a in ActifClient.objects.all() if a not in actifs_couverts]
+    renseignements_pertinents = list(
+        {r.renseignement.id_renseignement_bdp: r.renseignement for r in resultats_matching}.values()
+    )
+
+    ouverts = [r for r in renseignements_pertinents if statut_de(r) in _OUVERTS]
     par_criticite = Counter(r.criticite or "moyenne" for r in ouverts)
-    par_etape = Counter(statut_de(r) for r in tous_renseignements)
-    non_consultes = [r for r in tous_renseignements if r.id_renseignement_bdp not in consultes]
+    par_etape = Counter(statut_de(r) for r in renseignements_pertinents)
+    non_consultes = [r for r in renseignements_pertinents if r.id_renseignement_bdp not in consultes]
 
     compteur_actifs = Counter()
     for t in traitements_par_id.values():
         if t.actif and t.statut in _OUVERTS:
             compteur_actifs[t.actif] += 1
     actifs_exposes = compteur_actifs.most_common(5)
-
-    resultats_matching = calculer_matching()
-    actifs_couverts = {r.actif for r in resultats_matching}
-    actifs_sans_renseignement = [a for a in ActifClient.objects.all() if a not in actifs_couverts]
 
     total_traitements = Traitement.objects.count()
     clos_count = Traitement.objects.filter(statut="clos").count()
@@ -97,6 +104,9 @@ def vue_ensemble(request):
     activite_max = max((a["n"] for a in activite), default=0) or 1
 
     derniere_collecte = max((r.cree_le for r in tous_renseignements), default=None)
+    derniers_renseignements_pertinents = sorted(
+        renseignements_pertinents, key=lambda r: r.decouvert_le, reverse=True
+    )[:5]
 
     return render(
         request,
@@ -112,14 +122,14 @@ def vue_ensemble(request):
             "en_retard": en_retard,
             "echeances_a_venir": echeances_a_venir,
             "renseignements_par_id": renseignements_par_id,
-            "derniers_renseignements": tous_renseignements[:5],
+            "derniers_renseignements": derniers_renseignements_pertinents,
             "prioritaires": prioritaires,
             "non_consultes": non_consultes,
             "activite": activite,
             "activite_max": activite_max,
             "derniere_collecte": derniere_collecte,
             "nb_ouverts": len(ouverts),
-            "nb_total_renseignements": len(tous_renseignements),
+            "nb_total_renseignements": len(renseignements_pertinents),
             "nb_actifs": ActifClient.objects.count(),
         },
     )
@@ -195,11 +205,17 @@ def renseignements(request):
 
     from .taxonomie import REFERENTIELS_NORMATIFS, TAXONOMIE_TECHNIQUE
 
-    tous_les_renseignements = list(Renseignement.objects.all())
-    nb_nouveaux = sum(1 for r in tous_les_renseignements if r.id_renseignement_bdp not in consultes)
-    nb_critiques = sum(1 for r in tous_les_renseignements if r.criticite == "critique")
+    # Stats de l'en-tete : uniquement ce qui concerne le client (matche a un
+    # actif/referentiel declare), pas tout le flux BDP — la BDP contient des
+    # milliers d'avis sur des produits que le client ne possede pas, compter
+    # dessus donnerait des chiffres qui n'ont rien d'actionnable pour lui.
+    renseignements_pertinents = {
+        r.renseignement.id_renseignement_bdp: r.renseignement for r in calculer_matching()
+    }.values()
+    nb_nouveaux = sum(1 for r in renseignements_pertinents if r.id_renseignement_bdp not in consultes)
+    nb_critiques = sum(1 for r in renseignements_pertinents if r.criticite == "critique")
     nb_a_traiter = sum(
-        1 for r in tous_les_renseignements
+        1 for r in renseignements_pertinents
         if getattr(traitements_par_id.get(r.id_renseignement_bdp), "statut", "a_traiter") == "a_traiter"
     )
 
@@ -223,7 +239,7 @@ def renseignements(request):
             "renseignements_par_id": renseignements_par_id,
             "taxonomie_json": json.dumps(TAXONOMIE_TECHNIQUE),
             "referentiels": REFERENTIELS_NORMATIFS,
-            "nb_total_renseignements": len(tous_les_renseignements),
+            "nb_total_renseignements": len(renseignements_pertinents),
             "nb_nouveaux": nb_nouveaux,
             "nb_critiques": nb_critiques,
             "nb_a_traiter": nb_a_traiter,
