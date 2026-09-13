@@ -64,49 +64,7 @@
 </div>
 
 <div class="add-card" id="add-card">
-  <h2>Ajouter un actif ou un référentiel</h2>
-  <form method="post" action="{% url 'panel:ajouter_actif' %}">
-    {% csrf_token %}
-    <div class="add-row type-toggle">
-      <div class="type-radio">
-        <input type="radio" name="type" value="technique" id="type-technique" checked onclick="toggleTypeFields()">
-        <label for="type-technique">Technique</label>
-      </div>
-      <div class="type-radio">
-        <input type="radio" name="type" value="normatif" id="type-normatif" onclick="toggleTypeFields()">
-        <label for="type-normatif">Normatif</label>
-      </div>
-    </div>
-    <div class="add-row fields-technique show" id="fields-technique">
-      <div style="flex:1;"><span class="lbl">Catégorie</span>
-        <select name="categorie" id="sel-categorie" onchange="onCategorieChange()">
-          <option value="">— Choisir —</option>
-        </select>
-      </div>
-      <div style="flex:1;"><span class="lbl">Éditeur</span>
-        <select name="editeur" id="sel-editeur" onchange="onEditeurChange()" disabled>
-          <option value="">— Choisir une catégorie d'abord —</option>
-        </select>
-      </div>
-    </div>
-    <div class="add-row fields-technique show">
-      <div style="flex:1;"><span class="lbl">Produit</span>
-        <select name="produit" id="sel-produit" disabled>
-          <option value="">— Choisir un éditeur d'abord —</option>
-        </select>
-      </div>
-      <div style="flex:1;"><span class="lbl">Version (optionnel)</span><input type="text" name="version" placeholder="11.1.2"></div>
-    </div>
-    <div class="add-row fields-normatif" id="fields-normatif">
-      <div style="flex:1;"><span class="lbl">Référentiel</span>
-        <select name="referentiel">
-          <option value="">— Choisir —</option>
-          {% for r in referentiels %}<option value="{{ r }}">{{ r }}</option>{% endfor %}
-        </select>
-      </div>
-    </div>
-    <button type="submit" class="btn-primary" style="margin-top:6px;">Ajouter</button>
-  </form>
+  {% include "panel/_ajouter_actif_form.html" with next_actif=request.path %}
 </div>
 
 <div class="import-card">
@@ -119,48 +77,4 @@
   </form>
 </div>
 </div>
-<script>
-  const TAXONOMIE = {{ taxonomie_json|safe }};
-
-  function toggleTypeFields(){
-    const technique = document.getElementById('type-technique').checked;
-    document.querySelectorAll('.fields-technique').forEach(el => el.classList.toggle('show', technique));
-    document.querySelectorAll('.fields-normatif').forEach(el => el.classList.toggle('show', !technique));
-  }
-
-  function fillSelect(select, options, placeholder){
-    select.innerHTML = '<option value="">' + placeholder + '</option>' +
-      options.map(o => '<option value="' + o + '">' + o + '</option>').join('');
-  }
-
-  function onCategorieChange(){
-    const categorie = document.getElementById('sel-categorie').value;
-    const editeurSelect = document.getElementById('sel-editeur');
-    const produitSelect = document.getElementById('sel-produit');
-    if (categorie && TAXONOMIE[categorie]) {
-      fillSelect(editeurSelect, Object.keys(TAXONOMIE[categorie]), '— Choisir —');
-      editeurSelect.disabled = false;
-    } else {
-      editeurSelect.disabled = true;
-      fillSelect(editeurSelect, [], '— Choisir une catégorie d’abord —');
-    }
-    produitSelect.disabled = true;
-    fillSelect(produitSelect, [], '— Choisir un éditeur d’abord —');
-  }
-
-  function onEditeurChange(){
-    const categorie = document.getElementById('sel-categorie').value;
-    const editeur = document.getElementById('sel-editeur').value;
-    const produitSelect = document.getElementById('sel-produit');
-    if (categorie && editeur && TAXONOMIE[categorie] && TAXONOMIE[categorie][editeur]) {
-      fillSelect(produitSelect, TAXONOMIE[categorie][editeur], '— Choisir —');
-      produitSelect.disabled = false;
-    } else {
-      produitSelect.disabled = true;
-      fillSelect(produitSelect, [], '— Choisir un éditeur d’abord —');
-    }
-  }
-
-  fillSelect(document.getElementById('sel-categorie'), Object.keys(TAXONOMIE), '— Choisir —');
-</script>
 {% endblock %}

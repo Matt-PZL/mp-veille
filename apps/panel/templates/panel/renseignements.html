@@ -11,28 +11,50 @@
 
   .card{ background:var(--surface-2); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
 
-  /* ---- Colonne Actifs (facon "Top repositories") ---- */
-  .col-left .card-head{ display:flex; align-items:center; justify-content:space-between; padding:12px 14px; }
-  .col-left .card-head h2{ font-size:13px; font-weight:600; }
-  .btn-add{ display:flex; align-items:center; gap:5px; font-size:11.5px; font-weight:600; padding:5px 10px; border-radius:6px; background:var(--good); color:#04170F; border:none; cursor:pointer; text-decoration:none; }
-  .btn-add svg{ width:12px; height:12px; stroke:currentColor; stroke-width:2.5; fill:none; }
+  /* ---- Colonne Actifs (facon "Top repositories" GitHub : pas d'encadre) ---- */
+  .col-left{ border-right:1px solid var(--border); padding-right:16px; }
+  .col-left .card-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .col-left .card-head h2{ font-size:15px; font-weight:700; }
+  .btn-add{ display:flex; align-items:center; gap:5px; font-size:11.5px; font-weight:700; padding:6px 12px; border-radius:6px; background:#00E08A; color:#000; border:none; cursor:pointer; text-decoration:none; }
+  .btn-add svg{ width:12px; height:12px; stroke:currentColor; stroke-width:2.8; fill:none; }
 
-  .actif-search{ margin:0 14px 10px; }
-  .actif-search input{ width:100%; padding:7px 10px; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text); font-family:inherit; font-size:12px; }
+  .actif-search{ margin-bottom:10px; }
+  .actif-search input{ width:100%; padding:7px 10px; background:var(--surface-2); border:1px solid var(--border); border-radius:6px; color:var(--text); font-family:inherit; font-size:12px; }
 
-  .actif-filters{ display:flex; flex-wrap:wrap; gap:5px; margin:0 14px 12px; }
+  .actif-filters{ display:flex; flex-wrap:wrap; gap:5px; margin-bottom:12px; }
   .actif-filters a{ flex:1 1 auto; min-width:0; text-align:center; padding:5px 6px; font-size:10.5px; font-weight:600; border:1px solid var(--border); border-radius:5px; color:var(--text-muted); text-decoration:none; white-space:nowrap; }
   .actif-filters a.active{ border-color:var(--accent); color:var(--accent); background:var(--accent-dim); }
 
   .actif-list{ border-top:1px solid var(--border); }
-  .actif-row{ display:flex; justify-content:space-between; align-items:center; padding:9px 14px; border-bottom:1px solid var(--border); color:var(--text-muted); text-decoration:none; font-size:12.5px; gap:8px; }
+  .actif-row{ display:flex; justify-content:space-between; align-items:center; padding:9px 2px; border-bottom:1px solid var(--border); color:var(--text-muted); text-decoration:none; font-size:12.5px; gap:8px; }
   .actif-row:last-child{ border-bottom:none; }
   .actif-row:hover{ background:rgba(255,255,255,0.03); color:var(--text); }
   .actif-row.sel{ background:var(--accent-dim); color:var(--text); box-shadow:inset 2px 0 0 var(--accent); }
   .actif-row .name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .actif-row .ver{ color:var(--text-faint); font-size:11px; margin-left:5px; }
   .actif-badge{ background:var(--bg); color:var(--text-muted); font-size:10.5px; padding:1px 7px; border-radius:999px; font-family:var(--font-mono); flex-shrink:0; }
-  .actif-group-label{ font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-faint); padding:9px 14px 4px; }
+  .actif-group-label{ font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-faint); padding:9px 2px 4px; }
+
+  /* ---- Popup d'ajout d'actif ---- */
+  .modal-overlay{ position:fixed; inset:0; background:rgba(1,4,9,0.7); z-index:90; display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity .12s ease; }
+  .modal-overlay.open{ opacity:1; pointer-events:auto; }
+  .modal-box{ background:var(--surface-2); border:1px solid var(--border); border-radius:8px; padding:20px 22px; width:100%; max-width:480px; margin:20px; position:relative; box-shadow:0 20px 60px rgba(0,0,0,0.6); transform:translateY(-8px) scale(0.98); transition:transform .14s ease; }
+  .modal-overlay.open .modal-box{ transform:translateY(0) scale(1); }
+  .modal-box h2{ font-size:13px; font-weight:700; margin-bottom:16px; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-muted); }
+  .modal-close{ position:absolute; top:14px; right:14px; width:28px; height:28px; display:flex; align-items:center; justify-content:center; border-radius:7px; background:none; border:none; color:var(--text-muted); cursor:pointer; }
+  .modal-close:hover{ background:rgba(255,255,255,0.06); color:var(--text); }
+  .add-row{ display:flex; gap:10px; margin-bottom:10px; }
+  .add-row.type-toggle{ gap:6px; }
+  .type-radio{ flex:1; }
+  .type-radio input{ display:none; }
+  .type-radio label{ display:block; text-align:center; padding:7px; border:1px solid var(--border); border-radius:5px; font-size:12px; color:var(--text-muted); cursor:pointer; }
+  .type-radio input:checked + label{ border-color:var(--accent); color:var(--accent); background:var(--accent-dim); }
+  .modal-box input[type=text], .modal-box select{ flex:1; padding:8px 10px; background:var(--bg); border:1px solid var(--border); border-radius:5px; color:var(--text); font-family:inherit; font-size:12.5px; min-width:0; }
+  .modal-box select:disabled{ color:var(--text-faint); cursor:not-allowed; }
+  .modal-box .lbl{ font-size:10px; text-transform:uppercase; color:var(--text-faint); margin-bottom:4px; display:block; }
+  .fields-technique, .fields-normatif{ display:none; }
+  .fields-technique.show, .fields-normatif.show{ display:flex; }
+  .btn-primary{ padding:8px 16px; background:var(--accent); border:none; border-radius:5px; color:#fff; font-weight:600; font-size:12.5px; cursor:pointer; font-family:inherit; }
 
   /* ---- Colonne centrale : feed ---- */
   .feed-toolbar{ display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap; }
@@ -103,22 +125,21 @@
 {% block content %}
 <div class="layout">
 
-  <div class="col-left card">
+  <div class="col-left">
     <div class="card-head">
       <h2>Actifs</h2>
-      <a href="{% url 'panel:organisation' %}#add-card" class="btn-add"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Ajouter</a>
+      <button type="button" class="btn-add" onclick="openAddActif()"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Ajouter</button>
     </div>
-    <form class="actif-search" method="get">
-      {% if actif_selectionne %}<input type="hidden" name="actif" value="{{ actif_selectionne.pk }}">{% endif %}
-      <input type="text" name="q_actif" value="{{ q_actif }}" placeholder="Rechercher un actif…" onchange="this.form.submit()">
-    </form>
+    <div class="actif-search">
+      <input type="text" id="actif-search-input" value="{{ q_actif }}" placeholder="Rechercher un actif…" oninput="filterActifs(this.value)">
+    </div>
     <div class="actif-filters">
       <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri_actifs=az" class="{% if tri_actifs == 'az' %}active{% endif %}">A–Z</a>
       <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri_actifs=nb" class="{% if tri_actifs == 'nb' %}active{% endif %}">Nb.</a>
       <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri_actifs=critique" class="{% if tri_actifs == 'critique' %}active{% endif %}">Critiques</a>
     </div>
     <div class="actif-list">
-      <a href="?tri_actifs={{ tri_actifs }}" class="actif-row {% if not actif_selectionne and not type_selectionne %}sel{% endif %}" style="font-weight:600;"><span class="name">Tous les actifs</span><span class="actif-badge">{{ nb_actifs }}</span></a>
+      <a href="?tri_actifs={{ tri_actifs }}" class="actif-row all {% if not actif_selectionne and not type_selectionne %}sel{% endif %}" style="font-weight:600;"><span class="name">Tous les actifs</span><span class="actif-badge">{{ nb_actifs }}</span></a>
 
       <div class="actif-group-label">Technique</div>
       {% for actif in actifs_technique %}
@@ -240,6 +261,16 @@
   </div>
 
 </div>
+
+<div class="modal-overlay" id="add-actif-overlay" onclick="if(event.target===this) closeAddActif()">
+  <div class="modal-box">
+    <button type="button" class="modal-close" onclick="closeAddActif()">
+      <svg class="ico" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+    {% include "panel/_ajouter_actif_form.html" with next_actif=request.get_full_path %}
+  </div>
+</div>
+
 {% endblock %}
 {% block extra_scripts %}
 <script>
@@ -257,6 +288,34 @@
         postJSON('/renseignements/' + card.dataset.id + '/consulter/');
       }
     }
+  }
+
+  function openAddActif(){
+    document.getElementById('add-actif-overlay').classList.add('open');
+  }
+  function closeAddActif(){
+    document.getElementById('add-actif-overlay').classList.remove('open');
+  }
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape') closeAddActif();
+  });
+
+  function filterActifs(q){
+    q = q.trim().toLowerCase();
+    document.querySelectorAll('.actif-list .actif-row:not(.all)').forEach(function(row){
+      const name = row.querySelector('.name');
+      if (!name) return;
+      row.hidden = q.length > 0 && !name.textContent.toLowerCase().includes(q);
+    });
+    document.querySelectorAll('.actif-group-label').forEach(function(label){
+      let sib = label.nextElementSibling;
+      let anyVisible = false;
+      while (sib && !sib.classList.contains('actif-group-label')) {
+        if (sib.classList.contains('actif-row') && !sib.hidden) anyVisible = true;
+        sib = sib.nextElementSibling;
+      }
+      label.hidden = q.length > 0 && !anyVisible;
+    });
   }
 </script>
 {% endblock %}

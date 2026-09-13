@@ -190,6 +190,10 @@ def renseignements(request):
         .order_by("-maj_le")[:5]
     )
 
+    import json
+
+    from .taxonomie import REFERENTIELS_NORMATIFS, TAXONOMIE_TECHNIQUE
+
     return render(
         request,
         "panel/renseignements.html",
@@ -208,6 +212,8 @@ def renseignements(request):
             "q_actif": q_actif,
             "derniers_traitements": derniers_traitements,
             "renseignements_par_id": renseignements_par_id,
+            "taxonomie_json": json.dumps(TAXONOMIE_TECHNIQUE),
+            "referentiels": REFERENTIELS_NORMATIFS,
         },
     )
 
@@ -492,7 +498,7 @@ def ajouter_actif(request):
                 )
                 if created:
                     HistoriqueTraitement.objects.create(traitement=t, evenement="Découvert")
-    return redirect("panel:organisation")
+    return redirect(request.POST.get("next") or "panel:organisation")
 
 
 @login_required
