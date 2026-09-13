@@ -236,8 +236,10 @@
 {% endblock %}
 {% block extra_scripts %}
 <script>
-  const VERSIONS_CONNUES = {{ versions_json|default:"{}"|safe }};
-
+  // VERSIONS_CONNUES est deja declare par _ajouter_actif_form.html (inclus
+  // plus haut dans cette page) — une seconde declaration `const` ici casserait
+  // silencieusement TOUT ce script (SyntaxError globale, plus aucun onclick
+  // ne fonctionne, y compris "Ajouter").
   function suggererVersions(produit){
     const datalist = document.getElementById('version-datalist');
     const hint = document.getElementById('version-hint');
