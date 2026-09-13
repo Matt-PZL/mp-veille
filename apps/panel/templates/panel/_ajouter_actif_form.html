@@ -43,8 +43,10 @@
     </div>
     <div style="flex:1;">
       <span class="lbl">Version (optionnel)</span>
-      <input type="text" name="version" id="input-version" list="versions-connues-list" placeholder="11.1.2">
-      <datalist id="versions-connues-list"></datalist>
+      <select id="sel-version" onchange="onVersionChange()" disabled>
+        <option value="">— Choisir un produit d'abord —</option>
+      </select>
+      <input type="text" id="input-version-libre" placeholder="Saisir la version" style="display:none; margin-top:6px;">
     </div>
   </div>
   <div class="add-row fields-normatif" id="fields-normatif">
@@ -84,6 +86,17 @@
       options.map(o => '<option value="' + o + '">' + o + '</option>').join('');
   }
 
+  function reinitialiserVersion(placeholder){
+    const versionSelect = document.getElementById('sel-version');
+    const versionLibre = document.getElementById('input-version-libre');
+    versionSelect.disabled = true;
+    versionSelect.removeAttribute('name');
+    fillSelect(versionSelect, [], placeholder);
+    versionLibre.removeAttribute('name');
+    versionLibre.style.display = 'none';
+    versionLibre.value = '';
+  }
+
   function onCategorieChange(){
     const categorie = document.getElementById('sel-categorie').value;
     const editeurSelect = document.getElementById('sel-editeur');
@@ -97,6 +110,7 @@
     }
     produitSelect.disabled = true;
     fillSelect(produitSelect, [], '— Choisir un éditeur d’abord —');
+    reinitialiserVersion('— Choisir un produit d’abord —');
   }
 
   function onEditeurChange(){
@@ -110,15 +124,39 @@
       produitSelect.disabled = true;
       fillSelect(produitSelect, [], '— Choisir un éditeur d’abord —');
     }
+    reinitialiserVersion('— Choisir un produit d’abord —');
   }
 
   function onProduitChange(){
     const produit = document.getElementById('sel-produit').value;
-    const datalist = document.getElementById('versions-connues-list');
-    const versionInput = document.getElementById('input-version');
+    const versionSelect = document.getElementById('sel-version');
+    const versionLibre = document.getElementById('input-version-libre');
+    if (!produit) { reinitialiserVersion('— Choisir un produit d’abord —'); return; }
     const versions = VERSIONS_CONNUES[produit] || [];
-    datalist.innerHTML = versions.map(v => '<option value="' + v + '">').join('');
-    versionInput.placeholder = versions.length ? ('ex : ' + versions[0]) : '11.1.2';
+    versionSelect.innerHTML = '<option value="">— Aucune (optionnel) —</option>' +
+      versions.map(v => '<option value="' + v + '">' + v + '</option>').join('') +
+      '<option value="__autre__">Autre (saisir)…</option>';
+    versionSelect.disabled = false;
+    versionSelect.name = 'version';
+    versionLibre.removeAttribute('name');
+    versionLibre.style.display = 'none';
+    versionLibre.value = '';
+  }
+
+  function onVersionChange(){
+    const versionSelect = document.getElementById('sel-version');
+    const versionLibre = document.getElementById('input-version-libre');
+    if (versionSelect.value === '__autre__') {
+      versionSelect.removeAttribute('name');
+      versionLibre.name = 'version';
+      versionLibre.style.display = 'block';
+      versionLibre.focus();
+    } else {
+      versionSelect.name = 'version';
+      versionLibre.removeAttribute('name');
+      versionLibre.style.display = 'none';
+      versionLibre.value = '';
+    }
   }
 
   function produitSearchFilter(){

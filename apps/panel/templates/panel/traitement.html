@@ -27,6 +27,10 @@
   .status-item .lbl{ display:flex; align-items:center; gap:8px; }
   .sdot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; }
   .sdot.dashed{ border:1.5px dashed var(--st-attente); }
+  .sdot-a_traiter{ border:1.5px dashed var(--st-attente); }
+  .sdot-en_cours{ background:var(--st-encours); }
+  .sdot-clos{ background:var(--st-clos); }
+  .sdot-non_applicable{ background:var(--st-na); }
   .status-badge{ background:var(--surface-2); color:var(--text-muted); font-size:10.5px; padding:1px 7px; border-radius:999px; font-family:var(--font-mono); }
   .status-item.retard .lbl{ color:var(--danger); }
   .status-divider{ height:1px; background:var(--border); margin:10px 4px; }
@@ -109,7 +113,7 @@
       </a>
       {% for code, label in statut_choices %}
         <a href="?statut={{ code }}" class="status-item {% if statut_filtre == code %}sel{% endif %}">
-          <span class="lbl"><span class="sdot {% if code == 'a_traiter' %}dashed{% else %}" style="background:var(--st-{% if code == 'en_cours' %}encours{% elif code == 'clos' %}clos{% else %}na{% endif %})"{% endif %}></span>{{ label }}</span>
+          <span class="lbl"><span class="sdot sdot-{{ code }}"></span>{{ label }}</span>
           <span class="status-badge">{{ compteurs|get_item:code }}</span>
         </a>
       {% endfor %}

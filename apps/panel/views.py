@@ -170,12 +170,20 @@ def renseignements(request):
     if type_selectionne not in ("technique", "normatif"):
         type_selectionne = None
 
+    # "Tous les actifs" (et le filtre technique/normatif) : uniquement ce qui
+    # concerne reellement les actifs/referentiels declares par le client, pas
+    # tout le flux BDP brut (qui vit dans Actualites) — la BDP contient des
+    # milliers d'avis sur des produits que le client ne possede meme pas.
+    renseignements_pertinents = list(
+        {r.renseignement.id_renseignement_bdp: r.renseignement for r in calculer_matching()}.values()
+    )
+
     if actif_selectionne:
         items = [r.renseignement for r in calculer_matching(actifs=[actif_selectionne])]
     elif type_selectionne:
-        items = list(Renseignement.objects.filter(type=type_selectionne))
+        items = [r for r in renseignements_pertinents if r.type == type_selectionne]
     else:
-        items = list(Renseignement.objects.all())
+        items = list(renseignements_pertinents)
 
     traitements_par_id = {t.id_renseignement_bdp: t for t in Traitement.objects.all()}
     consultes = set(RenseignementConsulte.objects.values_list("id_renseignement_bdp", flat=True))
@@ -205,13 +213,7 @@ def renseignements(request):
 
     from .taxonomie import REFERENTIELS_NORMATIFS, taxonomie_technique, versions_connues
 
-    # Stats de l'en-tete : uniquement ce qui concerne le client (matche a un
-    # actif/referentiel declare), pas tout le flux BDP — la BDP contient des
-    # milliers d'avis sur des produits que le client ne possede pas, compter
-    # dessus donnerait des chiffres qui n'ont rien d'actionnable pour lui.
-    renseignements_pertinents = {
-        r.renseignement.id_renseignement_bdp: r.renseignement for r in calculer_matching()
-    }.values()
+    # Stats de l'en-tete, sur le meme perimetre "pertinent" que ci-dessus.
     nb_nouveaux = sum(1 for r in renseignements_pertinents if r.id_renseignement_bdp not in consultes)
     nb_critiques = sum(1 for r in renseignements_pertinents if r.criticite == "critique")
     nb_a_traiter = sum(
