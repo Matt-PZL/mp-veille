@@ -4,17 +4,22 @@
 {% block nav_renseignements %}active{% endblock %}
 {% block extra_head %}
 <style>
-  .layout{ display:grid; grid-template-columns:260px 1fr 280px; gap:20px; align-items:start; }
-  @media (max-width:1200px){ .layout{ grid-template-columns:240px 1fr; } .col-right{ display:none; } }
-  @media (max-width:820px){ .layout{ grid-template-columns:1fr; } .col-left{ display:none; } }
+  /* ---- Grille externe : sidebar Actifs a pleine hauteur (a cote du titre
+     aussi, pas seulement du feed) + colonne principale (en-tete + feed) ---- */
+  .layout-outer{ display:grid; grid-template-columns:260px 1fr; gap:20px; align-items:stretch; }
+  @media (max-width:820px){ .layout-outer{ grid-template-columns:1fr; } .col-left{ display:none; } }
+  .col-main{ min-width:0; }
+
+  .layout{ display:grid; grid-template-columns:1fr 280px; gap:20px; align-items:start; }
+  @media (max-width:1200px){ .layout{ grid-template-columns:1fr; } .col-right{ display:none; } }
 
   .card{ background:var(--surface-2); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
 
-  /* ---- Colonne Actifs (facon "Top repositories" GitHub) : pleine hauteur ---- */
+  /* ---- Colonne Actifs (facon "Top repositories" GitHub) : pleine hauteur,
+     bleed jusqu'aux bords reels de .content (cf. base.html padding:32 32 72) ---- */
   .col-left{
-    align-self:stretch;
     background:#010101; border-right:1px solid var(--border);
-    margin:0 0 -72px -32px; padding:24px 16px 40px 32px;
+    margin:-32px 0 -72px -32px; padding:24px 16px 40px 32px;
   }
   .col-left .card-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
   .col-left .card-head h2{ font-size:15px; font-weight:700; }
@@ -104,6 +109,13 @@
   .status-pill.clos{ background:rgba(0,224,3,0.18); color:var(--st-clos); }
   .status-pill.non_applicable{ background:rgba(255,255,255,0.06); color:var(--st-na); }
   .tag-mono{ font-size:11px; color:var(--text-faint); font-family:var(--font-mono); }
+  .source-link{ color:var(--accent); text-decoration:none; }
+  .source-link:hover{ text-decoration:underline; }
+  .nature-tag{ font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; padding:2px 8px; border-radius:4px; font-family:var(--font-body); }
+  .nature-tag.vulnerabilite{ background:rgba(248,81,73,0.15); color:var(--danger); }
+  .nature-tag.correctif{ background:rgba(0,224,3,0.15); color:var(--good); }
+  .nature-tag.reglementaire{ background:rgba(163,113,247,0.15); color:var(--violet); }
+  .nature-tag.information{ background:rgba(255,255,255,0.08); color:var(--text-muted); }
   .r-chev{ margin-left:auto; color:var(--text-faint); font-size:11px; transition:transform .12s ease; }
   .r-chev.open{ transform:rotate(90deg); color:var(--accent); }
 
@@ -142,16 +154,7 @@
 </style>
 {% endblock %}
 {% block content %}
-<div class="page-header">
-  <h1 class="page-title">Renseignements</h1>
-  <div class="page-header-stats">
-    <div class="stat-tile"><div class="stat-num">{{ nb_total_renseignements }}</div><div class="stat-lbl">Total</div></div>
-    <div class="stat-tile warn"><div class="stat-num">{{ nb_a_traiter }}</div><div class="stat-lbl">À traiter</div></div>
-    <div class="stat-tile danger"><div class="stat-num">{{ nb_critiques }}</div><div class="stat-lbl">Critiques</div></div>
-    <div class="stat-tile"><div class="stat-num">{{ nb_nouveaux }}</div><div class="stat-lbl">Nouveaux</div></div>
-  </div>
-</div>
-<div class="layout">
+<div class="layout-outer">
 
   <div class="col-left">
     <div class="card-head">
@@ -191,6 +194,18 @@
     </div>
   </div>
 
+  <div class="col-main">
+  <div class="page-header">
+    <h1 class="page-title">Renseignements</h1>
+    <div class="page-header-stats">
+      <div class="stat-tile"><div class="stat-num">{{ nb_total_renseignements }}</div><div class="stat-lbl">Total</div></div>
+      <div class="stat-tile warn"><div class="stat-num">{{ nb_a_traiter }}</div><div class="stat-lbl">À traiter</div></div>
+      <div class="stat-tile danger"><div class="stat-num">{{ nb_critiques }}</div><div class="stat-lbl">Critiques</div></div>
+      <div class="stat-tile"><div class="stat-num">{{ nb_nouveaux }}</div><div class="stat-lbl">Nouveaux</div></div>
+    </div>
+  </div>
+  <div class="layout">
+
   <div class="col-center">
     <div class="feed-toolbar">
       <a href="?{% if actif_selectionne %}actif={{ actif_selectionne.pk }}&{% endif %}tri=date" class="{% if tri == 'date' %}active{% endif %}">Date</a>
@@ -218,7 +233,12 @@
           </div>
           <p class="r-excerpt">{{ item.description|truncatewords:26 }}</p>
           <div class="r-meta-row">
-            <span class="tag-mono">{{ item.source }}</span>
+            {% if item.url_source %}
+              <a class="tag-mono source-link" href="{{ item.url_source }}" target="_blank" rel="noopener" onclick="event.stopPropagation()">{{ item.source }} ↗</a>
+            {% else %}
+              <span class="tag-mono">{{ item.source }}</span>
+            {% endif %}
+            {% if item.get_nature_display %}<span class="nature-tag {{ item.nature }}">{{ item.get_nature_display }}</span>{% endif %}
             {% if item.cvss_score %}<span class="tag-mono">CVSS {{ item.cvss_score|floatformat:1 }}</span>{% endif %}
             {% if t %}
               <span class="status-pill {{ t.statut }}">{{ t.get_statut_display }}</span>
@@ -230,7 +250,9 @@
         </div>
         <div class="r-detail"><div class="r-detail-inner">
           <div class="r-side">
-            <div class="r-field"><div class="lbl">Sources</div><div class="val">{{ item.source }}</div></div>
+            <div class="r-field"><div class="lbl">Source</div><div class="val">
+              {% if item.url_source %}<a class="source-link" href="{{ item.url_source }}" target="_blank" rel="noopener">{{ item.source }} — vérifier l'article ↗</a>{% else %}{{ item.source }}{% endif %}
+            </div></div>
             <div class="r-field"><div class="lbl">Découvert le</div><div class="val mono">{{ item.decouvert_le|date:"d/m/Y H:i" }}</div></div>
           </div>
 
@@ -288,6 +310,8 @@
     {% endfor %}
   </div>
 
+  </div>
+  </div>
 </div>
 
 <div class="modal-overlay" id="add-actif-overlay" onclick="if(event.target===this) closeAddActif()">

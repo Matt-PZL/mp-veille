@@ -15,6 +15,11 @@
   .r-summary h1{ font-size:15px; font-weight:700; }
   .r-summary p{ font-size:12.5px; color:var(--text-muted); line-height:1.55; margin-top:6px; }
   .r-summary .meta{ font-size:11px; color:var(--text-faint); margin-top:8px; font-family:var(--font-mono); }
+  .nature-tag{ font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; padding:2px 8px; border-radius:4px; font-family:var(--font-body); }
+  .nature-tag.vulnerabilite{ background:rgba(248,81,73,0.15); color:var(--danger); }
+  .nature-tag.correctif{ background:rgba(0,224,3,0.15); color:var(--good); }
+  .nature-tag.reglementaire{ background:rgba(163,113,247,0.15); color:var(--violet); }
+  .nature-tag.information{ background:rgba(255,255,255,0.08); color:var(--text-muted); }
 
   .statut-tabs{ display:flex; gap:6px; margin-bottom:20px; flex-wrap:wrap; }
   .statut-tab{ flex:1; min-width:120px; }
@@ -65,7 +70,11 @@
       <h1>{{ renseignement.reference_externe|default:renseignement.source }} — {{ renseignement.titre }}</h1>
     </div>
     <p>{{ renseignement.description }}</p>
-    <div class="meta">{{ renseignement.source }} · découvert le {{ renseignement.decouvert_le|date:"d/m/Y H:i" }}{% if renseignement.cvss_score %} · CVSS {{ renseignement.cvss_score|floatformat:1 }}{% endif %}</div>
+    <div class="meta">
+      {% if renseignement.url_source %}<a href="{{ renseignement.url_source }}" target="_blank" rel="noopener" style="color:var(--accent);">{{ renseignement.source }} — vérifier l'article ↗</a>{% else %}{{ renseignement.source }}{% endif %}
+      · découvert le {{ renseignement.decouvert_le|date:"d/m/Y H:i" }}{% if renseignement.cvss_score %} · CVSS {{ renseignement.cvss_score|floatformat:1 }}{% endif %}
+      {% if renseignement.get_nature_display %} · <span class="nature-tag {{ renseignement.nature }}">{{ renseignement.get_nature_display }}</span>{% endif %}
+    </div>
   </div>
 
   <form method="post" enctype="multipart/form-data" id="traiter-form">

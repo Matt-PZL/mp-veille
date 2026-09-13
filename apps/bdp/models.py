@@ -24,6 +24,16 @@ class Renseignement(models.Model):
         ("moyenne", "Moyenne"),
         ("faible", "Faible"),
     ]
+    # Nature du renseignement — un CVE brut n'appelle pas la meme reponse
+    # qu'un bulletin qui annonce deja le correctif, ou qu'une simple
+    # clarification editoriale d'un referentiel : ce champ porte cette
+    # distinction independamment de la criticite/severite.
+    NATURE_CHOICES = [
+        ("vulnerabilite", "Vulnérabilité"),
+        ("correctif", "Correctif"),
+        ("reglementaire", "Réglementaire"),
+        ("information", "Information"),
+    ]
 
     id_renseignement_bdp = models.UUIDField(
         default=uuid.uuid4, editable=False, unique=True, db_index=True
@@ -37,10 +47,14 @@ class Renseignement(models.Model):
     description = models.TextField()
 
     source = models.CharField(max_length=200, help_text="ex: NVD, CERT-FR, ANSSI, ISO")
+    url_source = models.URLField(
+        max_length=500, blank=True, help_text="Lien vers l'avis/l'article d'origine, pour verification"
+    )
     reference_externe = models.CharField(
         max_length=200, blank=True, help_text="ex: CVE-2026-41823"
     )
     criticite = models.CharField(max_length=16, choices=CRITICITE_CHOICES, blank=True)
+    nature = models.CharField(max_length=16, choices=NATURE_CHOICES, blank=True)
 
     # Detail CVSS (technique uniquement) — vecteur brut + score, pour affichage
     # d'une analyse d'exploitabilite/impact dans le detail du renseignement.

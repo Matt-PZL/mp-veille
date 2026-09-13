@@ -16,8 +16,14 @@
   .feed-card.elevee{ border-left-color:var(--sev-elevee); }
   .feed-card.moyenne{ border-left-color:var(--sev-moyenne); }
   .feed-meta{ display:flex; align-items:center; gap:10px; margin-bottom:8px; font-size:11px; color:var(--text-muted); }
-  .feed-meta .src{ font-family:var(--font-mono); text-transform:uppercase; color:var(--accent); font-weight:600; letter-spacing:0.03em; }
+  .feed-meta .src{ font-family:var(--font-mono); text-transform:uppercase; color:var(--accent); font-weight:600; letter-spacing:0.03em; text-decoration:none; }
+  .feed-meta .src:hover{ text-decoration:underline; }
   .feed-meta .ref{ font-family:var(--font-mono); }
+  .feed-meta .nature-tag{ font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; padding:1px 7px; border-radius:4px; }
+  .feed-meta .nature-tag.vulnerabilite{ background:rgba(248,81,73,0.15); color:var(--danger); }
+  .feed-meta .nature-tag.correctif{ background:rgba(0,224,3,0.15); color:var(--good); }
+  .feed-meta .nature-tag.reglementaire{ background:rgba(163,113,247,0.15); color:var(--violet); }
+  .feed-meta .nature-tag.information{ background:rgba(255,255,255,0.08); color:var(--text-muted); }
   .feed-meta .sev{ font-weight:600; text-transform:uppercase; letter-spacing:0.03em; font-size:10px; }
   .feed-meta .sev.critique{ color:var(--sev-critique); } .feed-meta .sev.elevee{ color:var(--sev-elevee); }
   .feed-meta .sev.moyenne{ color:var(--sev-moyenne); } .feed-meta .sev.faible{ color:var(--sev-faible); }
@@ -51,8 +57,9 @@
   {% for item in items %}
     <div class="feed-card {{ item.criticite }}">
       <div class="feed-meta">
-        <span class="src">{{ item.source }}</span>
+        {% if item.url_source %}<a class="src" href="{{ item.url_source }}" target="_blank" rel="noopener">{{ item.source }} ↗</a>{% else %}<span class="src">{{ item.source }}</span>{% endif %}
         {% if item.reference_externe %}<span class="ref">{{ item.reference_externe }}</span>{% endif %}
+        {% if item.get_nature_display %}<span class="nature-tag {{ item.nature }}">{{ item.get_nature_display }}</span>{% endif %}
         {% if item.criticite %}<span class="sev {{ item.criticite }}">{{ item.get_criticite_display }}</span>{% endif %}
         {% if item.cvss_score %}<span class="ref">CVSS {{ item.cvss_score|floatformat:1 }}</span>{% endif %}
         <span class="time">{{ item.decouvert_le|timesince }}</span>
