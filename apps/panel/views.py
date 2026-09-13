@@ -310,13 +310,19 @@ def traiter_renseignement(request, id_renseignement_bdp):
 
 @login_required
 def traitement(request):
-    """02 · Traitement — axe statuts a gauche, liste Actif|Renseignement a droite."""
+    """02 · Traitement — file de tous les traitements, filtrable/triable,
+    pensee pour supporter un grand volume (chaque ligne renvoie vers la page
+    dediee /traiter/ pour l'action)."""
     qs = Traitement.objects.select_related("actif").prefetch_related("historique")
     compteurs = {code: qs.filter(statut=code).count() for code, _ in Traitement.STATUT_CHOICES}
     traitements_total = qs.count()
+    aujourdhui = timezone.localdate()
+    en_retard_total = qs.filter(echeance__lt=aujourdhui, statut__in=_OUVERTS).count()
 
     statut = request.GET.get("statut")
-    if statut:
+    if statut == "en_retard":
+        qs = qs.filter(echeance__lt=aujourdhui, statut__in=_OUVERTS)
+    elif statut:
         qs = qs.filter(statut=statut)
 
     date_debut = request.GET.get("date_debut")
@@ -331,12 +337,46 @@ def traitement(request):
 
     renseignements_par_id = {r.id_renseignement_bdp: r for r in Renseignement.objects.all()}
 
+    q = request.GET.get("q", "").strip()
+    traitements = list(qs)
+    if q:
+        ql = q.lower()
+        traitements = [
+            t for t in traitements
+            if ql in str(t.actif or "").lower()
+            or ql in getattr(renseignements_par_id.get(t.id_renseignement_bdp), "titre", "").lower()
+            or ql in getattr(renseignements_par_id.get(t.id_renseignement_bdp), "reference_externe", "").lower()
+        ]
+
+    criticite_filtre = request.GET.get("criticite")
+    if criticite_filtre:
+        traitements = [
+            t for t in traitements
+            if getattr(renseignements_par_id.get(t.id_renseignement_bdp), "criticite", None) == criticite_filtre
+        ]
+
+    tri = request.GET.get("tri", "recent")
+    if tri == "criticite":
+        traitements.sort(key=lambda t: _ORDRE_CRITICITE.get(getattr(renseignements_par_id.get(t.id_renseignement_bdp), "criticite", None), 9))
+    elif tri == "echeance":
+        traitements.sort(key=lambda t: t.echeance or datetime.max.date())
+    else:
+        traitements.sort(key=lambda t: t.maj_le, reverse=True)
+
+    traitements_en_retard_apercu = [t for t in traitements if t.en_retard][:5]
+
     return render(
         request,
         "panel/traitement.html",
         {
-            "traitements": qs,
+            "traitements": traitements,
             "traitements_total": traitements_total,
+            "traitements_en_retard_apercu": traitements_en_retard_apercu,
+            "en_retard_total": en_retard_total,
+            "q": q,
+            "criticite_filtre": criticite_filtre,
+            "tri": tri,
+            "statut_choices": Traitement.STATUT_CHOICES,
             "renseignements_par_id": renseignements_par_id,
             "compteurs": compteurs,
             "statut_filtre": statut,

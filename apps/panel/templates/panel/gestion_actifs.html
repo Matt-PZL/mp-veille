@@ -17,7 +17,7 @@
   .toolbar-actions{ display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
   .toolbar-actions button{ display:flex; align-items:center; gap:6px; font-size:12px; font-weight:600; padding:8px 14px; border-radius:6px; border:1px solid var(--border); background:var(--surface-2); color:var(--text-muted); cursor:pointer; font-family:inherit; }
   .toolbar-actions button:hover{ color:var(--text); border-color:var(--text-faint); }
-  .toolbar-actions button.primary{ background:#00E003; border-color:#00E003; color:#070707; }
+  .toolbar-actions button.primary{ background:var(--accent); border-color:var(--accent); color:var(--accent-fg); }
   .toolbar-actions button svg{ width:13px; height:13px; stroke:currentColor; stroke-width:2; fill:none; }
 
   .filters-row{ display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; align-items:center; }
@@ -32,8 +32,9 @@
   .at-name{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .at-name .ver{ color:var(--text-faint); font-size:11px; margin-left:6px; }
   .at-actions{ display:flex; gap:6px; flex-shrink:0; }
-  .at-actions button{ font-size:11px; font-weight:600; padding:5px 10px; border-radius:5px; border:1px solid var(--border); background:none; color:var(--text-muted); cursor:pointer; font-family:inherit; }
+  .at-actions button{ display:flex; align-items:center; gap:5px; font-size:11px; font-weight:600; padding:5px 10px; border-radius:5px; border:1px solid var(--border); background:none; color:var(--text-muted); cursor:pointer; font-family:inherit; }
   .at-actions button:hover{ color:var(--text); border-color:var(--text-faint); }
+  .at-actions button svg{ width:11px; height:11px; stroke:currentColor; stroke-width:2.3; fill:none; flex-shrink:0; }
   .empty{ padding:32px 16px; text-align:center; color:var(--text-faint); font-size:12.5px; }
 
   .card{ background:var(--surface-2); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
@@ -131,9 +132,9 @@
           <span class="at-name">{{ actif }}{% if actif.version %}<span class="ver mono">{{ actif.version }}</span>{% endif %}</span>
           <div class="at-actions">
             {% if actif.type == 'technique' %}
-              <button type="button" onclick="openVersionModal({{ actif.pk }}, '{{ actif|escapejs }}', '{{ actif.version|escapejs }}')">Monter en version</button>
+              <button type="button" onclick="openVersionModal({{ actif.pk }}, '{{ actif|escapejs }}', '{{ actif.version|escapejs }}')"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>Monter en version</button>
             {% endif %}
-            <button type="button" onclick="openDeleteModal({{ actif.pk }}, '{{ actif|escapejs }}')">Supprimer</button>
+            <button type="button" onclick="openDeleteModal({{ actif.pk }}, '{{ actif|escapejs }}')"><svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>Supprimer</button>
           </div>
         </div>
       {% empty %}

@@ -11,20 +11,21 @@
 
   .card{ background:var(--surface-2); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
 
-  /* ---- Colonne Actifs (facon "Top repositories" GitHub) ---- */
+  /* ---- Colonne Actifs (facon "Top repositories" GitHub) : pleine hauteur ---- */
   .col-left{
+    align-self:stretch;
     background:#010101; border-right:1px solid var(--border);
-    margin:-32px 0 -72px -32px; padding:24px 16px 24px 32px;
+    margin:-32px 0 -72px -32px; padding:24px 16px 40px 32px;
   }
   .col-left .card-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
   .col-left .card-head h2{ font-size:15px; font-weight:700; }
-  .btn-add{ display:flex; align-items:center; gap:5px; font-size:11.5px; font-weight:700; padding:6px 12px; border-radius:6px; background:#00E003; color:#070707; border:none; cursor:pointer; text-decoration:none; }
+  .btn-add{ display:flex; align-items:center; gap:5px; font-size:11.5px; font-weight:700; padding:6px 12px; border-radius:6px; background:var(--accent); color:var(--accent-fg); border:none; cursor:pointer; text-decoration:none; }
   .btn-add svg{ width:12px; height:12px; stroke:currentColor; stroke-width:2.8; fill:none; }
 
   .actif-search{ margin-bottom:10px; }
   .actif-search input{ width:100%; padding:7px 10px; background:var(--surface-2); border:1px solid var(--border); border-radius:6px; color:var(--text); font-family:inherit; font-size:12px; }
 
-  .actif-filters{ display:flex; flex-wrap:wrap; gap:5px; margin-bottom:12px; }
+  .actif-filters{ display:flex; flex-wrap:wrap; gap:5px; margin-bottom:16px; }
   .actif-filters a{ flex:1 1 auto; min-width:0; text-align:center; padding:5px 6px; font-size:10.5px; font-weight:600; border:1px solid var(--border); border-radius:5px; color:var(--text-muted); text-decoration:none; white-space:nowrap; }
   .actif-filters a.active{ border-color:var(--accent); color:var(--accent); background:var(--accent-dim); }
 
@@ -36,7 +37,16 @@
   .actif-row .name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .actif-row .ver{ color:var(--text-faint); font-size:11px; margin-left:5px; }
   .actif-badge{ background:var(--bg); color:var(--text-muted); font-size:10.5px; padding:1px 7px; border-radius:999px; font-family:var(--font-mono); flex-shrink:0; }
-  .actif-group-label{ font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-faint); padding:9px 2px 4px; }
+  .actif-group{ margin-top:6px; border-radius:6px; overflow:hidden; }
+  .actif-group-label{
+    display:flex; align-items:center; gap:6px; font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:0.06em;
+    padding:6px 8px; margin-bottom:2px; border-radius:5px 5px 0 0;
+  }
+  .actif-group-label.technique{ color:var(--info); background:rgba(29,78,216,0.12); }
+  .actif-group-label.normatif{ color:var(--violet); background:rgba(163,113,247,0.12); }
+  .actif-group-label .gdot{ width:6px; height:6px; border-radius:50%; }
+  .actif-group-label.technique .gdot{ background:var(--info); }
+  .actif-group-label.normatif .gdot{ background:var(--violet); }
 
   /* ---- Popup d'ajout d'actif ---- */
   .modal-overlay{ position:fixed; inset:0; background:rgba(1,4,9,0.7); z-index:90; display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity .12s ease; }
@@ -151,7 +161,7 @@
     <div class="actif-list">
       <a href="?tri_actifs={{ tri_actifs }}" class="actif-row all {% if not actif_selectionne and not type_selectionne %}sel{% endif %}" style="font-weight:600;"><span class="name">Tous les actifs</span><span class="actif-badge">{{ nb_actifs }}</span></a>
 
-      <div class="actif-group-label">Technique</div>
+      <div class="actif-group-label technique"><span class="gdot"></span>Technique</div>
       {% for actif in actifs_technique %}
         <a href="?actif={{ actif.pk }}&tri_actifs={{ tri_actifs }}" class="actif-row {% if actif_selectionne.pk == actif.pk %}sel{% endif %}">
           <span class="name">{{ actif }}{% if actif.version %}<span class="ver mono">{{ actif.version }}</span>{% endif %}</span>
@@ -161,7 +171,7 @@
         <div class="actif-row" style="cursor:default;">Aucun actif technique</div>
       {% endfor %}
 
-      <div class="actif-group-label">Normatif</div>
+      <div class="actif-group-label normatif"><span class="gdot"></span>Normatif</div>
       {% for actif in actifs_normatif %}
         <a href="?actif={{ actif.pk }}&tri_actifs={{ tri_actifs }}" class="actif-row {% if actif_selectionne.pk == actif.pk %}sel{% endif %}">
           <span class="name">{{ actif }}</span>
