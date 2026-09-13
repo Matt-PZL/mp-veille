@@ -8,7 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#14171C; --surface:#010101; --surface-2:#090A0C; --border:#30363D;
+    --bg:#070707; --surface:#010101; --surface-2:#111111; --border:#30363D;
     --text:#E6EDF3; --text-muted:#9BA4AF; --text-faint:#6E7681;
     --accent:#1D4ED8; --accent-fg:#FFFFFF; --accent-dim:rgba(29,78,216,0.16); --accent-dim2:rgba(29,78,216,0.26);
     --sev-critique:#FF3B3B; --sev-elevee:#F0954A; --sev-moyenne:#E3A83F; --sev-faible:#00E003;
@@ -17,7 +17,7 @@
     --font-display:'Archivo',sans-serif; --font-body:'IBM Plex Sans',sans-serif; --font-mono:'IBM Plex Mono',monospace;
   }
   html[data-theme="bleu"]{ --accent:#0050FF; --accent-dim:rgba(0,80,255,0.16); --accent-dim2:rgba(0,80,255,0.26); --st-encours:#0050FF; }
-  html[data-theme="vert"]{ --accent:#00E003; --accent-fg:#04170F; --accent-dim:rgba(0,224,3,0.16); --accent-dim2:rgba(0,224,3,0.26); --st-encours:#00E003; }
+  html[data-theme="vert"]{ --accent:#00E003; --accent-fg:#E7E7E7; --accent-dim:rgba(0,224,3,0.16); --accent-dim2:rgba(0,224,3,0.26); --st-encours:#00E003; }
   html[data-theme="violet"]{ --accent:#A371F7; --accent-dim:rgba(163,113,247,0.16); --accent-dim2:rgba(163,113,247,0.26); --st-encours:#A371F7; }
 
   *{box-sizing:border-box; margin:0; padding:0;}
@@ -141,9 +141,12 @@
       <button onclick="setTheme('violet')" data-theme-opt="violet"><span class="theme-swatch" style="background:#A371F7"></span>Violet</button>
     </div>
 
-    <button class="avatar-btn" onclick="toggleMenu(event,'avatar-menu')">{{ user.username|slice:":1"|upper }}</button>
+    <button class="avatar-btn" onclick="toggleMenu(event,'avatar-menu')" title="Organisation">
+      <svg class="ico" viewBox="0 0 24 24" style="stroke-width:2;"><rect x="4" y="3" width="10" height="18"/><rect x="14" y="9" width="6" height="12"/><path d="M7 7h1M10 7h1M7 11h1M10 11h1M7 15h1M10 15h1"/></svg>
+    </button>
     <div class="dropdown" id="avatar-menu" hidden>
       <div class="dropdown-user">{{ user.username }}</div>
+      <a href="{% url 'panel:organisation' %}"><svg class="ico" viewBox="0 0 24 24"><rect x="4" y="3" width="10" height="18"/><rect x="14" y="9" width="6" height="12"/><path d="M7 7h1M10 7h1M7 11h1M10 11h1M7 15h1M10 15h1"/></svg>Organisation</a>
       <a href="{% url 'panel:profil' %}"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/></svg>Profil</a>
       <div class="divider"></div>
       <a href="{% url 'accounts:logout' %}"><svg class="ico" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>Se déconnecter</a>
@@ -163,6 +166,10 @@
     <svg class="ico" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
     Tableau de bord
   </a>
+  <a href="{% url 'panel:gestion_actifs' %}" class="drawer-link {% block nav_gestion_actifs %}{% endblock %}">
+    <svg class="ico" viewBox="0 0 24 24"><rect x="4" y="3" width="10" height="18"/><rect x="14" y="9" width="6" height="12"/><path d="M7 7h1M10 7h1M7 11h1M10 11h1M7 15h1M10 15h1"/></svg>
+    Gestion des actifs
+  </a>
   <a href="{% url 'panel:renseignements' %}" class="drawer-link {% block nav_renseignements %}{% endblock %}">
     <svg class="ico" viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/></svg>
     Renseignements
@@ -174,15 +181,6 @@
   <a href="{% url 'panel:actualites' %}" class="drawer-link {% block nav_actualites %}{% endblock %}">
     <svg class="ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="1.5"/><path d="M7 9h6M7 12.5h10M7 16h10"/></svg>
     Actualités
-  </a>
-  <div class="drawer-divider"></div>
-  <a href="{% url 'panel:organisation' %}" class="drawer-link {% block nav_organisation %}{% endblock %}">
-    <svg class="ico" viewBox="0 0 24 24"><rect x="4" y="3" width="10" height="18"/><rect x="14" y="9" width="6" height="12"/><path d="M7 7h1M10 7h1M7 11h1M10 11h1M7 15h1M10 15h1"/></svg>
-    Organisation
-  </a>
-  <a href="{% url 'panel:profil' %}" class="drawer-link {% block nav_profil %}{% endblock %}">
-    <svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/></svg>
-    Profil
   </a>
 </nav>
 
@@ -206,7 +204,11 @@
         <svg class="ico" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
         Tableau de bord
       </a>
-      <a href="{% url 'panel:renseignements' %}" class="cmdk-item" data-kw="renseignements cve actifs">
+      <a href="{% url 'panel:gestion_actifs' %}" class="cmdk-item" data-kw="gestion des actifs referentiels ajouter version supprimer">
+        <svg class="ico" viewBox="0 0 24 24"><rect x="4" y="3" width="10" height="18"/><rect x="14" y="9" width="6" height="12"/><path d="M7 7h1M10 7h1M7 11h1M10 11h1M7 15h1M10 15h1"/></svg>
+        Gestion des actifs
+      </a>
+      <a href="{% url 'panel:renseignements' %}" class="cmdk-item" data-kw="renseignements cve">
         <svg class="ico" viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/></svg>
         Renseignements
       </a>

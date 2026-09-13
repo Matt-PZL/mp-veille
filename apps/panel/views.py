@@ -8,6 +8,7 @@ from django.utils import timezone
 
 from apps.bdc.models import (
     ActifClient,
+    HistoriqueActif,
     HistoriqueTraitement,
     PreferenceNotification,
     RenseignementConsulte,
@@ -459,16 +460,49 @@ def actualites(request):
 
 @login_required
 def organisation(request):
+    """Section encore a definir — les actifs ont demenage vers Gestion des
+    actifs. Conservee comme entree de menu (dropdown avatar) en attendant de
+    decider ce qui y va."""
+    return render(request, "panel/organisation.html")
+
+
+@login_required
+def gestion_actifs(request):
+    """Page dediee a la gestion des actifs : liste, filtres, actions
+    (ajouter/monter en version/supprimer/exporter) + historique des
+    modifications, sur le meme principe que Renseignements."""
     import json
 
     from .taxonomie import REFERENTIELS_NORMATIFS, TAXONOMIE_TECHNIQUE
 
-    actifs = ActifClient.objects.all()
+    actifs = list(ActifClient.objects.all())
+
+    q = request.GET.get("q", "").strip()
+    if q:
+        actifs = [a for a in actifs if q.lower() in str(a).lower()]
+
+    type_filtre = request.GET.get("type")
+    if type_filtre in ("technique", "normatif"):
+        actifs = [a for a in actifs if a.type == type_filtre]
+
+    tri = request.GET.get("tri", "az")
+    if tri == "nb":
+        actifs.sort(key=lambda a: a.traitements.count(), reverse=True)
+    else:
+        actifs.sort(key=lambda a: str(a))
+
     return render(
         request,
-        "panel/organisation.html",
+        "panel/gestion_actifs.html",
         {
             "actifs": actifs,
+            "total": ActifClient.objects.count(),
+            "nb_technique": ActifClient.objects.filter(type="technique").count(),
+            "nb_normatif": ActifClient.objects.filter(type="normatif").count(),
+            "historique": HistoriqueActif.objects.all()[:12],
+            "q": q,
+            "type_filtre": type_filtre,
+            "tri": tri,
             "taxonomie_json": json.dumps(TAXONOMIE_TECHNIQUE),
             "referentiels": REFERENTIELS_NORMATIFS,
         },
@@ -491,6 +525,7 @@ def ajouter_actif(request):
                 version=request.POST.get("version", "").strip(),
                 referentiel=request.POST.get("referentiel", "").strip(),
             )
+            HistoriqueActif.objects.create(actif_repr=str(actif), evenement="ajout")
             for resultat in calculer_matching(actifs=[actif]):
                 t, created = Traitement.objects.get_or_create(
                     id_renseignement_bdp=resultat.renseignement.id_renseignement_bdp,
@@ -498,7 +533,24 @@ def ajouter_actif(request):
                 )
                 if created:
                     HistoriqueTraitement.objects.create(traitement=t, evenement="Découvert")
-    return redirect(request.POST.get("next") or "panel:organisation")
+    return redirect(request.POST.get("next") or "panel:gestion_actifs")
+
+
+@login_required
+def monter_version_actif(request, pk):
+    """Change la version d'un actif technique, journalise dans l'historique."""
+    actif = get_object_or_404(ActifClient, pk=pk)
+    if request.method == "POST":
+        nouvelle_version = request.POST.get("version", "").strip()
+        if nouvelle_version and nouvelle_version != actif.version:
+            HistoriqueActif.objects.create(
+                actif_repr=str(actif),
+                evenement="version",
+                detail=f"{actif.version or '—'} → {nouvelle_version}",
+            )
+            actif.version = nouvelle_version
+            actif.save(update_fields=["version"])
+    return redirect(request.POST.get("next") or "panel:gestion_actifs")
 
 
 @login_required
@@ -527,6 +579,7 @@ def importer_actifs_csv(request):
                 referentiel=(ligne.get("referentiel") or "").strip(),
             )
             crees += 1
+            HistoriqueActif.objects.create(actif_repr=str(actif), evenement="ajout", detail="import CSV")
             for resultat in calculer_matching(actifs=[actif]):
                 t, created = Traitement.objects.get_or_create(
                     id_renseignement_bdp=resultat.renseignement.id_renseignement_bdp,
@@ -536,7 +589,22 @@ def importer_actifs_csv(request):
                     HistoriqueTraitement.objects.create(traitement=t, evenement="Découvert")
         from django.contrib import messages
         messages.success(request, f"{crees} actif(s) importé(s).")
-    return redirect("panel:organisation")
+    return redirect("panel:gestion_actifs")
+
+
+@login_required
+def exporter_actifs_csv(request):
+    """Export CSV de tous les actifs/referentiels declares — meme format que
+    l'import, pour rester symetrique."""
+    import csv
+
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = 'attachment; filename="actifs.csv"'
+    writer = csv.writer(response)
+    writer.writerow(["type", "categorie", "editeur", "produit", "version", "referentiel"])
+    for a in ActifClient.objects.all():
+        writer.writerow([a.type, a.categorie, a.editeur, a.produit, a.version, a.referentiel])
+    return response
 
 
 @login_required
@@ -546,12 +614,15 @@ def retirer_actif(request, pk):
     actif = get_object_or_404(ActifClient, pk=pk)
     if request.method == "POST":
         mode = request.POST.get("mode")
+        repr_actif = str(actif)
         if mode == "purger":
             Traitement.objects.filter(actif=actif).delete()
+            HistoriqueActif.objects.create(actif_repr=repr_actif, evenement="suppression_purge")
         else:
             Traitement.objects.filter(actif=actif).update(actif=None)
+            HistoriqueActif.objects.create(actif_repr=repr_actif, evenement="suppression_conserve")
         actif.delete()
-    return redirect("panel:organisation")
+    return redirect(request.POST.get("next") or "panel:gestion_actifs")
 
 
 @login_required

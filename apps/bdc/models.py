@@ -126,3 +126,27 @@ class RenseignementConsulte(models.Model):
 
     id_renseignement_bdp = models.UUIDField(unique=True)
     consulte_le = models.DateTimeField(auto_now_add=True)
+
+
+class HistoriqueActif(models.Model):
+    """Journal des ajouts/modifications/suppressions d'actifs (page Gestion
+    des actifs). `actif_repr` est un instantane texte car l'actif peut avoir
+    ete supprime au moment ou on consulte l'historique."""
+
+    EVENEMENT_CHOICES = [
+        ("ajout", "Ajouté"),
+        ("version", "Version modifiée"),
+        ("suppression_conserve", "Retiré (historique conservé)"),
+        ("suppression_purge", "Retiré (historique purgé)"),
+    ]
+
+    actif_repr = models.CharField(max_length=300)
+    evenement = models.CharField(max_length=30, choices=EVENEMENT_CHOICES)
+    detail = models.CharField(max_length=300, blank=True)
+    horodatage = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-horodatage"]
+
+    def __str__(self):
+        return f"{self.get_evenement_display()} — {self.actif_repr}"

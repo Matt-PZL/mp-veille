@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+{% block title %}Gestion des actifs{% endblock %}
+{% block page_title %}Gestion des actifs{% endblock %}
+{% block nav_gestion_actifs %}active{% endblock %}
+{% block extra_head %}
+<style>
+  .layout{ display:grid; grid-template-columns:1fr 280px; gap:20px; align-items:start; }
+  @media (max-width:900px){ .layout{ grid-template-columns:1fr; } }
+
+  .stat-line{ color:var(--text-muted); font-size:12.5px; margin-bottom:16px; }
+  .stat-line b{ color:var(--text); font-family:var(--font-mono); }
+
+  .toolbar-actions{ display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+  .toolbar-actions button{ display:flex; align-items:center; gap:6px; font-size:12px; font-weight:600; padding:8px 14px; border-radius:6px; border:1px solid var(--border); background:var(--surface-2); color:var(--text-muted); cursor:pointer; font-family:inherit; }
+  .toolbar-actions button:hover{ color:var(--text); border-color:var(--text-faint); }
+  .toolbar-actions button.primary{ background:#00E003; border-color:#00E003; color:#E7E7E7; }
+  .toolbar-actions button svg{ width:13px; height:13px; stroke:currentColor; stroke-width:2; fill:none; }
+
+  .filters-row{ display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; align-items:center; }
+  .filters-row input[type=text]{ flex:1; min-width:160px; max-width:280px; padding:7px 10px; background:var(--surface-2); border:1px solid var(--border); border-radius:6px; color:var(--text); font-family:inherit; font-size:12px; }
+  .filters-row a{ font-size:11.5px; font-weight:600; padding:6px 12px; border-radius:6px; border:1px solid var(--border); color:var(--text-muted); text-decoration:none; }
+  .filters-row a.active{ border-color:var(--accent); color:var(--accent); background:var(--accent-dim); }
+
+  .actif-table{ background:var(--surface-2); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  .at-row{ display:flex; align-items:center; gap:12px; padding:12px 16px; border-bottom:1px solid var(--border); font-size:12.5px; }
+  .at-row:last-child{ border-bottom:none; }
+  .at-tag{ font-size:10px; text-transform:uppercase; color:var(--text-faint); font-family:var(--font-mono); width:64px; flex-shrink:0; }
+  .at-name{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .at-name .ver{ color:var(--text-faint); font-size:11px; margin-left:6px; }
+  .at-meta{ color:var(--text-faint); font-size:11px; font-family:var(--font-mono); width:90px; flex-shrink:0; }
+  .at-actions{ display:flex; gap:6px; flex-shrink:0; }
+  .at-actions button{ font-size:11px; font-weight:600; padding:5px 10px; border-radius:5px; border:1px solid var(--border); background:none; color:var(--text-muted); cursor:pointer; font-family:inherit; }
+  .at-actions button:hover{ color:var(--text); border-color:var(--text-faint); }
+  .empty{ padding:32px 16px; text-align:center; color:var(--text-faint); font-size:12.5px; }
+
+  .card{ background:var(--surface-2); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  .col-right .card-head{ padding:12px 14px; font-size:13px; font-weight:600; border-bottom:1px solid var(--border); }
+  .hist-row{ padding:10px 14px; border-bottom:1px solid var(--border); font-size:12px; }
+  .hist-row:last-child{ border-bottom:none; }
+  .hist-when{ color:var(--text-faint); font-size:10.5px; margin-bottom:3px; }
+  .hist-tag{ font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; padding:1px 6px; border-radius:4px; margin-right:6px; }
+  .hist-tag.ajout{ background:rgba(0,224,3,0.15); color:#00E003; }
+  .hist-tag.version{ background:rgba(29,78,216,0.15); color:var(--info); }
+  .hist-tag.suppression_conserve, .hist-tag.suppression_purge{ background:rgba(248,81,73,0.15); color:var(--danger); }
+  .hist-name{ color:var(--text); }
+  .hist-detail{ color:var(--text-muted); font-size:11px; margin-top:3px; }
+
+  /* ---- Modales ---- */
+  .modal-overlay{ position:fixed; inset:0; background:rgba(1,4,9,0.7); z-index:90; display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity .12s ease; }
+  .modal-overlay.open{ opacity:1; pointer-events:auto; }
+  .modal-box{ background:var(--surface-2); border:1px solid var(--border); border-radius:8px; padding:20px 22px; width:100%; max-width:440px; margin:20px; position:relative; box-shadow:0 20px 60px rgba(0,0,0,0.6); transform:translateY(-8px) scale(0.98); transition:transform .14s ease; }
+  .modal-overlay.open .modal-box{ transform:translateY(0) scale(1); }
+  .modal-box h2{ font-size:13px; font-weight:700; margin-bottom:16px; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-muted); }
+  .modal-close{ position:absolute; top:14px; right:14px; width:28px; height:28px; display:flex; align-items:center; justify-content:center; border-radius:7px; background:none; border:none; color:var(--text-muted); cursor:pointer; }
+  .modal-close:hover{ background:rgba(255,255,255,0.06); color:var(--text); }
+  .f-field{ margin-bottom:14px; }
+  .f-field .lbl{ display:block; font-size:10px; text-transform:uppercase; color:var(--text-faint); margin-bottom:5px; font-weight:600; }
+  .f-field select, .f-field input[type=text]{ width:100%; padding:8px 10px; background:var(--bg); border:1px solid var(--border); border-radius:5px; color:var(--text); font-family:inherit; font-size:12.5px; }
+  .btn-primary{ padding:8px 16px; background:var(--accent); border:none; border-radius:5px; color:#fff; font-weight:600; font-size:12.5px; cursor:pointer; font-family:inherit; }
+  .mode-toggle{ display:flex; gap:8px; margin-bottom:14px; }
+  .mode-toggle label{ flex:1; text-align:center; padding:8px; border:1.5px solid var(--border); border-radius:6px; font-size:12px; font-weight:600; color:var(--text-muted); cursor:pointer; }
+  .mode-toggle input{ display:none; }
+  .mode-toggle input:checked + label{ border-color:var(--danger); background:rgba(248,81,73,0.12); color:var(--text); }
+  .messages{ margin-bottom:16px; }
+  .messages li{ list-style:none; background:var(--accent-dim); border:1px solid var(--accent); color:var(--accent); padding:8px 12px; border-radius:5px; font-size:12px; }
+
+  .add-row{ display:flex; gap:10px; margin-bottom:10px; }
+  .add-row.type-toggle{ gap:6px; }
+  .type-radio{ flex:1; }
+  .type-radio input{ display:none; }
+  .type-radio label{ display:block; text-align:center; padding:7px; border:1px solid var(--border); border-radius:5px; font-size:12px; color:var(--text-muted); cursor:pointer; }
+  .type-radio input:checked + label{ border-color:var(--accent); color:var(--accent); background:var(--accent-dim); }
+  .modal-box .lbl{ font-size:10px; text-transform:uppercase; color:var(--text-faint); margin-bottom:4px; display:block; }
+  .fields-technique, .fields-normatif{ display:none; }
+  .fields-technique.show, .fields-normatif.show{ display:flex; }
+</style>
+{% endblock %}
+{% block content %}
+<h1 class="section">Gestion des actifs</h1>
+<div class="page" style="max-width:1080px;">
+{% if messages %}<ul class="messages">{% for m in messages %}<li>{{ m }}</li>{% endfor %}</ul>{% endif %}
+
+<p class="stat-line"><b>{{ total }}</b> actifs/référentiels — <b>{{ nb_technique }}</b> technique{{ nb_technique|pluralize }}, <b>{{ nb_normatif }}</b> normatif{{ nb_normatif|pluralize }}</p>
+
+<div class="layout">
+  <div class="col-main">
+    <div class="toolbar-actions">
+      <button type="button" class="primary" onclick="openAddActif()"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Ajouter</button>
+      <button type="button" onclick="openVersionModal()"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>Monter en version</button>
+      <button type="button" onclick="openDeleteModal()"><svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>Supprimer</button>
+      <a href="{% url 'panel:exporter_actifs_csv' %}" style="display:flex; align-items:center; gap:6px; font-size:12px; font-weight:600; padding:8px 14px; border-radius:6px; border:1px solid var(--border); background:var(--surface-2); color:var(--text-muted); text-decoration:none;">
+        <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;stroke-width:2;fill:none;"><path d="M12 5v14M5 14l7 7 7-7"/></svg>Exporter
+      </a>
+    </div>
+
+    <form class="filters-row" method="get">
+      <input type="text" name="q" value="{{ q }}" placeholder="Rechercher un actif…" onchange="this.form.submit()">
+      <a href="?q={{ q }}&tri={{ tri }}" class="{% if not type_filtre %}active{% endif %}">Tous</a>
+      <a href="?q={{ q }}&tri={{ tri }}&type=technique" class="{% if type_filtre == 'technique' %}active{% endif %}">Technique</a>
+      <a href="?q={{ q }}&tri={{ tri }}&type=normatif" class="{% if type_filtre == 'normatif' %}active{% endif %}">Normatif</a>
+      <a href="?q={{ q }}&type={{ type_filtre }}&tri=az" class="{% if tri == 'az' %}active{% endif %}">A–Z</a>
+      <a href="?q={{ q }}&type={{ type_filtre }}&tri=nb" class="{% if tri == 'nb' %}active{% endif %}">Nb.</a>
+    </form>
+
+    <div class="actif-table">
+      {% for actif in actifs %}
+        <div class="at-row">
+          <span class="at-tag">{{ actif.type }}</span>
+          <span class="at-name">{{ actif }}{% if actif.version %}<span class="ver mono">{{ actif.version }}</span>{% endif %}</span>
+          <span class="at-meta">{{ actif.traitements.count }} renseignement{{ actif.traitements.count|pluralize }}</span>
+          <div class="at-actions">
+            {% if actif.type == 'technique' %}
+              <button type="button" onclick="openVersionModal({{ actif.pk }}, '{{ actif|escapejs }}', '{{ actif.version|escapejs }}')">Monter en version</button>
+            {% endif %}
+            <button type="button" onclick="openDeleteModal({{ actif.pk }}, '{{ actif|escapejs }}')">Supprimer</button>
+          </div>
+        </div>
+      {% empty %}
+        <div class="empty">Aucun actif ne correspond à ces critères.</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="col-right card">
+    <div class="card-head">Historique</div>
+    {% for h in historique %}
+      <div class="hist-row">
+        <div class="hist-when">Il y a {{ h.horodatage|timesince }}</div>
+        <div><span class="hist-tag {{ h.evenement }}">{{ h.get_evenement_display }}</span><span class="hist-name">{{ h.actif_repr }}</span></div>
+        {% if h.detail %}<div class="hist-detail">{{ h.detail }}</div>{% endif %}
+      </div>
+    {% empty %}
+      <div class="empty">Aucune modification pour le moment.</div>
+    {% endfor %}
+  </div>
+</div>
+</div>
+
+<!-- Popup Ajouter -->
+<div class="modal-overlay" id="add-actif-overlay" onclick="if(event.target===this) closeModal('add-actif-overlay')">
+  <div class="modal-box">
+    <button type="button" class="modal-close" onclick="closeModal('add-actif-overlay')"><svg class="ico" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    {% include "panel/_ajouter_actif_form.html" with next_actif=request.get_full_path %}
+  </div>
+</div>
+
+<!-- Popup Monter en version -->
+<div class="modal-overlay" id="version-overlay" onclick="if(event.target===this) closeModal('version-overlay')">
+  <div class="modal-box">
+    <button type="button" class="modal-close" onclick="closeModal('version-overlay')"><svg class="ico" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    <h2>Monter en version</h2>
+    <form method="post" id="version-form">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+      <div class="f-field">
+        <label class="lbl">Actif</label>
+        <select id="version-select" onchange="onVersionSelectChange()">
+          <option value="">— Choisir —</option>
+          {% for actif in actifs %}{% if actif.type == 'technique' %}<option value="{{ actif.pk }}" data-nom="{{ actif|escapejs }}" data-version="{{ actif.version|escapejs }}">{{ actif }}{% if actif.version %} ({{ actif.version }}){% endif %}</option>{% endif %}{% endfor %}
+        </select>
+      </div>
+      <div class="f-field">
+        <label class="lbl">Nouvelle version</label>
+        <input type="text" name="version" id="version-input" placeholder="ex : 11.1.3">
+      </div>
+      <button type="submit" class="btn-primary">Enregistrer</button>
+    </form>
+  </div>
+</div>
+
+<!-- Popup Supprimer -->
+<div class="modal-overlay" id="delete-overlay" onclick="if(event.target===this) closeModal('delete-overlay')">
+  <div class="modal-box">
+    <button type="button" class="modal-close" onclick="closeModal('delete-overlay')"><svg class="ico" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    <h2>Supprimer un actif</h2>
+    <form method="post" id="delete-form">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+      <div class="f-field">
+        <label class="lbl">Actif</label>
+        <select id="delete-select" onchange="onDeleteSelectChange()">
+          <option value="">— Choisir —</option>
+          {% for actif in actifs %}<option value="{{ actif.pk }}" data-nom="{{ actif|escapejs }}">{{ actif }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="mode-toggle">
+        <input type="radio" name="mode" value="conserver" id="mode-conserver" checked><label for="mode-conserver">Conserver l'historique</label>
+        <input type="radio" name="mode" value="purger" id="mode-purger"><label for="mode-purger">Purger l'historique</label>
+      </div>
+      <button type="submit" class="btn-primary" style="background:var(--danger);">Supprimer</button>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+{% block extra_scripts %}
+<script>
+  function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+  function openModal(id){ document.getElementById(id).classList.add('open'); }
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.open').forEach(function(m){ m.classList.remove('open'); });
+  });
+
+  function openAddActif(){ openModal('add-actif-overlay'); }
+
+  function openVersionModal(pk, nom, version){
+    openModal('version-overlay');
+    const select = document.getElementById('version-select');
+    if (pk) { select.value = pk; onVersionSelectChange(); }
+    else { select.value = ''; document.getElementById('version-form').action = ''; document.getElementById('version-input').value = ''; }
+  }
+  function onVersionSelectChange(){
+    const select = document.getElementById('version-select');
+    const opt = select.options[select.selectedIndex];
+    const pk = select.value;
+    document.getElementById('version-form').action = pk ? '/actifs/' + pk + '/version/' : '';
+    document.getElementById('version-input').value = opt ? (opt.dataset.version || '') : '';
+  }
+
+  function openDeleteModal(pk, nom){
+    openModal('delete-overlay');
+    const select = document.getElementById('delete-select');
+    if (pk) { select.value = pk; onDeleteSelectChange(); }
+    else { select.value = ''; document.getElementById('delete-form').action = ''; }
+  }
+  function onDeleteSelectChange(){
+    const select = document.getElementById('delete-select');
+    const pk = select.value;
+    document.getElementById('delete-form').action = pk ? '/actifs/' + pk + '/retirer/' : '';
+  }
+</script>
+{% endblock %}
