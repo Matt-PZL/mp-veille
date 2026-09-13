@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% load panel_extras %}
 {% block title %}Traitement{% endblock %}
-{% block page_title %}Traitement{% endblock %}
 {% block nav_traitement %}active{% endblock %}
 {% block extra_head %}
 <style>
@@ -13,7 +12,7 @@
   .col-left{
     align-self:stretch;
     background:#010101; border-right:1px solid var(--border);
-    margin:-32px 0 -72px -32px; padding:24px 16px 40px 32px;
+    margin:0 0 -72px -32px; padding:24px 16px 40px 32px;
   }
   .col-left h2{ font-size:15px; font-weight:700; margin-bottom:14px; }
   .status-list{ display:flex; flex-direction:column; gap:2px; }
@@ -79,6 +78,15 @@
 </style>
 {% endblock %}
 {% block content %}
+<div class="page-header">
+  <h1 class="page-title">Traitement</h1>
+  <div class="page-header-stats">
+    <div class="stat-tile warn"><div class="stat-num">{{ compteurs.a_traiter }}</div><div class="stat-lbl">À traiter</div></div>
+    <div class="stat-tile"><div class="stat-num">{{ compteurs.en_cours }}</div><div class="stat-lbl">Démarré</div></div>
+    <div class="stat-tile good"><div class="stat-num">{{ compteurs.clos }}</div><div class="stat-lbl">Clos</div></div>
+    <div class="stat-tile danger"><div class="stat-num">{{ en_retard_total }}</div><div class="stat-lbl">En retard</div></div>
+  </div>
+</div>
 <div class="layout">
 
   <div class="col-left">

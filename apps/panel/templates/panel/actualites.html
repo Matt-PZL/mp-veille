@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 {% block title %}Actualités{% endblock %}
-{% block page_title %}Actualités{% endblock %}
 {% block nav_actualites %}active{% endblock %}
 {% block extra_head %}
 <style>
@@ -31,8 +30,13 @@
 </style>
 {% endblock %}
 {% block content %}
-<h1 class="section">Actualités</h1>
 <div class="page">
+<div class="page-header">
+  <h1 class="page-title">Actualités</h1>
+  <div class="page-header-stats">
+    <div class="stat-tile"><div class="stat-num">{{ items|length }}</div><div class="stat-lbl">Résultats</div></div>
+  </div>
+</div>
 <p style="color:var(--text-faint); font-size:12px; margin-bottom:16px;">Flux complet de la base de connaissance, non filtré sur vos actifs déclarés.</p>
 <form method="get" class="filters">
   <a href="?" class="{% if not type_filtre %}active{% endif %}">Tous</a>

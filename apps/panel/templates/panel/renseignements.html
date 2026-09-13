@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% load panel_extras %}
 {% block title %}Renseignements{% endblock %}
-{% block page_title %}Renseignements{% endblock %}
 {% block nav_renseignements %}active{% endblock %}
 {% block extra_head %}
 <style>
@@ -15,7 +14,7 @@
   .col-left{
     align-self:stretch;
     background:#010101; border-right:1px solid var(--border);
-    margin:-32px 0 -72px -32px; padding:24px 16px 40px 32px;
+    margin:0 0 -72px -32px; padding:24px 16px 40px 32px;
   }
   .col-left .card-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
   .col-left .card-head h2{ font-size:15px; font-weight:700; }
@@ -143,6 +142,15 @@
 </style>
 {% endblock %}
 {% block content %}
+<div class="page-header">
+  <h1 class="page-title">Renseignements</h1>
+  <div class="page-header-stats">
+    <div class="stat-tile"><div class="stat-num">{{ nb_total_renseignements }}</div><div class="stat-lbl">Total</div></div>
+    <div class="stat-tile warn"><div class="stat-num">{{ nb_a_traiter }}</div><div class="stat-lbl">À traiter</div></div>
+    <div class="stat-tile danger"><div class="stat-num">{{ nb_critiques }}</div><div class="stat-lbl">Critiques</div></div>
+    <div class="stat-tile"><div class="stat-num">{{ nb_nouveaux }}</div><div class="stat-lbl">Nouveaux</div></div>
+  </div>
+</div>
 <div class="layout">
 
   <div class="col-left">

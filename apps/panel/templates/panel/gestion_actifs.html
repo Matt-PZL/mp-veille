@@ -1,13 +1,12 @@
 {% extends "base.html" %}
 {% block title %}Gestion des actifs{% endblock %}
-{% block page_title %}Gestion des actifs{% endblock %}
 {% block nav_gestion_actifs %}active{% endblock %}
 {% block extra_head %}
 <style>
   .layout{ display:grid; grid-template-columns:1fr 280px; gap:20px; align-items:start; }
   @media (max-width:900px){ .layout{ grid-template-columns:1fr; } }
 
-  .stat-tiles{ display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap; }
+  .stat-tiles{ display:flex; gap:12px; flex-wrap:wrap; }
   .stat-tile{ background:var(--surface-2); border:1px solid var(--border); border-top:3px solid var(--accent); border-radius:8px; padding:14px 20px; min-width:130px; }
   .stat-tile.tech{ border-top-color:var(--info); }
   .stat-tile.norm{ border-top-color:var(--violet); }
@@ -97,14 +96,16 @@
 </style>
 {% endblock %}
 {% block content %}
-<h1 class="section">Gestion des actifs</h1>
 <div class="page" style="max-width:1080px;">
 {% if messages %}<ul class="messages">{% for m in messages %}<li>{{ m }}</li>{% endfor %}</ul>{% endif %}
 
-<div class="stat-tiles">
-  <div class="stat-tile"><div class="stat-num">{{ total }}</div><div class="stat-lbl">Total actifs</div></div>
-  <div class="stat-tile tech"><div class="stat-num">{{ nb_technique }}</div><div class="stat-lbl">Technique</div></div>
-  <div class="stat-tile norm"><div class="stat-num">{{ nb_normatif }}</div><div class="stat-lbl">Normatif</div></div>
+<div class="page-header">
+  <h1 class="page-title">Gestion des actifs</h1>
+  <div class="stat-tiles">
+    <div class="stat-tile"><div class="stat-num">{{ total }}</div><div class="stat-lbl">Total actifs</div></div>
+    <div class="stat-tile tech"><div class="stat-num">{{ nb_technique }}</div><div class="stat-lbl">Technique</div></div>
+    <div class="stat-tile norm"><div class="stat-num">{{ nb_normatif }}</div><div class="stat-lbl">Normatif</div></div>
+  </div>
 </div>
 
 <div class="layout">

@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% load panel_extras %}
 {% block title %}Vue d'ensemble{% endblock %}
-{% block page_title %}Tableau de bord{% endblock %}
 {% block nav_dashboard %}active{% endblock %}
 {% block extra_head %}
 <style>
@@ -64,8 +63,10 @@
 </style>
 {% endblock %}
 {% block content %}
-<h1 class="section">Vue d'ensemble</h1>
 <div class="page">
+<div class="page-header">
+  <h1 class="page-title">Vue d'ensemble</h1>
+</div>
 <p class="dash-sub"><b>{{ nb_total_renseignements }}</b> renseignements suivis sur <b>{{ nb_actifs }}</b> actifs/référentiels déclarés — dernière collecte {% if derniere_collecte %}il y a {{ derniere_collecte|timesince }}{% else %}jamais{% endif %}.</p>
 
 <div class="kpis">

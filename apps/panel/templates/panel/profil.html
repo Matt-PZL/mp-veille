@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 {% block title %}Profil{% endblock %}
-{% block page_title %}Profil{% endblock %}
 {% block extra_head %}
 <style>
   .card{ background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:24px; }
@@ -11,8 +10,10 @@
 </style>
 {% endblock %}
 {% block content %}
-<h1 class="section">Gestion du profil</h1>
 <div class="page" style="max-width:420px;">
+<div class="page-header">
+  <h1 class="page-title">Gestion du profil</h1>
+</div>
   <div class="card">
     <div class="field">
       <span class="lbl">Compte</span>

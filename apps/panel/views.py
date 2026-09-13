@@ -195,6 +195,14 @@ def renseignements(request):
 
     from .taxonomie import REFERENTIELS_NORMATIFS, TAXONOMIE_TECHNIQUE
 
+    tous_les_renseignements = list(Renseignement.objects.all())
+    nb_nouveaux = sum(1 for r in tous_les_renseignements if r.id_renseignement_bdp not in consultes)
+    nb_critiques = sum(1 for r in tous_les_renseignements if r.criticite == "critique")
+    nb_a_traiter = sum(
+        1 for r in tous_les_renseignements
+        if getattr(traitements_par_id.get(r.id_renseignement_bdp), "statut", "a_traiter") == "a_traiter"
+    )
+
     return render(
         request,
         "panel/renseignements.html",
@@ -215,6 +223,10 @@ def renseignements(request):
             "renseignements_par_id": renseignements_par_id,
             "taxonomie_json": json.dumps(TAXONOMIE_TECHNIQUE),
             "referentiels": REFERENTIELS_NORMATIFS,
+            "nb_total_renseignements": len(tous_les_renseignements),
+            "nb_nouveaux": nb_nouveaux,
+            "nb_critiques": nb_critiques,
+            "nb_a_traiter": nb_a_traiter,
         },
     )
 
