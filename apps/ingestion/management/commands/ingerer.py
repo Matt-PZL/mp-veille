@@ -13,8 +13,11 @@ from apps.ingestion.tasks import (
     collecter_catalogue_actifs,
     collecter_cert_fr_alertes,
     collecter_cert_fr_avis,
+    collecter_debian_security,
+    collecter_github_advisories,
     collecter_nvd_cve,
     collecter_referentiels_normatifs,
+    collecter_ubuntu_usn,
     cycle_ingestion,
     enrichir_kev,
 )
@@ -25,6 +28,9 @@ _SOURCES = {
     "cert_fr_avis": collecter_cert_fr_avis,
     "cert_fr_alertes": collecter_cert_fr_alertes,
     "cnil": collecter_referentiels_normatifs,
+    "debian": collecter_debian_security,
+    "ubuntu_usn": collecter_ubuntu_usn,
+    "github_advisories": collecter_github_advisories,
     "catalogue": collecter_catalogue_actifs,
 }
 

@@ -1,6 +1,7 @@
 import math
 import uuid
 
+from django.contrib.postgres.indexes import GinIndex
 from django.db import models
 
 
@@ -101,6 +102,15 @@ class Renseignement(models.Model):
         indexes = [
             models.Index(fields=["taxonomie_editeur", "taxonomie_produit"]),
             models.Index(fields=["taxonomie_referentiel"]),
+            # Le Matching filtre par ILIKE (icontains) sur ces 4 colonnes
+            # (apps/matching/services.py) : sans index trigram, ces requetes
+            # passent en scan sequentiel des que la BDP grossit — constate en
+            # direct en passant de ~750 a ~100 000 lignes (site ralenti,
+            # 106ms -> 11ms par requete apres ajout de ces index).
+            GinIndex(fields=["titre"], name="idx_rens_titre_trgm", opclasses=["gin_trgm_ops"]),
+            GinIndex(fields=["taxonomie_produit"], name="idx_rens_produit_trgm", opclasses=["gin_trgm_ops"]),
+            GinIndex(fields=["taxonomie_editeur"], name="idx_rens_editeur_trgm", opclasses=["gin_trgm_ops"]),
+            GinIndex(fields=["taxonomie_referentiel"], name="idx_rens_referentiel_trgm", opclasses=["gin_trgm_ops"]),
         ]
         constraints = [
             # Garde-fou base contre le doublon exact : deux ecritures pour la
