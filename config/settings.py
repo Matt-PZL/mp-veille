@@ -16,27 +16,27 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "django_htmx",
+    "corsheaders",
     "django_celery_beat",
     "django_celery_results",
-    "apps.accounts",
+    "apps.api",
     "apps.bdp",
     "apps.bdc",
     "apps.catalogue",
     "apps.matching",
     "apps.ingestion",
-    "apps.panel",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "django_htmx.middleware.HtmxMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -44,7 +44,7 @@ ROOT_URLCONF = "config.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "templates"],
+        "DIRS": [],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -52,7 +52,6 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
-                "apps.panel.context.rail",
             ],
         },
     },
@@ -98,9 +97,10 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 Mo
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-LOGIN_URL = "accounts:login"
-LOGIN_REDIRECT_URL = "panel:dashboard"
-LOGOUT_REDIRECT_URL = "accounts:login"
+# Le panel vit desormais dans le front Next.js, qui gere sa propre page de
+# connexion via /api/auth/. Ne reste cote Django que l'admin, qui a sa propre
+# page de connexion — LOGIN_URL n'y sert que de repli.
+LOGIN_URL = "/admin/login/"
 
 # --- Celery ---
 CELERY_BROKER_URL = config("REDIS_URL")
@@ -115,6 +115,52 @@ CELERY_BEAT_SCHEDULE = {
         "schedule": crontab(hour="*/12", minute=0),
     },
 }
+
+# --- Front Next.js ---
+# Le front tourne sur son propre port et s'authentifie par cookie de session :
+# CORS doit autoriser les identifiants, et l'origine doit etre listee
+# explicitement (un "*" est refuse des qu'on envoie des cookies).
+CORS_ALLOWED_ORIGINS = config(
+    "CORS_ALLOWED_ORIGINS",
+    default="http://localhost:3000,http://127.0.0.1:3000",
+    cast=Csv(),
+)
+CORS_ALLOW_CREDENTIALS = True
+
+# Le front lit le cookie CSRF en JS pour le renvoyer en en-tete : il ne peut
+# donc pas etre httpOnly. Le cookie de SESSION, lui, le reste.
+CSRF_COOKIE_HTTPONLY = False
+CSRF_TRUSTED_ORIGINS = config(
+    "CSRF_TRUSTED_ORIGINS",
+    default="http://localhost:3000,http://127.0.0.1:3000,http://localhost:8000",
+    cast=Csv(),
+)
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "Lax"
+
+# --- Statiques servis par WhiteNoise ---
+# Evite d'exiger un nginx devant Django juste pour l'admin et les gabarits.
+# En DEBUG, Django sert les statiques lui-meme et WhiteNoise ne gene pas.
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+}
+
+# --- Durcissement, actif uniquement hors DEBUG ---
+# Ces reglages supposent un reverse proxy en HTTPS devant l'application.
+# Sans HTTPS, SECURE_SSL_REDIRECT boucle : laisser DJANGO_HTTPS a 0 tant que
+# le certificat n'est pas en place.
+if not DEBUG:
+    _https = config("DJANGO_HTTPS", default=False, cast=bool)
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SECURE_SSL_REDIRECT = _https
+    SESSION_COOKIE_SECURE = _https
+    CSRF_COOKIE_SECURE = _https
+    SECURE_HSTS_SECONDS = 31536000 if _https else 0
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = _https
+    SECURE_HSTS_PRELOAD = _https
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = "DENY"
 
 # --- Chiffrement BDC ---
 # Cle Fernet dediee aux champs sensibles de la BDC (justificatifs, commentaires...).

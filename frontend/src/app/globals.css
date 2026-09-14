@@ -1,0 +1,231 @@
+@import "tailwindcss";
+
+/* ===========================================================================
+   Design system — porte depuis templates/base.html du panel Django.
+
+   Deux axes independants, comme cote Django :
+     data-theme  = "dark" | "light"           -> surfaces et texte
+     data-accent = "bleu" | "vert" | "violet" -> couleur d'accent
+
+   Les composants ne lisent que des tokens, jamais une couleur en dur, pour
+   que les deux axes se combinent sans multiplier les regles.
+   =========================================================================== */
+
+:root {
+  /* Sombre par defaut — noir neutre */
+  --color-bg: #0a0a0b;
+  --color-surface: #121315;
+  --color-surface-2: #191a1d;
+  --color-surface-3: #212327;
+  --color-border: #26282d;
+  --color-border-strong: #34373e;
+  --color-ink: #f2f3f5;
+  --color-ink-soft: #9a9ea8;
+  --color-ink-faint: #6b6f79;
+
+  --color-crit: #f0544f;
+  --color-crit-soft: rgba(240, 84, 79, 0.13);
+  --color-elev: #f08b3c;
+  --color-elev-soft: rgba(240, 139, 60, 0.13);
+  --color-moy: #e0b341;
+  --color-moy-soft: rgba(224, 179, 65, 0.13);
+  --color-faib: #3dbb6e;
+  --color-faib-soft: rgba(61, 187, 110, 0.13);
+  --color-gold: #e3a94c;
+  --color-gold-soft: rgba(227, 169, 76, 0.12);
+  --color-violet: #a371f7;
+  --color-violet-soft: rgba(163, 113, 247, 0.14);
+
+  --color-accent: #3b7bff;
+  --color-accent-ink: #ffffff;
+  --color-accent-soft: rgba(59, 123, 255, 0.14);
+  --color-accent-line: rgba(59, 123, 255, 0.34);
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-pop: 0 16px 48px rgba(0, 0, 0, 0.5);
+}
+
+:root[data-theme="light"] {
+  --color-bg: #ffffff;
+  --color-surface: #ffffff;
+  --color-surface-2: #f4f5f7;
+  --color-surface-3: #eaecef;
+  --color-border: #dcdfe5;
+  --color-border-strong: #bfc4cd;
+  --color-ink: #0c0d0f;
+  --color-ink-soft: #565b66;
+  --color-ink-faint: #818794;
+
+  --color-crit: #c9332e;
+  --color-crit-soft: rgba(201, 51, 46, 0.09);
+  --color-elev: #b5641b;
+  --color-elev-soft: rgba(181, 100, 27, 0.1);
+  --color-moy: #96731a;
+  --color-moy-soft: rgba(150, 115, 26, 0.1);
+  --color-faib: #1b7f47;
+  --color-faib-soft: rgba(27, 127, 71, 0.1);
+  --color-gold: #95661b;
+  --color-gold-soft: rgba(149, 102, 27, 0.1);
+  --color-violet: #6d3aba;
+  --color-violet-soft: rgba(109, 58, 186, 0.1);
+
+  --color-accent: #2667ff;
+  --color-accent-soft: rgba(38, 103, 255, 0.09);
+  --color-accent-line: rgba(38, 103, 255, 0.3);
+
+  --shadow-card: 0 1px 2px rgba(12, 13, 15, 0.06);
+  --shadow-pop: 0 16px 48px rgba(12, 13, 15, 0.14);
+}
+
+:root[data-accent="vert"] {
+  --color-accent: #3dbb6e;
+  --color-accent-ink: #04210e;
+  --color-accent-soft: rgba(61, 187, 110, 0.14);
+  --color-accent-line: rgba(61, 187, 110, 0.34);
+}
+:root[data-accent="violet"] {
+  --color-accent: #a371f7;
+  --color-accent-ink: #ffffff;
+  --color-accent-soft: rgba(163, 113, 247, 0.14);
+  --color-accent-line: rgba(163, 113, 247, 0.34);
+}
+:root[data-theme="light"][data-accent="vert"] {
+  --color-accent: #1b7f47;
+  --color-accent-ink: #ffffff;
+  --color-accent-soft: rgba(27, 127, 71, 0.1);
+  --color-accent-line: rgba(27, 127, 71, 0.3);
+}
+:root[data-theme="light"][data-accent="violet"] {
+  --color-accent: #6d3aba;
+  --color-accent-ink: #ffffff;
+  --color-accent-soft: rgba(109, 58, 186, 0.1);
+  --color-accent-line: rgba(109, 58, 186, 0.3);
+}
+
+/* Expose les tokens a Tailwind : `bg-surface`, `text-ink-soft`, etc. */
+@theme inline {
+  --color-bg: var(--color-bg);
+  --color-surface: var(--color-surface);
+  --color-surface-2: var(--color-surface-2);
+  --color-surface-3: var(--color-surface-3);
+  --color-border: var(--color-border);
+  --color-border-strong: var(--color-border-strong);
+  --color-ink: var(--color-ink);
+  --color-ink-soft: var(--color-ink-soft);
+  --color-ink-faint: var(--color-ink-faint);
+
+  --color-crit: var(--color-crit);
+  --color-crit-soft: var(--color-crit-soft);
+  --color-elev: var(--color-elev);
+  --color-elev-soft: var(--color-elev-soft);
+  --color-moy: var(--color-moy);
+  --color-moy-soft: var(--color-moy-soft);
+  --color-faib: var(--color-faib);
+  --color-faib-soft: var(--color-faib-soft);
+  --color-gold: var(--color-gold);
+  --color-gold-soft: var(--color-gold-soft);
+  --color-violet: var(--color-violet);
+  --color-violet-soft: var(--color-violet-soft);
+
+  --color-accent: var(--color-accent);
+  --color-accent-ink: var(--color-accent-ink);
+  --color-accent-soft: var(--color-accent-soft);
+  --color-accent-line: var(--color-accent-line);
+
+  --font-display: var(--font-archivo), "Helvetica Neue", Arial, sans-serif;
+  --font-sans: var(--font-plex-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, "SF Mono", Menlo, monospace;
+
+  --shadow-card: var(--shadow-card);
+  --shadow-pop: var(--shadow-pop);
+}
+
+/* ---------------------------------------------------------------------------
+   Disposition de la navigation, decidee en CSS et non en JavaScript.
+
+   Le serveur ignore la preference de l'utilisateur : s'il fallait attendre que
+   React lise le stockage local, le mode vertical afficherait d'abord les
+   onglets horizontaux avant de basculer. Les deux variantes sont donc
+   toujours dans le DOM, et l'attribut data-nav — pose par le script inline du
+   layout avant le premier rendu — choisit laquelle s'affiche.
+
+   --h-top porte la hauteur totale de la barre, dont depend le positionnement
+   collant de la colonne laterale : 56px en vertical (une seule rangee) contre
+   104px en horizontal (rangee des onglets en plus). Le definir ici et non en
+   style inline garantit qu'il est juste des la premiere image.
+   --------------------------------------------------------------------------- */
+:root {
+  --h-top: 104px;
+}
+:root[data-nav="verticale"] {
+  --h-top: 56px;
+}
+
+:root[data-nav="verticale"] [data-quand-nav="horizontale"] {
+  display: none !important;
+}
+:root:not([data-nav="verticale"]) [data-quand-nav="verticale"] {
+  display: none !important;
+}
+
+/* Sous lg la colonne laterale passe au-dessus du contenu et cesse d'etre
+   collante : la hauteur de barre n'a plus a etre compensee. */
+@media (max-width: 1023px) {
+  :root {
+    --h-top: 56px;
+  }
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* Barres de defilement discretes, cotes sombre comme clair */
+::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: 999px;
+  border: 3px solid var(--color-bg);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-ink-faint);
+}
+
+/* Les fleches natives des champs date sont quasi invisibles en sombre. */
+:root:not([data-theme="light"]) input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.55);
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 5px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

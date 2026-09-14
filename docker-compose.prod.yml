@@ -1,0 +1,105 @@
+# Pile de production.
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# Differences avec la pile de developpement :
+#   - pas de code monte en volume (les images embarquent le code)
+#   - Django sert via Gunicorn, plus via runserver
+#   - le front tourne en serveur autonome Next, plus en `next dev`
+#   - aucun port de base de donnees expose vers l'exterieur
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [internal]
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    networks: [internal]
+
+  web:
+    image: mp-veille-web:prod
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - DJANGO_DEBUG=0
+    volumes:
+      # Les preuves de traitement televersees doivent survivre au conteneur.
+      - media:/app/media
+    ports:
+      - "8000:8000"
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_started}
+    networks: [internal]
+
+  worker:
+    image: mp-veille-web:prod
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    restart: unless-stopped
+    command: celery -A config worker -l info
+    env_file: .env
+    environment:
+      - DJANGO_DEBUG=0
+    volumes:
+      - media:/app/media
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_started}
+    networks: [internal]
+
+  beat:
+    image: mp-veille-web:prod
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    restart: unless-stopped
+    command: celery -A config beat -l info
+    env_file: .env
+    environment:
+      - DJANGO_DEBUG=0
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_started}
+    networks: [internal]
+
+  frontend:
+    image: mp-veille-frontend:prod
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Lue au BUILD : Next fige les NEXT_PUBLIC_* dans le bundle envoye au
+        # navigateur. La changer impose donc de reconstruire l'image.
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on: [web]
+    networks: [internal]
+
+networks:
+  internal:
+    driver: bridge
+
+volumes:
+  db_data:
+  media:

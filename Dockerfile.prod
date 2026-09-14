@@ -1,0 +1,37 @@
+# Image de production du backend Django.
+# Le Dockerfile de developpement monte le code en volume et sert via
+# runserver ; celle-ci embarque le code, collecte les statiques et sert via
+# Gunicorn.
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libpq-dev gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+# Les statiques de l'admin Django et des gabarits sont collectes au build.
+# DJANGO_SECRET_KEY est requis par settings.py a l'import : on en passe une
+# factice ici, la vraie vient de l'environnement a l'execution.
+RUN DJANGO_SECRET_KEY=build-only \
+    POSTGRES_DB=x POSTGRES_USER=x POSTGRES_PASSWORD=x \
+    BDC_ENCRYPTION_KEY=uZ9ZQ1kZ8oE7bJ2nR5tW0yX3vC6mA4sD8fG1hK2lJ9o= \
+    python manage.py collectstatic --noinput
+
+RUN useradd --create-home --shell /bin/bash django && chown -R django /app
+USER django
+
+EXPOSE 8000
+CMD ["gunicorn", "config.wsgi:application", \
+     "--bind", "0.0.0.0:8000", \
+     "--workers", "3", \
+     "--timeout", "120", \
+     "--access-logfile", "-"]

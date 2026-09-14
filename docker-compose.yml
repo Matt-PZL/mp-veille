@@ -48,6 +48,30 @@ services:
     depends_on: [db, redis]
     networks: [internal]
 
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      # Volumes anonymes : garde les node_modules installes dans l'image et le
+      # cache de build, que le montage du dossier hote ecraserait sinon.
+      - /app/node_modules
+      - /app/.next
+    environment:
+      # Ne PAS fixer NODE_ENV ici : Next le positionne lui-meme selon la
+      # commande (development pour `next dev`, production pour `next build`).
+      # Le figer a "development" cassait le build de production.
+      - WATCHPACK_POLLING=true
+      # Le navigateur appelle l'API depuis la machine hote, pas depuis le
+      # reseau Docker : l'URL doit donc rester localhost, pas "web".
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on: [web]
+    networks: [internal]
+
 networks:
   internal:
     driver: bridge

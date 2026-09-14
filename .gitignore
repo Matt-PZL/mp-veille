@@ -7,3 +7,6 @@ __pycache__/
 *.sqlite3
 .venv/
 db.sqlite3
+celerybeat-schedule
+node_modules/
+.next/
