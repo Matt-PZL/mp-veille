@@ -367,6 +367,15 @@ export function Modal({
   const [monte, setMonte] = useState(false);
   useEffect(() => setMonte(true), []);
 
+  useEffect(() => {
+    if (!ouvert) return;
+    const echap = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onFermer();
+    };
+    document.addEventListener("keydown", echap);
+    return () => document.removeEventListener("keydown", echap);
+  }, [ouvert, onFermer]);
+
   if (!ouvert || !monte) return null;
   return createPortal(
     <div

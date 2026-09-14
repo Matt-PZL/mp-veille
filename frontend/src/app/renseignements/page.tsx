@@ -16,7 +16,7 @@ import {
   StatusPill,
   NatureTag,
 } from "@/components/ui";
-import { IconPlus, IconSearch, IconShield } from "@/components/icons";
+import { IconChevron, IconPlus, IconSearch, IconShield } from "@/components/icons";
 import { ModaleAjoutActif } from "@/components/ModaleAjoutActif";
 import { api } from "@/lib/api";
 import { depuis, pluriel, tronquer } from "@/lib/format";
@@ -185,6 +185,138 @@ function ColonneActifs({
   );
 }
 
+/** Une carte de la liste : le texte tronque se deplie en place au clic
+ * (sans naviguer) et montre alors le texte complet + tout ce qu'on connait
+ * en plus du renseignement — la Source mise en avant, et les champs
+ * d'enrichissement s'ils sont renseignes. Le reste de la carte reste un
+ * lien classique vers la fiche detail. */
+function CarteRenseignement({ item }: { item: FeedItem }) {
+  const { renseignement: r, traitement: t, match } = item;
+  const [ouvert, setOuvert] = useState(false);
+  const long = r.description.length > 210;
+
+  const bascule = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setOuvert((v) => !v);
+  };
+
+  const enrichissement: { label: string; valeur: string }[] = [
+    r.auteur && { label: "Auteur", valeur: r.auteur },
+    r.niveau_confiance && { label: "Niveau de confiance", valeur: r.niveau_confiance_label },
+    r.secteur_concerne && { label: "Secteur concerné", valeur: r.secteur_concerne },
+    r.tlp && { label: "TLP", valeur: r.tlp.toUpperCase() },
+    r.tags.length > 0 && { label: "Tags", valeur: r.tags.join(", ") },
+    r.cve_associees.length > 0 && { label: "CVE associées", valeur: r.cve_associees.join(", ") },
+    r.ioc_associees.length > 0 && { label: "IOC associées", valeur: r.ioc_associees.join(", ") },
+  ].filter(Boolean) as { label: string; valeur: string }[];
+
+  return (
+    <Link
+      href={`/renseignements/${r.id}`}
+      className={`relative block overflow-hidden rounded-2xl border border-border bg-surface py-4 pr-[18px] pl-[21px] shadow-card transition-colors before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:content-[''] hover:border-border-strong ${
+        {
+          critique: "before:bg-crit",
+          elevee: "before:bg-elev",
+          moyenne: "before:bg-moy",
+          faible: "before:bg-faib",
+          "": "before:bg-ink-faint",
+        }[r.criticite]
+      }`}
+    >
+      <div className="flex items-center gap-3">
+        <SevDot criticite={r.criticite} />
+        <span className="min-w-0 flex-1 text-[14.5px] leading-snug font-semibold tracking-tight">
+          {r.reference || r.source} — {r.titre}
+        </span>
+        {!r.consulte && (
+          <span className="shrink-0 rounded-[5px] bg-accent px-[7px] py-0.5 font-mono text-[9.5px] font-semibold tracking-[0.09em] text-accent-ink uppercase">
+            Nouveau
+          </span>
+        )}
+        <span className="shrink-0 font-mono text-[11.5px] text-ink-faint">{depuis(r.decouvert_le)}</span>
+      </div>
+
+      {/* span, pas button : deja imbrique dans le <Link> de la carte, deux
+         elements interactifs imbriques (bouton dans un lien) seraient du
+         HTML invalide. */}
+      <span
+        role={long ? "button" : undefined}
+        tabIndex={long ? 0 : undefined}
+        onClick={long ? bascule : undefined}
+        onKeyDown={
+          long
+            ? (e) => {
+                if (e.key === "Enter" || e.key === " ") bascule(e as unknown as React.MouseEvent);
+              }
+            : undefined
+        }
+        className={`mt-2 block text-[13px] leading-relaxed text-ink-soft ${long ? "cursor-pointer hover:text-ink" : ""}`}
+      >
+        {ouvert ? r.description : tronquer(r.description, 210)}
+        {long && (
+          <span className="ml-1.5 inline-flex items-center gap-0.5 align-middle text-[11.5px] font-semibold text-accent">
+            {ouvert ? "Réduire" : "Lire la suite"}
+            <IconChevron className={`size-3 transition-transform ${ouvert ? "rotate-180" : ""}`} />
+          </span>
+        )}
+      </span>
+
+      {ouvert && (
+        <div className="renseignement-enrichissement mt-3 rounded-xl border border-border bg-surface-2 px-3.5 py-3">
+          <div className="mb-2 flex items-center gap-2">
+            <span className="rounded-[5px] bg-accent-soft px-2 py-0.5 font-mono text-[10.5px] font-semibold tracking-[0.06em] text-accent uppercase">
+              Source
+            </span>
+            <span className="text-[12.5px] font-medium text-ink">{r.source}</span>
+            {r.url_source && (
+              <a
+                href={r.url_source}
+                target="_blank"
+                rel="noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="text-[11.5px] text-accent hover:underline"
+              >
+                Voir l&apos;avis d&apos;origine →
+              </a>
+            )}
+          </div>
+          {enrichissement.length > 0 ? (
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+              {enrichissement.map((e) => (
+                <div key={e.label} className="min-w-0">
+                  <dt className="font-mono text-[10px] font-semibold tracking-[0.07em] text-ink-faint uppercase">
+                    {e.label}
+                  </dt>
+                  <dd className="truncate text-[12.5px] text-ink-soft">{e.valeur}</dd>
+                </div>
+              ))}
+            </dl>
+          ) : (
+            <p className="text-[11.5px] text-ink-faint italic">
+              Aucune information complémentaire fournie par la source pour ce renseignement.
+            </p>
+          )}
+        </div>
+      )}
+
+      <div className="mt-2.5 flex flex-wrap items-center gap-2.5">
+        <span className="font-mono text-[11.5px] font-medium text-accent">{r.source}</span>
+        <NatureTag nature={r.nature} label={r.nature_label} />
+        {r.cvss_score !== null && (
+          <span className="font-mono text-[11.5px] text-ink-faint">CVSS {r.cvss_score.toFixed(1)}</span>
+        )}
+        {t ? (
+          <StatusPill statut={t.statut} label={t.statut_label} />
+        ) : (
+          <StatusPill statut="a_traiter" label="+ Traitement" />
+        )}
+        {match && <ConfBar palier={match.palier} pourcent={match.pourcent} />}
+      </div>
+    </Link>
+  );
+}
+
 function Contenu() {
   const params = useSearchParams();
   const router = useRouter();
@@ -318,55 +450,8 @@ function Contenu() {
 
           {items.length ? (
             <div className="renseignements-liste flex flex-col gap-3">
-              {items.map(({ renseignement: r, traitement: t, match }) => (
-                <Link
-                  key={r.id}
-                  href={`/renseignements/${r.id}`}
-                  className={`relative block overflow-hidden rounded-2xl border border-border bg-surface py-4 pr-[18px] pl-[21px] shadow-card transition-colors before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:content-[''] hover:border-border-strong ${
-                    {
-                      critique: "before:bg-crit",
-                      elevee: "before:bg-elev",
-                      moyenne: "before:bg-moy",
-                      faible: "before:bg-faib",
-                      "": "before:bg-ink-faint",
-                    }[r.criticite]
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <SevDot criticite={r.criticite} />
-                    <span className="min-w-0 flex-1 text-[14.5px] leading-snug font-semibold tracking-tight">
-                      {r.reference || r.source} — {r.titre}
-                    </span>
-                    {!r.consulte && (
-                      <span className="shrink-0 rounded-[5px] bg-accent px-[7px] py-0.5 font-mono text-[9.5px] font-semibold tracking-[0.09em] text-accent-ink uppercase">
-                        Nouveau
-                      </span>
-                    )}
-                    <span className="shrink-0 font-mono text-[11.5px] text-ink-faint">
-                      {depuis(r.decouvert_le)}
-                    </span>
-                  </div>
-
-                  <p className="mt-2 text-[13px] leading-relaxed text-ink-soft">
-                    {tronquer(r.description, 210)}
-                  </p>
-
-                  <div className="mt-2.5 flex flex-wrap items-center gap-2.5">
-                    <span className="font-mono text-[11.5px] font-medium text-accent">{r.source}</span>
-                    <NatureTag nature={r.nature} label={r.nature_label} />
-                    {r.cvss_score !== null && (
-                      <span className="font-mono text-[11.5px] text-ink-faint">
-                        CVSS {r.cvss_score.toFixed(1)}
-                      </span>
-                    )}
-                    {t ? (
-                      <StatusPill statut={t.statut} label={t.statut_label} />
-                    ) : (
-                      <StatusPill statut="a_traiter" label="+ Traitement" />
-                    )}
-                    {match && <ConfBar palier={match.palier} pourcent={match.pourcent} />}
-                  </div>
-                </Link>
+              {items.map((item) => (
+                <CarteRenseignement key={item.renseignement.id} item={item} />
               ))}
             </div>
           ) : (

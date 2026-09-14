@@ -48,6 +48,14 @@ class RenseignementOut(Schema):
     taxonomie_referentiel: str
     decouvert_le: datetime
     consulte: bool
+    auteur: str
+    niveau_confiance: str
+    niveau_confiance_label: str
+    tags: list[str]
+    secteur_concerne: str
+    tlp: str
+    cve_associees: list[str]
+    ioc_associees: list[str]
 
 
 class MatchInfo(Schema):

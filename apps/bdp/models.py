@@ -61,6 +61,29 @@ class Renseignement(models.Model):
     cvss_score = models.FloatField(null=True, blank=True)
     cvss_vector = models.CharField(max_length=100, blank=True, help_text="ex: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H")
 
+    # Enrichissement complementaire — rempli par lingestion quand la source
+    # le fournit (aucune ne le fait encore integralement aujourdhui : ces
+    # champs existent pour laffichage conditionnel cote front et seront
+    # peuples progressivement, source par source). Jamais obligatoires.
+    AUTEUR_TLP = [
+        ("clear", "TLP:CLEAR"),
+        ("green", "TLP:GREEN"),
+        ("amber", "TLP:AMBER"),
+        ("red", "TLP:RED"),
+    ]
+    NIVEAU_CONFIANCE_CHOICES = [
+        ("faible", "Faible"),
+        ("moyen", "Moyen"),
+        ("eleve", "Élevé"),
+    ]
+    auteur = models.CharField(max_length=200, blank=True, help_text="Analyste ou organisme auteur, si distinct de la source")
+    niveau_confiance = models.CharField(max_length=16, choices=NIVEAU_CONFIANCE_CHOICES, blank=True)
+    tags = models.JSONField(default=list, blank=True, help_text="Mots-cles libres, ex: ['ransomware', 'zero-day']")
+    secteur_concerne = models.CharField(max_length=200, blank=True, help_text="Secteur vise, si la source le precise")
+    tlp = models.CharField(max_length=8, choices=AUTEUR_TLP, blank=True, help_text="Traffic Light Protocol")
+    cve_associees = models.JSONField(default=list, blank=True, help_text="CVE additionnelles au-dela de reference_externe")
+    ioc_associees = models.JSONField(default=list, blank=True, help_text="Indicateurs de compromission (hash, IP, domaine...)")
+
     # Taxonomie de rattachement — cle de lecture pour le Matching (non sensible).
     # Volet technique : categorie > editeur > produit > version.
     taxonomie_categorie = models.CharField(max_length=200, blank=True)

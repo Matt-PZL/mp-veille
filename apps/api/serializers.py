@@ -52,6 +52,14 @@ def renseignement_out(r: Renseignement, *, consulte: bool = False) -> dict:
         "taxonomie_referentiel": r.taxonomie_referentiel,
         "decouvert_le": r.decouvert_le,
         "consulte": consulte,
+        "auteur": r.auteur,
+        "niveau_confiance": r.niveau_confiance,
+        "niveau_confiance_label": r.get_niveau_confiance_display() or "",
+        "tags": r.tags,
+        "secteur_concerne": r.secteur_concerne,
+        "tlp": r.tlp,
+        "cve_associees": r.cve_associees,
+        "ioc_associees": r.ioc_associees,
     }
 
 

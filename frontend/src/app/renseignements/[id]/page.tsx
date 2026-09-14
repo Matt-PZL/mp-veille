@@ -13,12 +13,14 @@ import {
   ErreurChamp,
   Input,
   Label,
+  Modal,
   NatureTag,
   SevDot,
   Spinner,
+  StatusPill,
   Textarea,
 } from "@/components/ui";
-import { IconAlert, IconChevron, IconDownload } from "@/components/icons";
+import { IconAlert, IconChevron, IconDownload, IconPlus } from "@/components/icons";
 import { ApiError, api } from "@/lib/api";
 import { dateLongue } from "@/lib/format";
 import type { RenseignementDetail, Statut } from "@/lib/types";
@@ -192,6 +194,7 @@ function Contenu() {
   const router = useRouter();
   const [d, setD] = useState<RenseignementDetail | null>(null);
   const [absent, setAbsent] = useState(false);
+  const [modaleTraitement, setModaleTraitement] = useState(false);
 
   const charger = () =>
     api
@@ -247,41 +250,130 @@ function Contenu() {
             }[r.criticite]
           }`}
         >
-          <div className="mb-2 flex items-center gap-2.5">
-            <SevDot criticite={r.criticite} />
-            <h1 className="font-display text-[17px] leading-snug font-bold tracking-tight">
-              {r.reference || r.source} — {r.titre}
-            </h1>
+          <div className="mb-2 flex items-start justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <SevDot criticite={r.criticite} />
+              <h1 className="font-display text-[17px] leading-snug font-bold tracking-tight">
+                {r.reference || r.source} — {r.titre}
+              </h1>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              {d.traitement && <StatusPill statut={d.traitement.statut} label={d.traitement.statut_label} />}
+              <Button variante="primaire" onClick={() => setModaleTraitement(true)} className="whitespace-nowrap">
+                <IconPlus className="size-3.5" />
+                {d.traitement ? "Modifier le traitement" : "Ajouter un traitement"}
+              </Button>
+            </div>
           </div>
           <p className="text-[13px] leading-relaxed text-ink-soft">{r.description}</p>
 
-          <div className="mt-3.5 flex flex-wrap items-center gap-2.5 border-t border-border pt-3.5 font-mono text-[11.5px] text-ink-faint">
-            {r.url_source ? (
-              <a href={r.url_source} target="_blank" rel="noopener" className="font-medium text-accent">
-                {r.source} — vérifier l&apos;article ↗
-              </a>
-            ) : (
-              <span>{r.source}</span>
-            )}
-            <span>·</span>
-            <span>{dateLongue(r.decouvert_le)}</span>
+          <div className="mt-3.5 flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-[6px] bg-accent-soft px-2 py-0.5">
+              <span className="font-mono text-[10px] font-semibold tracking-[0.07em] text-accent uppercase">
+                Source
+              </span>
+              {r.url_source ? (
+                <a href={r.url_source} target="_blank" rel="noopener" className="text-[12px] font-semibold text-accent hover:underline">
+                  {r.source} ↗
+                </a>
+              ) : (
+                <span className="text-[12px] font-semibold text-accent">{r.source}</span>
+              )}
+            </span>
+            <span className="font-mono text-[11.5px] text-ink-faint">{dateLongue(r.decouvert_le)}</span>
             {r.cvss_score !== null && (
-              <>
-                <span>·</span>
-                <span>CVSS {r.cvss_score.toFixed(1)}</span>
-              </>
+              <span className="font-mono text-[11.5px] text-ink-faint">· CVSS {r.cvss_score.toFixed(1)}</span>
             )}
             <NatureTag nature={r.nature} label={r.nature_label} />
             {d.match && (
-              <>
-                <span>·</span>
-                <span title="Comment ce renseignement a été rattaché à un de vos actifs.">
-                  correspondance {d.match.palier} — {d.match.pourcent} %
-                </span>
-              </>
+              <span
+                className="font-mono text-[11.5px] text-ink-faint"
+                title="Comment ce renseignement a été rattaché à un de vos actifs."
+              >
+                · correspondance {d.match.palier} — {d.match.pourcent} %
+              </span>
             )}
           </div>
         </div>
+
+        {(r.auteur ||
+          r.niveau_confiance ||
+          r.secteur_concerne ||
+          r.tlp ||
+          r.tags.length > 0 ||
+          r.cve_associees.length > 0 ||
+          r.ioc_associees.length > 0) && (
+          <Card className="mb-5">
+            <CardHead titre="Enrichissement" couleurPoint="var(--color-violet)" />
+            <dl className="grid grid-cols-2 gap-x-8 gap-y-3 px-[18px] py-4 sm:grid-cols-3">
+              {r.auteur && (
+                <div>
+                  <dt className="font-mono text-[10px] font-semibold tracking-[0.09em] text-ink-faint uppercase">
+                    Auteur
+                  </dt>
+                  <dd className="mt-0.5 text-[13px] font-medium">{r.auteur}</dd>
+                </div>
+              )}
+              {r.niveau_confiance && (
+                <div>
+                  <dt className="font-mono text-[10px] font-semibold tracking-[0.09em] text-ink-faint uppercase">
+                    Niveau de confiance
+                  </dt>
+                  <dd className="mt-0.5 text-[13px] font-medium">{r.niveau_confiance_label}</dd>
+                </div>
+              )}
+              {r.secteur_concerne && (
+                <div>
+                  <dt className="font-mono text-[10px] font-semibold tracking-[0.09em] text-ink-faint uppercase">
+                    Secteur concerné
+                  </dt>
+                  <dd className="mt-0.5 text-[13px] font-medium">{r.secteur_concerne}</dd>
+                </div>
+              )}
+              {r.tlp && (
+                <div>
+                  <dt className="font-mono text-[10px] font-semibold tracking-[0.09em] text-ink-faint uppercase">
+                    TLP
+                  </dt>
+                  <dd className="mt-0.5 text-[13px] font-medium uppercase">{r.tlp}</dd>
+                </div>
+              )}
+              {r.tags.length > 0 && (
+                <div className="col-span-2 sm:col-span-3">
+                  <dt className="font-mono text-[10px] font-semibold tracking-[0.09em] text-ink-faint uppercase">
+                    Tags
+                  </dt>
+                  <dd className="mt-1 flex flex-wrap gap-1.5">
+                    {r.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="rounded-[5px] bg-surface-3 px-2 py-0.5 font-mono text-[11px] text-ink-soft"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </dd>
+                </div>
+              )}
+              {r.cve_associees.length > 0 && (
+                <div className="col-span-2 sm:col-span-3">
+                  <dt className="font-mono text-[10px] font-semibold tracking-[0.09em] text-ink-faint uppercase">
+                    CVE associées
+                  </dt>
+                  <dd className="mt-0.5 font-mono text-[12.5px] text-ink-soft">{r.cve_associees.join(", ")}</dd>
+                </div>
+              )}
+              {r.ioc_associees.length > 0 && (
+                <div className="col-span-2 sm:col-span-3">
+                  <dt className="font-mono text-[10px] font-semibold tracking-[0.09em] text-ink-faint uppercase">
+                    IOC associées
+                  </dt>
+                  <dd className="mt-0.5 font-mono text-[12.5px] text-ink-soft">{r.ioc_associees.join(", ")}</dd>
+                </div>
+              )}
+            </dl>
+          </Card>
+        )}
 
         {d.cvss_axes.length > 0 && (
           <Card className="mb-5">
@@ -299,7 +391,19 @@ function Contenu() {
           </Card>
         )}
 
-        <Formulaire d={d} onEnregistre={() => charger()} />
+        <Modal
+          ouvert={modaleTraitement}
+          titre={d.traitement ? "Modifier le traitement" : "Ajouter un traitement"}
+          onFermer={() => setModaleTraitement(false)}
+        >
+          <Formulaire
+            d={d}
+            onEnregistre={() => {
+              charger();
+              setModaleTraitement(false);
+            }}
+          />
+        </Modal>
 
         {d.traitement && d.traitement.historique.length > 0 && (
           <Card className="mt-5">

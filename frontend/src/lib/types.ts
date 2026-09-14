@@ -25,6 +25,16 @@ export type Renseignement = {
   taxonomie_referentiel: string;
   decouvert_le: string;
   consulte: boolean;
+  // Enrichissement complementaire — rempli progressivement par l'ingestion,
+  // aucun champ garanti non-vide : toujours afficher conditionnellement.
+  auteur: string;
+  niveau_confiance: string;
+  niveau_confiance_label: string;
+  tags: string[];
+  secteur_concerne: string;
+  tlp: string;
+  cve_associees: string[];
+  ioc_associees: string[];
 };
 
 /** Pourquoi ce renseignement remonte au client (cf. apps/matching). */
