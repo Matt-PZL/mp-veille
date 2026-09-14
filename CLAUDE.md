@@ -7,6 +7,8 @@ session — le tenir à jour évite de refaire des heures d'investigation déjà
 faites. Mets-le à jour toi-même après un changement structurant, plutôt que
 d'attendre qu'on te le demande.
 
+@OBJECTIFS.md
+
 ## ⚠️ Deux branches actives, pas encore fusionnées
 
 - **`main`** (ce fichier) : backend Django + **frontend historique en
