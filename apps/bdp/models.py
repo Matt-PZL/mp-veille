@@ -61,6 +61,29 @@ class Renseignement(models.Model):
     cvss_score = models.FloatField(null=True, blank=True)
     cvss_vector = models.CharField(max_length=100, blank=True, help_text="ex: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H")
 
+    # Enrichissement complementaire — rempli par l'ingestion quand la source
+    # le fournit (KEV alimente tags/niveau_confiance/cve_associees ; les
+    # autres restent vides tant qu'aucune source ne les couvre). Jamais
+    # obligatoires, toujours affiches conditionnellement cote front.
+    AUTEUR_TLP = [
+        ("clear", "TLP:CLEAR"),
+        ("green", "TLP:GREEN"),
+        ("amber", "TLP:AMBER"),
+        ("red", "TLP:RED"),
+    ]
+    NIVEAU_CONFIANCE_CHOICES = [
+        ("faible", "Faible"),
+        ("moyen", "Moyen"),
+        ("eleve", "Élevé"),
+    ]
+    auteur = models.CharField(max_length=200, blank=True, help_text="Analyste ou organisme auteur, si distinct de la source")
+    niveau_confiance = models.CharField(max_length=16, choices=NIVEAU_CONFIANCE_CHOICES, blank=True)
+    tags = models.JSONField(default=list, blank=True, help_text="Mots-cles libres, ex: ['ransomware', 'KEV']")
+    secteur_concerne = models.CharField(max_length=200, blank=True, help_text="Secteur vise, si la source le precise")
+    tlp = models.CharField(max_length=8, choices=AUTEUR_TLP, blank=True, help_text="Traffic Light Protocol")
+    cve_associees = models.JSONField(default=list, blank=True, help_text="CVE additionnelles au-dela de reference_externe")
+    ioc_associees = models.JSONField(default=list, blank=True, help_text="Indicateurs de compromission (hash, IP, domaine...)")
+
     # Taxonomie de rattachement — cle de lecture pour le Matching (non sensible).
     # Volet technique : categorie > editeur > produit > version.
     taxonomie_categorie = models.CharField(max_length=200, blank=True)
@@ -78,6 +101,17 @@ class Renseignement(models.Model):
         indexes = [
             models.Index(fields=["taxonomie_editeur", "taxonomie_produit"]),
             models.Index(fields=["taxonomie_referentiel"]),
+        ]
+        constraints = [
+            # Garde-fou base contre le doublon exact : deux ecritures pour la
+            # meme source + meme reference + meme revision source ne peuvent
+            # plus coexister, meme en cas de course entre deux runs
+            # d'ingestion concurrents. Le versionning legitime (parent) reste
+            # possible : une revision differente change `decouvert_le`.
+            models.UniqueConstraint(
+                fields=["source", "reference_externe", "decouvert_le"],
+                name="renseignement_source_ref_revision_unique",
+            ),
         ]
 
     def __str__(self):

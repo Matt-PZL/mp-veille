@@ -152,3 +152,22 @@ CORS_ALLOWED_ORIGINS = config(
     default="http://localhost:3000,http://127.0.0.1:3000,http://192.168.1.24:3000",
     cast=Csv(),
 )
+
+# --- Journalisation de l'ingestion ---
+# Avant ceci, les echecs (reseau, parsing) dans apps/ingestion/tasks.py
+# etaient avales en silence : impossible de diagnostiquer une baisse de
+# collecte sans ca. INFO -> visible via 'docker compose logs worker'.
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {'class': 'logging.StreamHandler'},
+    },
+    'loggers': {
+        'ingestion': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}

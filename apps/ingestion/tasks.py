@@ -4,9 +4,15 @@ Taches Celery de collecte (boucle ~12h, cf. brief section 2).
 Chaque source alimente `normaliser_et_ecrire_bdp`, qui est le seul point
 d'ecriture dans la BDP (jamais d'ecrasement : versionning parent/enfant).
 Le declenchement du Matching se fait juste apres, dans `cycle_ingestion`.
+
+Toute source logge son resultat (nb traites, erreurs) via le logger
+"ingestion" — avant, les echecs reseau/parsing etaient avales en silence
+(`except: continue`/`return 0`), rendant impossible de diagnostiquer une
+baisse de collecte. Visible via `docker compose logs worker`.
 """
 
 import json
+import logging
 import time
 import urllib.error
 import urllib.parse
@@ -16,6 +22,7 @@ from datetime import datetime, timedelta
 from email.utils import parsedate_to_datetime
 
 from celery import shared_task
+from django.db import IntegrityError
 from django.utils import timezone
 
 from apps.bdc.models import ActifClient
@@ -23,18 +30,31 @@ from apps.bdp.models import Renseignement
 from apps.catalogue.models import ActifCatalogueProduit, ActifCatalogueVersion
 from apps.matching.services import calculer_matching
 
+logger = logging.getLogger("ingestion")
+
 NVD_API = "https://services.nvd.nist.gov/rest/json/cves/2.0"
 _SEVERITE_NVD = {"CRITICAL": "critique", "HIGH": "elevee", "MEDIUM": "moyenne", "LOW": "faible"}
 
-CERT_FR_INDEX = "https://www.cert.ssi.gouv.fr/avis/json/"
-CERT_FR_DETAIL = "https://www.cert.ssi.gouv.fr/avis/{ref}/json/"
-CERT_FR_PAGE = "https://www.cert.ssi.gouv.fr/avis/{ref}/"
+# CERT-FR publie deux flux JSON de meme forme : les avis (bulletins standards)
+# et les alertes (urgence superieure — exploitation active ou imminente).
+# Un seul coeur de collecte (_collecter_cert_fr) parametre par ces URLs.
+CERT_FR_AVIS_INDEX = "https://www.cert.ssi.gouv.fr/avis/json/"
+CERT_FR_AVIS_DETAIL = "https://www.cert.ssi.gouv.fr/avis/{ref}/json/"
+CERT_FR_AVIS_PAGE = "https://www.cert.ssi.gouv.fr/avis/{ref}/"
+CERT_FR_ALERTE_INDEX = "https://www.cert.ssi.gouv.fr/alerte/json/"
+CERT_FR_ALERTE_DETAIL = "https://www.cert.ssi.gouv.fr/alerte/{ref}/json/"
+CERT_FR_ALERTE_PAGE = "https://www.cert.ssi.gouv.fr/alerte/{ref}/"
 CERT_FR_LOOKBACK_JOURS = 30
 
 CNIL_RSS = "https://www.cnil.fr/fr/rss.xml"
 
 ENDOFLIFE_INDEX = "https://endoflife.date/api/v1/products"
 ENDOFLIFE_DETAIL = "https://endoflife.date/api/v1/products/{slug}"
+
+# CISA Known Exploited Vulnerabilities : catalogue des CVE dont l'exploitation
+# active est confirmee. Pas une source de nouvelles lignes — un enrichissement
+# des renseignements deja connus (NVD/CERT-FR) partageant le meme CVE.
+CISA_KEV = "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json"
 
 _UA = {"User-Agent": "veille-saas/0.1 (POC interne, contact: matt)"}
 
@@ -62,25 +82,43 @@ def normaliser_et_ecrire_bdp(item: dict) -> Renseignement:
     if not a_change:
         return existant
 
-    return Renseignement.objects.create(
-        parent=existant,
-        type=item["type"],
-        titre=item["titre"],
-        description=item["description"],
-        source=item["source"],
-        url_source=item.get("url_source", ""),
-        reference_externe=item.get("reference_externe", ""),
-        criticite=item.get("criticite", ""),
-        nature=item.get("nature", ""),
-        taxonomie_categorie=item.get("taxonomie_categorie", ""),
-        taxonomie_editeur=item.get("taxonomie_editeur", ""),
-        taxonomie_produit=item.get("taxonomie_produit", ""),
-        taxonomie_version=item.get("taxonomie_version", ""),
-        taxonomie_referentiel=item.get("taxonomie_referentiel", ""),
-        decouvert_le=item["decouvert_le"],
-        cvss_score=item.get("cvss_score"),
-        cvss_vector=item.get("cvss_vector", ""),
-    )
+    try:
+        return Renseignement.objects.create(
+            parent=existant,
+            type=item["type"],
+            titre=item["titre"],
+            description=item["description"],
+            source=item["source"],
+            url_source=item.get("url_source", ""),
+            reference_externe=item.get("reference_externe", ""),
+            criticite=item.get("criticite", ""),
+            nature=item.get("nature", ""),
+            taxonomie_categorie=item.get("taxonomie_categorie", ""),
+            taxonomie_editeur=item.get("taxonomie_editeur", ""),
+            taxonomie_produit=item.get("taxonomie_produit", ""),
+            taxonomie_version=item.get("taxonomie_version", ""),
+            taxonomie_referentiel=item.get("taxonomie_referentiel", ""),
+            decouvert_le=item["decouvert_le"],
+            cvss_score=item.get("cvss_score"),
+            cvss_vector=item.get("cvss_vector", ""),
+        )
+    except IntegrityError:
+        # Course avec un autre run (cycle planifie + declenchement manuel
+        # simultanes, par ex.) : quelqu'un a deja ecrit EXACTEMENT cette
+        # revision (source + reference_externe + decouvert_le, contrainte
+        # unique) entre notre lecture et notre ecriture. On relit plutot que
+        # de planter tout le cycle — c'est le garde-fou base evoque par le
+        # client ("pas de doublon"), la verification applicative ci-dessus
+        # n'etant pas atomique a elle seule.
+        logger.info(
+            "Doublon evite en base (source=%s, ref=%s) : deja ecrit par un autre run.",
+            item["source"], item.get("reference_externe", ""),
+        )
+        return Renseignement.objects.filter(
+            source=item["source"],
+            reference_externe=item.get("reference_externe", ""),
+            decouvert_le=item["decouvert_le"],
+        ).first()
 
 
 def _contenu_modifie(existant: Renseignement, item: dict) -> bool:
@@ -143,20 +181,20 @@ def collecter_nvd_cve():
     """
     actifs = list(ActifClient.objects.filter(type="technique").exclude(produit=""))
     total = 0
+    erreurs = 0
 
     for i, actif in enumerate(actifs):
         if i:
             time.sleep(6)
 
         params = urllib.parse.urlencode({"keywordSearch": actif.produit, "resultsPerPage": 5})
-        req = urllib.request.Request(
-            f"{NVD_API}?{params}",
-            headers={"User-Agent": "veille-saas/0.1 (POC interne, contact: matt)"},
-        )
+        req = urllib.request.Request(f"{NVD_API}?{params}", headers=_UA)
         try:
             with urllib.request.urlopen(req, timeout=15) as resp:
                 payload = json.load(resp)
-        except (urllib.error.URLError, TimeoutError, ValueError):
+        except (urllib.error.URLError, TimeoutError, ValueError) as exc:
+            erreurs += 1
+            logger.warning("NVD %s: echec requete (%s)", actif.produit, exc)
             continue
 
         for vuln in payload.get("vulnerabilities", []):
@@ -191,6 +229,51 @@ def collecter_nvd_cve():
             })
             total += 1
 
+    logger.info("NVD: %d renseignements traites sur %d actifs (%d en erreur)", total, len(actifs), erreurs)
+    return total
+
+
+@shared_task
+def enrichir_kev():
+    """Enrichit les renseignements deja connus (typiquement NVD, parfois
+    CERT-FR) avec le statut CISA KEV : ce catalogue liste les CVE dont
+    l'exploitation active est confirmee, un signal de priorite fort qu'une
+    simple note CVSS ne donne pas. N'ecrit JAMAIS de nouvelle ligne — pure
+    mise a jour des champs d'enrichissement (tags, niveau_confiance,
+    cve_associees) sur les Renseignement existants dont `reference_externe`
+    correspond au CVE.
+    """
+    try:
+        payload = _get_json(CISA_KEV)
+    except (urllib.error.URLError, TimeoutError, ValueError) as exc:
+        logger.warning("KEV: echec recuperation catalogue (%s)", exc)
+        return 0
+
+    total = 0
+    for vuln in payload.get("vulnerabilities", []):
+        cve_id = vuln.get("cveID")
+        if not cve_id:
+            continue
+
+        for r in Renseignement.objects.filter(reference_externe=cve_id):
+            change = False
+            if "KEV" not in r.tags:
+                r.tags = [*r.tags, "KEV"]
+                change = True
+            if cve_id not in r.cve_associees:
+                r.cve_associees = [*r.cve_associees, cve_id]
+                change = True
+            if r.niveau_confiance != "eleve":
+                r.niveau_confiance = "eleve"
+                change = True
+            if change:
+                r.save(update_fields=["tags", "cve_associees", "niveau_confiance"])
+                total += 1
+
+    logger.info(
+        "KEV: %d renseignements enrichis (catalogue de %d CVE exploitees)",
+        total, payload.get("count", 0),
+    )
     return total
 
 
@@ -214,27 +297,30 @@ def _certfr_criticite(risks: list) -> str:
     return "faible"
 
 
-@shared_task
-def collecter_cert_fr(lookback_jours: int = CERT_FR_LOOKBACK_JOURS):
-    """Collecte reelle des avis de securite CERT-FR (ANSSI) via l'export
-    JSON officiel (`/avis/json/` puis `/avis/<ref>/json/`).
+def _collecter_cert_fr(*, index_url: str, detail_tpl: str, page_tpl: str, label: str, lookback_jours: int):
+    """Coeur partage entre `collecter_cert_fr_avis` et
+    `collecter_cert_fr_alertes` — meme format JSON cote CERT-FR pour les deux
+    flux, seules les URLs (et donc la nature avis/alerte) changent.
 
-    Un avis peut couvrir plusieurs produits/editeurs (`affected_systems`) :
-    on cree un Renseignement par couple editeur+produit distinct pour que
-    le Matching (exact editeur+produit) puisse s'appliquer, exactement comme
-    pour un CVE NVD.
+    Un avis/alerte peut couvrir plusieurs produits/editeurs
+    (`affected_systems`) : on cree un Renseignement par couple editeur+produit
+    distinct pour que le Matching (exact editeur+produit) puisse s'appliquer,
+    exactement comme pour un CVE NVD.
 
-    Fenetre glissante de `lookback_jours` (30 par defaut) sur la date de
-    derniere revision, pour eviter de reparcourir en detail les ~17 000 avis
-    de l'historique CERT-FR a chaque cycle ; un avis deja connu et non
-    revise depuis n'est pas retelecharge."""
+    Fenetre glissante de `lookback_jours` sur la date de derniere revision,
+    pour eviter de reparcourir en detail tout l'historique CERT-FR a chaque
+    cycle ; un avis/alerte deja connu et non revise depuis n'est pas
+    retelecharge.
+    """
     try:
-        index = _get_json(CERT_FR_INDEX)
-    except (urllib.error.URLError, TimeoutError, ValueError):
+        index = _get_json(index_url)
+    except (urllib.error.URLError, TimeoutError, ValueError) as exc:
+        logger.warning("%s: echec recuperation index (%s)", label, exc)
         return 0
 
     seuil = timezone.now() - timedelta(days=lookback_jours)
     total = 0
+    erreurs = 0
 
     for entree in index:
         ref = entree.get("reference")
@@ -259,12 +345,14 @@ def collecter_cert_fr(lookback_jours: int = CERT_FR_LOOKBACK_JOURS):
 
         time.sleep(0.3)
         try:
-            detail = _get_json(CERT_FR_DETAIL.format(ref=ref))
-        except (urllib.error.URLError, TimeoutError, ValueError):
+            detail = _get_json(detail_tpl.format(ref=ref))
+        except (urllib.error.URLError, TimeoutError, ValueError) as exc:
+            erreurs += 1
+            logger.warning("%s %s: echec recuperation detail (%s)", label, ref, exc)
             continue
 
         criticite = _certfr_criticite(detail.get("risks", []))
-        url_avis = CERT_FR_PAGE.format(ref=ref)
+        url_avis = page_tpl.format(ref=ref)
         titre_avis = detail.get("title", "")
         description = (detail.get("summary") or titre_avis or "")[:2000] or (
             "(pas de description disponible)"
@@ -295,7 +383,7 @@ def collecter_cert_fr(lookback_jours: int = CERT_FR_LOOKBACK_JOURS):
             total += 1
 
         if not produits_vus:
-            # Avis sans produit structure (rare) : conserve quand meme,
+            # Avis/alerte sans produit structure (rare) : conserve quand meme,
             # visible dans Actualites, simplement non matche a un actif.
             normaliser_et_ecrire_bdp({
                 "type": "technique",
@@ -310,7 +398,34 @@ def collecter_cert_fr(lookback_jours: int = CERT_FR_LOOKBACK_JOURS):
             })
             total += 1
 
+    logger.info("%s: %d renseignements traites (%d erreurs de detail)", label, total, erreurs)
     return total
+
+
+@shared_task
+def collecter_cert_fr_avis(lookback_jours: int = CERT_FR_LOOKBACK_JOURS):
+    """Avis CERT-FR — bulletins de securite standards."""
+    return _collecter_cert_fr(
+        index_url=CERT_FR_AVIS_INDEX,
+        detail_tpl=CERT_FR_AVIS_DETAIL,
+        page_tpl=CERT_FR_AVIS_PAGE,
+        label="CERT-FR avis",
+        lookback_jours=lookback_jours,
+    )
+
+
+@shared_task
+def collecter_cert_fr_alertes(lookback_jours: int = CERT_FR_LOOKBACK_JOURS):
+    """Alertes CERT-FR — urgence superieure a un avis standard (exploitation
+    active ou imminente signalee par l'ANSSI). Meme mecanique de collecte que
+    les avis, cf. `_collecter_cert_fr`."""
+    return _collecter_cert_fr(
+        index_url=CERT_FR_ALERTE_INDEX,
+        detail_tpl=CERT_FR_ALERTE_DETAIL,
+        page_tpl=CERT_FR_ALERTE_PAGE,
+        label="CERT-FR alerte",
+        lookback_jours=lookback_jours,
+    )
 
 
 def _parser_rss(payload: bytes) -> list[dict]:
@@ -349,20 +464,24 @@ def collecter_referentiels_normatifs():
     """Collecte reelle des actualites de la CNIL (regulateur RGPD francais),
     taguees `taxonomie_referentiel="RGPD"` pour le Matching.
 
-    Limite connue : il n'existe pas, a ce jour, de flux public structure
-    equivalent pour NIS2 / ISO 27001 / DORA (ISO est payant ; NIS2/DORA sont
-    du texte legal EUR-Lex sans flux exploitable simplement) — a specifier
-    au cas par cas si un client declare l'un de ces referentiels."""
+    Limite connue, verifiee a nouveau lors de cette revision : il n'existe
+    toujours pas de flux public structure et gratuit equivalent pour
+    NIS2 / ISO 27001 / DORA (ISO est payant ; NIS2/DORA sont du texte legal
+    EUR-Lex/Legifrance sans flux exploitable simplement sans inscription
+    developpeur — portail PISTE pour Legifrance). A specifier au cas par cas
+    si le client veut aller plus loin sur ces referentiels."""
     try:
         req = urllib.request.Request(CNIL_RSS, headers=_UA)
         with urllib.request.urlopen(req, timeout=15) as resp:
             payload = resp.read()
-    except (urllib.error.URLError, TimeoutError):
+    except (urllib.error.URLError, TimeoutError) as exc:
+        logger.warning("CNIL: echec recuperation flux (%s)", exc)
         return 0
 
     try:
         items = _parser_rss(payload)
-    except ET.ParseError:
+    except ET.ParseError as exc:
+        logger.warning("CNIL: echec parsing RSS (%s)", exc)
         return 0
 
     total = 0
@@ -381,6 +500,7 @@ def collecter_referentiels_normatifs():
         })
         total += 1
 
+    logger.info("CNIL: %d renseignements normatifs traites", total)
     return total
 
 
@@ -472,11 +592,13 @@ def collecter_catalogue_actifs():
     le cherche, au lieu de dependre d'une liste figee tapee a la main."""
     try:
         index = _get_json(ENDOFLIFE_INDEX)
-    except (urllib.error.URLError, TimeoutError, ValueError):
+    except (urllib.error.URLError, TimeoutError, ValueError) as exc:
+        logger.warning("endoflife.date: echec recuperation index (%s)", exc)
         return {"produits": 0, "versions": 0}
 
     total_produits = 0
     total_versions = 0
+    erreurs = 0
 
     for entree in index.get("result", []):
         slug = entree.get("name")
@@ -486,7 +608,9 @@ def collecter_catalogue_actifs():
         time.sleep(0.15)
         try:
             detail = _get_json(ENDOFLIFE_DETAIL.format(slug=slug)).get("result", {})
-        except (urllib.error.URLError, TimeoutError, ValueError):
+        except (urllib.error.URLError, TimeoutError, ValueError) as exc:
+            erreurs += 1
+            logger.warning("endoflife.date %s: echec recuperation detail (%s)", slug, exc)
             continue
 
         vendor_slug = _vendor_depuis_cpe(detail.get("identifiers", []))
@@ -516,14 +640,22 @@ def collecter_catalogue_actifs():
             )
             total_versions += 1
 
+    logger.info(
+        "endoflife.date: %d produits, %d versions (%d produits en erreur)",
+        total_produits, total_versions, erreurs,
+    )
     return {"produits": total_produits, "versions": total_versions}
 
 
 @shared_task
 def cycle_ingestion():
     """Orchestre un cycle complet de collecte puis declenche le Matching."""
+    logger.info("=== Debut du cycle d'ingestion ===")
     collecter_nvd_cve()
-    collecter_cert_fr()
+    enrichir_kev()
+    collecter_cert_fr_avis()
+    collecter_cert_fr_alertes()
     collecter_referentiels_normatifs()
     collecter_catalogue_actifs()
     calculer_matching()
+    logger.info("=== Fin du cycle d'ingestion ===")
