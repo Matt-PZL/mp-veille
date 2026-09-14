@@ -154,3 +154,42 @@ class HistoriqueActif(models.Model):
 
     def __str__(self):
         return f"{self.get_evenement_display()} — {self.actif_repr}"
+
+
+class ActionHistorique(models.Model):
+    """Journal unifie de tout ce qui a affecte le perimetre client : ajout /
+    modification / suppression dun actif, ou dun traitement.
+
+    Distinct de HistoriqueActif/HistoriqueTraitement (conserves tels quels,
+    ils alimentent chacun leur propre ecran) : celui-ci existe uniquement
+    pour le panneau "Historique des actions" de Renseignements, qui doit
+    pouvoir tout melanger et trier par date quel que soit le type dobjet.
+    Chaque mutation ecrit ici EN PLUS de son historique specifique, jamais a
+    la place.
+
+    objet_repr est un instantane texte (pas de FK) : lobjet peut avoir ete
+    supprime au moment ou on consulte le journal.
+    """
+
+    TYPE_OBJET_CHOICES = [
+        ("actif", "Actif"),
+        ("traitement", "Traitement"),
+    ]
+    ACTION_CHOICES = [
+        ("ajout", "Ajout"),
+        ("modification", "Modification"),
+        ("suppression", "Suppression"),
+    ]
+
+    type_objet = models.CharField(max_length=20, choices=TYPE_OBJET_CHOICES)
+    action = models.CharField(max_length=20, choices=ACTION_CHOICES)
+    objet_repr = models.CharField(max_length=300)
+    detail = models.CharField(max_length=300, blank=True)
+    utilisateur = models.CharField(max_length=150, blank=True)
+    horodatage = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["-horodatage"]
+
+    def __str__(self):
+        return f"{self.get_action_display()} {self.get_type_objet_display()} — {self.objet_repr}"

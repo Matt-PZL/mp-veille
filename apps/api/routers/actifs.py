@@ -19,6 +19,7 @@ from apps.api.schemas import (
     MessageOut,
     ProduitCatalogue,
 )
+from apps.api.journal import consigner
 from apps.api.serializers import actif_out
 from apps.bdc.models import ActifClient, HistoriqueActif, Traitement
 from apps.matching.services import actifs_avec_renseignements_ouverts, calculer_matching
@@ -96,6 +97,7 @@ def creer(request, donnees: ActifCreate):
         evenement="ajout",
         detail=f"Version {actif.version}" if actif.version else "",
     )
+    consigner(request, type_objet="actif", action="ajout", objet_repr=str(actif))
     return 200, actif_out(actif, couvert=actif.pk in _pks_couverts())
 
 
@@ -109,6 +111,13 @@ def monter_version(request, pk: int, donnees: ActifVersionUpdate):
         actif_repr=str(actif),
         evenement="version",
         detail=f"{ancienne or '—'} → {actif.version or '—'}",
+    )
+    consigner(
+        request,
+        type_objet="actif",
+        action="modification",
+        objet_repr=str(actif),
+        detail=f"Version {ancienne or '—'} → {actif.version or '—'}",
     )
     return actif_out(actif, couvert=actif.pk in _pks_couverts())
 
@@ -131,6 +140,13 @@ def retirer(request, pk: int, purger: bool = Query(False)):
     HistoriqueActif.objects.create(
         actif_repr=repr_actif,
         evenement="suppression_purge" if purger else "suppression_conserve",
+        detail="Historique purgé" if purger else "Historique conservé",
+    )
+    consigner(
+        request,
+        type_objet="actif",
+        action="suppression",
+        objet_repr=repr_actif,
         detail="Historique purgé" if purger else "Historique conservé",
     )
     return {"detail": f"{repr_actif} retiré."}

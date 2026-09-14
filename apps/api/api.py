@@ -14,7 +14,7 @@ seul. Ne pas passer `csrf=` a NinjaAPI : l'argument n'existe plus en 1.x.
 from ninja import NinjaAPI
 from ninja.security import django_auth
 
-from apps.api.routers import actifs, auth, dashboard, profil, renseignements, traitement
+from apps.api.routers import actifs, auth, dashboard, journal, profil, renseignements, traitement
 
 api = NinjaAPI(
     title="Veille — API",
@@ -29,3 +29,4 @@ api.add_router("/renseignements", renseignements.router, tags=["renseignements"]
 api.add_router("/traitements", traitement.router, tags=["traitement"])
 api.add_router("/actifs", actifs.router, tags=["actifs"])
 api.add_router("/profil", profil.router, tags=["profil"])
+api.add_router("/journal", journal.router, tags=["journal"])

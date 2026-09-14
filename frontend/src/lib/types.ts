@@ -157,3 +157,16 @@ export type HistoriqueActif = {
   detail: string;
   horodatage: string;
 };
+
+/** Une ligne du journal unifie (panneau "Historique des actions" de Renseignements). */
+export type ActionHistorique = {
+  id: number;
+  type_objet: "actif" | "traitement";
+  type_objet_label: string;
+  action: "ajout" | "modification" | "suppression";
+  action_label: string;
+  objet_repr: string;
+  detail: string;
+  utilisateur: string;
+  horodatage: string;
+};

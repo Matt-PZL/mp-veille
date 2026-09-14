@@ -11,6 +11,7 @@
 import type {
   Actif,
   ActifDuFeed,
+  ActionHistorique,
   CompteursNav,
   CompteursTraitement,
   Dashboard,
@@ -154,6 +155,10 @@ export const api = {
   retirerActif: (pk: number, purger: boolean) =>
     requete<{ detail: string }>(`/actifs/${pk}${qs({ purger })}`, { methode: "DELETE" }),
   historiqueActifs: () => requete<HistoriqueActif[]>("/actifs/historique"),
+
+  // ---- Journal d'actions (panneau Historique, Renseignements) ----
+  journal: (p: { type?: string; decalage?: number; limite?: number } = {}) =>
+    requete<ActionHistorique[]>(`/journal${qs(p)}`),
   catalogue: (q?: string) => requete<ProduitCatalogue[]>(`/actifs/catalogue${qs({ q })}`),
   referentiels: () => requete<string[]>("/actifs/referentiels"),
 

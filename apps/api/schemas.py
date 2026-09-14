@@ -134,6 +134,21 @@ class HistoriqueActifOut(Schema):
     horodatage: datetime
 
 
+class ActionHistoriqueOut(Schema):
+    """Une ligne du journal unifie — panneau \"Historique des actions\" de
+    Renseignements. Cf. apps.bdc.models.ActionHistorique."""
+
+    id: int
+    type_objet: str
+    type_objet_label: str
+    action: str
+    action_label: str
+    objet_repr: str
+    detail: str
+    utilisateur: str
+    horodatage: datetime
+
+
 # --------------------------------------------------------------------------
 # Traitements (BDC)
 # --------------------------------------------------------------------------

@@ -16,11 +16,20 @@ import {
   StatusPill,
   NatureTag,
 } from "@/components/ui";
-import { IconChevron, IconPlus, IconSearch, IconShield } from "@/components/icons";
+import {
+  IconChevron,
+  IconClipboard,
+  IconPlus,
+  IconRefresh,
+  IconSearch,
+  IconServer,
+  IconShield,
+  IconTrash,
+} from "@/components/icons";
 import { ModaleAjoutActif } from "@/components/ModaleAjoutActif";
 import { api } from "@/lib/api";
 import { depuis, pluriel, tronquer } from "@/lib/format";
-import type { ActifDuFeed, FeedItem, RenseignementsStats } from "@/lib/types";
+import type { ActifDuFeed, ActionHistorique, FeedItem, RenseignementsStats } from "@/lib/types";
 
 const CRITICITES = [
   ["", "Toutes"],
@@ -317,6 +326,128 @@ function CarteRenseignement({ item }: { item: FeedItem }) {
   );
 }
 
+const FILTRES_HISTORIQUE = [
+  ["", "Tout"],
+  ["actif", "Actifs"],
+  ["traitement", "Traitements"],
+] as const;
+
+const ICONE_TYPE: Record<string, React.ReactNode> = {
+  actif: <IconServer className="size-3" />,
+  traitement: <IconClipboard className="size-3" />,
+};
+
+const ICONE_ACTION: Record<string, { icone: React.ReactNode; couleur: string }> = {
+  ajout: { icone: <IconPlus className="size-3" />, couleur: "bg-faib-soft text-faib" },
+  modification: { icone: <IconRefresh className="size-3" />, couleur: "bg-accent-soft text-accent" },
+  suppression: { icone: <IconTrash className="size-3" />, couleur: "bg-crit-soft text-crit" },
+};
+
+/** Panneau "Historique des actions" — journal unifie Actifs + Traitements,
+ * le plus recent en premier (deja trie ainsi cote API), avec un filtre par
+ * type d'evenement. Widget autonome : sa propre pagination (charger plus),
+ * independante des filtres de la liste de renseignements a cote. */
+function PanneauHistorique() {
+  const [type, setType] = useState("");
+  const [items, setItems] = useState<ActionHistorique[] | null>(null);
+  const [plusDisponible, setPlusDisponible] = useState(true);
+  const LIMITE = 20;
+
+  const charger = useCallback((decalage: number, remplacer: boolean) => {
+    api
+      .journal({ type: type || undefined, decalage, limite: LIMITE })
+      .then((nouveaux) => {
+        setPlusDisponible(nouveaux.length === LIMITE);
+        setItems((prev) => (remplacer || !prev ? nouveaux : [...prev, ...nouveaux]));
+      })
+      .catch(() => setItems((prev) => prev ?? []));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [type]);
+
+  useEffect(() => {
+    setItems(null);
+    charger(0, true);
+  }, [type, charger]);
+
+  return (
+    <aside className="historique-panneau w-[280px] shrink-0 rounded-2xl border border-border bg-surface shadow-card max-xl:hidden">
+      <div className="border-b border-border px-4 py-3.5">
+        <h2 className="font-display text-[13.5px] font-bold tracking-tight">Historique des actions</h2>
+        <p className="mt-0.5 text-[11px] text-ink-faint">
+          Ajouts, modifications, suppressions — actifs et traitements.
+        </p>
+        <div className="mt-2.5 flex gap-1.5">
+          {FILTRES_HISTORIQUE.map(([v, label]) => (
+            <button
+              key={v || "tout"}
+              type="button"
+              onClick={() => setType(v)}
+              className={`flex-1 rounded-full border px-1 py-[5px] text-center text-[10.5px] font-semibold ${
+                type === v
+                  ? "border-accent-line bg-accent-soft text-accent"
+                  : "border-border bg-surface-2 text-ink-soft hover:text-ink"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="max-h-[560px] overflow-y-auto">
+        {items === null ? (
+          <div className="px-4 py-6">
+            <Spinner />
+          </div>
+        ) : items.length === 0 ? (
+          <p className="px-4 py-6 text-center text-[12px] text-ink-faint italic">
+            Aucune action enregistrée pour l&apos;instant.
+          </p>
+        ) : (
+          <>
+            {items.map((h) => {
+              const a = ICONE_ACTION[h.action];
+              return (
+                <div key={h.id} className="flex gap-2.5 border-b border-border px-4 py-3 last:border-b-0">
+                  <span
+                    className={`mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md ${a.couleur}`}
+                  >
+                    {a.icone}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 text-[11px] text-ink-faint">
+                      {ICONE_TYPE[h.type_objet]}
+                      <span className="font-semibold uppercase tracking-[0.04em]">{h.action_label}</span>
+                      <span>· {h.type_objet_label}</span>
+                    </div>
+                    <p className="mt-0.5 truncate text-[12.5px] font-medium text-ink" title={h.objet_repr}>
+                      {h.objet_repr}
+                    </p>
+                    {h.detail && <p className="mt-0.5 truncate text-[11px] text-ink-soft">{h.detail}</p>}
+                    <div className="mt-1 flex items-center gap-1.5 font-mono text-[10.5px] text-ink-faint">
+                      <span>{depuis(h.horodatage)}</span>
+                      {h.utilisateur && <span>· {h.utilisateur}</span>}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+            {plusDisponible && (
+              <button
+                type="button"
+                onClick={() => charger(items.length, false)}
+                className="block w-full py-2.5 text-center text-[11.5px] font-semibold text-accent hover:underline"
+              >
+                Charger plus
+              </button>
+            )}
+          </>
+        )}
+      </div>
+    </aside>
+  );
+}
+
 function Contenu() {
   const params = useSearchParams();
   const router = useRouter();
@@ -439,62 +570,68 @@ function Contenu() {
         ))}
       </div>
 
-      {items === null ? (
-        <Spinner />
-      ) : (
-        <>
-          <div className="flex items-baseline gap-2.5">
-            <span className="tabular font-mono text-[19px] font-semibold">{items.length}</span>
-            <span className="text-[13px] text-ink-soft">{libelleActif ?? "Tous les actifs"}</span>
-          </div>
-
-          {items.length ? (
-            <div className="renseignements-liste flex flex-col gap-3">
-              {items.map((item) => (
-                <CarteRenseignement key={item.renseignement.id} item={item} />
-              ))}
-            </div>
+      <div className="renseignements-corps flex items-start gap-5">
+        <div className="min-w-0 flex-1">
+          {items === null ? (
+            <Spinner />
           ) : (
-            <Card>
-              <Empty
-                icone={<IconShield />}
-                action={
-                  !actifs.length ? (
-                    <Link
-                      href="/actifs"
-                      className="inline-flex items-center gap-[7px] rounded-lg border border-accent bg-accent px-[15px] py-2 text-[13px] font-semibold text-accent-ink"
-                    >
-                      <IconPlus className="size-3.5" />
-                      Déclarer mon premier actif
-                    </Link>
-                  ) : undefined
-                }
-              >
-                {actifSel ? (
-                  <>
-                    Aucun renseignement ne concerne <b>{libelleActif}</b> pour le moment.
-                  </>
-                ) : actifs.length ? (
-                  <>
-                    Aucun renseignement ne concerne vos actifs déclarés.
-                    <br />
-                    Le flux brut reste consultable dans{" "}
-                    <Link href="/actualites" className="text-accent">
-                      Actualités
-                    </Link>
-                    .
-                  </>
-                ) : (
-                  <>
-                    Déclarez d&apos;abord un actif : la veille ne peut rien vous remonter sans
-                    savoir ce que vous exploitez.
-                  </>
-                )}
-              </Empty>
-            </Card>
+            <>
+              <div className="flex items-baseline gap-2.5">
+                <span className="tabular font-mono text-[19px] font-semibold">{items.length}</span>
+                <span className="text-[13px] text-ink-soft">{libelleActif ?? "Tous les actifs"}</span>
+              </div>
+
+              {items.length ? (
+                <div className="renseignements-liste mt-3 flex flex-col gap-3">
+                  {items.map((item) => (
+                    <CarteRenseignement key={item.renseignement.id} item={item} />
+                  ))}
+                </div>
+              ) : (
+                <Card className="mt-3">
+                  <Empty
+                    icone={<IconShield />}
+                    action={
+                      !actifs.length ? (
+                        <Link
+                          href="/actifs"
+                          className="inline-flex items-center gap-[7px] rounded-lg border border-accent bg-accent px-[15px] py-2 text-[13px] font-semibold text-accent-ink"
+                        >
+                          <IconPlus className="size-3.5" />
+                          Déclarer mon premier actif
+                        </Link>
+                      ) : undefined
+                    }
+                  >
+                    {actifSel ? (
+                      <>
+                        Aucun renseignement ne concerne <b>{libelleActif}</b> pour le moment.
+                      </>
+                    ) : actifs.length ? (
+                      <>
+                        Aucun renseignement ne concerne vos actifs déclarés.
+                        <br />
+                        Le flux brut reste consultable dans{" "}
+                        <Link href="/actualites" className="text-accent">
+                          Actualités
+                        </Link>
+                        .
+                      </>
+                    ) : (
+                      <>
+                        Déclarez d&apos;abord un actif : la veille ne peut rien vous remonter sans
+                        savoir ce que vous exploitez.
+                      </>
+                    )}
+                  </Empty>
+                </Card>
+              )}
+            </>
           )}
-        </>
-      )}
+        </div>
+
+        <PanneauHistorique />
+      </div>
     </AppShell>
   );
 }

@@ -17,6 +17,7 @@ from django.shortcuts import get_object_or_404
 from ninja import File, Form, Query, Router
 from ninja.files import UploadedFile
 
+from apps.api.journal import consigner
 from apps.api.schemas import MessageOut, TraitementDetail, TraitementListItem, TraitementWrite
 from apps.api.serializers import renseignement_out, traitement_detail
 from apps.bdc.models import HistoriqueTraitement, Traitement
@@ -166,7 +167,7 @@ def ecrire(
     En multipart (et non JSON) parce que la cloture accepte une preuve
     fichier — le front envoie un FormData.
     """
-    get_object_or_404(Renseignement, id_renseignement_bdp=id_renseignement)
+    renseignement = get_object_or_404(Renseignement, id_renseignement_bdp=id_renseignement)
 
     erreurs = _valider(donnees)
     if erreurs:
@@ -200,6 +201,18 @@ def ecrire(
     elif ancien_statut != donnees.statut:
         HistoriqueTraitement.objects.create(traitement=t, evenement=t.get_statut_display())
 
+    objet_repr = f"{renseignement.titre} ({t.actif or 'actif retiré'})"
+    if creation:
+        consigner(request, type_objet="traitement", action="ajout", objet_repr=objet_repr)
+    elif ancien_statut != donnees.statut:
+        consigner(
+            request,
+            type_objet="traitement",
+            action="modification",
+            objet_repr=objet_repr,
+            detail=f"Statut → {t.get_statut_display()}",
+        )
+
     t.refresh_from_db()
     return 200, traitement_detail(t)
 
@@ -215,5 +228,9 @@ def export_pdf(request, pk: int):
 
 @router.delete("/{int:pk}", response=MessageOut)
 def supprimer(request, pk: int):
-    Traitement.objects.filter(pk=pk).delete()
+    t = get_object_or_404(Traitement, pk=pk)
+    r = Renseignement.objects.filter(id_renseignement_bdp=t.id_renseignement_bdp).first()
+    objet_repr = f"{r.titre if r else t.id_renseignement_bdp} ({t.actif or 'actif retiré'})"
+    t.delete()
+    consigner(request, type_objet="traitement", action="suppression", objet_repr=objet_repr)
     return {"detail": "Traitement supprimé."}
