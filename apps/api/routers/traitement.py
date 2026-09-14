@@ -21,7 +21,7 @@ from apps.api.schemas import MessageOut, TraitementDetail, TraitementListItem, T
 from apps.api.serializers import renseignement_out, traitement_detail
 from apps.bdc.models import HistoriqueTraitement, Traitement
 from apps.bdp.models import Renseignement
-from apps.matching.services import calculer_matching, calculer_perimetre_stats
+from apps.matching.services import calculer_matching
 
 router = Router()
 
@@ -123,27 +123,27 @@ def lister(
 
 @router.get("/compteurs", response=dict)
 def compteurs(request):
-    """Meme source que Vue d'ensemble et Renseignements
-    (calculer_perimetre_stats) : avant ceci, ce endpoint comptait
-    Traitement.objects.all() brut (y compris des traitements dont l'actif a
-    ete supprime), un total different de celui des deux autres pages pour
-    la meme notion de "combien de renseignements a traiter"."""
+    """Compteurs de CETTE page : sur la meme population que lister()
+    ci-dessus, c'est-a-dire TOUS les Traitement, y compris ceux dont
+    l'actif a depuis ete supprime (SET_NULL) — volontaire, cette page est
+    la preuve d'audit complete, pas la vue "perimetre actuel du client"
+    (celle-la vit dans le badge de nav, cf. dashboard.py::compteurs_nav,
+    qui lui est bien scope via calculer_perimetre_stats). Les deux nombres
+    sont legitimement differents ; ce qui compte est que CHAQUE page reste
+    coherente avec elle-meme (ses propres tuiles = sa propre liste)."""
     from django.utils import timezone
 
-    stats = calculer_perimetre_stats()
     base = {code: 0 for code, _ in Traitement.STATUT_CHOICES}
-    base.update(stats.par_etape)
+    for t in Traitement.objects.all():
+        base[t.statut] = base.get(t.statut, 0) + 1
 
-    pertinents_ids = {r.renseignement.id_renseignement_bdp for r in calculer_matching()}
     en_retard = Traitement.objects.filter(
-        id_renseignement_bdp__in=pertinents_ids,
-        echeance__lt=timezone.localdate(),
-        statut__in=_OUVERTS,
+        echeance__lt=timezone.localdate(), statut__in=_OUVERTS
     ).count()
 
     return {
         **base,
-        "total": stats.nb_renseignements,
+        "total": Traitement.objects.count(),
         "en_retard": en_retard,
     }
 

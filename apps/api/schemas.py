@@ -244,11 +244,13 @@ class UtilisateurOut(Schema):
 class PreferencesOut(Schema):
     seuil_criticite: str
     frequence: str
+    afficher_compteurs_nav: bool
 
 
 class PreferencesWrite(Schema):
     seuil_criticite: str
     frequence: str
+    afficher_compteurs_nav: bool = True
 
 
 class ConnexionIn(Schema):

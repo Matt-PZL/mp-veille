@@ -22,6 +22,8 @@ import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useUi } from "@/lib/ui-context";
 import { depuis } from "@/lib/format";
+import { api } from "@/lib/api";
+import type { CompteursNav } from "@/lib/types";
 import {
   IconBars,
   IconClipboard,
@@ -37,8 +39,6 @@ import {
   IconSun,
   IconUser,
 } from "./icons";
-
-type Compteurs = { aTraiter?: number; traitements?: number; actifs?: number };
 
 const ONGLETS = [
   { href: "/", label: "Vue d'ensemble", Icone: IconDashboard, cle: null, separeAvant: false },
@@ -211,12 +211,10 @@ function EtatCollecte({ derniereCollecte }: { derniereCollecte: string | null | 
 
 export function AppShell({
   side,
-  compteurs = {},
   derniereCollecte,
   children,
 }: {
   side?: React.ReactNode;
-  compteurs?: Compteurs;
   derniereCollecte?: string | null;
   children: React.ReactNode;
 }) {
@@ -224,6 +222,21 @@ export function AppShell({
   const [menu, setMenu] = useState<string | null>(null);
   const [tiroir, setTiroir] = useState(false);
   const zone = useRef<HTMLElement>(null);
+
+  // Source unique des pastilles de nav : recuperee une fois ici, plutot que
+  // chaque page ne fournisse (ou pas) son propre sous-ensemble de compteurs —
+  // c'est ce qui faisait apparaitre/disparaitre les badges selon la page
+  // ouverte, pas selon une vraie absence de donnee.
+  const [compteursNav, setCompteursNav] = useState<CompteursNav | null>(null);
+  const [afficherCompteurs, setAfficherCompteurs] = useState(true);
+
+  useEffect(() => {
+    api.compteursNav().then(setCompteursNav).catch(() => {});
+    api
+      .preferences()
+      .then((p) => setAfficherCompteurs(p.afficher_compteurs_nav))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!menu) return;
@@ -250,7 +263,13 @@ export function AppShell({
   useEffect(() => setTiroir(false), [chemin]);
 
   const estActif = (href: string) => (href === "/" ? chemin === "/" : chemin.startsWith(href));
-  const compteur = (cle: string | null) => (cle ? compteurs[cle as keyof Compteurs] : undefined);
+  const CLE_VERS_COMPTEUR: Record<string, keyof CompteursNav> = {
+    aTraiter: "a_traiter",
+    traitements: "traitements",
+    actifs: "actifs",
+  };
+  const compteur = (cle: string | null) =>
+    cle && compteursNav ? compteursNav[CLE_VERS_COMPTEUR[cle]] : undefined;
 
   const pastille = (n: number, actif: boolean) => (
     <span
@@ -310,7 +329,7 @@ export function AppShell({
                 >
                   <Icone className="size-4" />
                   {label}
-                  {!!n && pastille(n, actif)}
+                  {afficherCompteurs && n !== undefined && pastille(n, actif)}
                 </Link>
               </span>
             );
@@ -368,7 +387,7 @@ export function AppShell({
                     >
                       <Icone className="size-[17px] shrink-0" />
                       <span className="flex-1 truncate">{label}</span>
-                      {!!n && pastille(n, actif)}
+                      {afficherCompteurs && n !== undefined && pastille(n, actif)}
                     </Link>
                   </span>
                 );

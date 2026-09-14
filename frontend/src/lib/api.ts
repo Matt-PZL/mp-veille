@@ -11,6 +11,7 @@
 import type {
   Actif,
   ActifDuFeed,
+  CompteursNav,
   CompteursTraitement,
   Dashboard,
   FeedItem,
@@ -108,6 +109,8 @@ export const api = {
 
   // ---- Tableau de bord ----
   dashboard: () => requete<Dashboard>("/dashboard"),
+  /** Source unique des pastilles de nav — AppShell l'appelle une fois au montage. */
+  compteursNav: () => requete<CompteursNav>("/dashboard/compteurs-nav"),
 
   // ---- Renseignements ----
   feed: (

@@ -9,18 +9,17 @@ import {
   Card,
   CardHead,
   Empty,
-  Kpi,
   SevDot,
   Spinner,
   StatusPill,
   CheckPastille,
+  TON_KPI,
 } from "@/components/ui";
 import {
   IconAlert,
   IconBars,
   IconCalendar,
   IconCheck,
-  IconClock,
   IconNews,
   IconPlus,
   IconRefresh,
@@ -30,6 +29,83 @@ import {
 import { api } from "@/lib/api";
 import { dateCourte, depuis, pluriel, tronquer } from "@/lib/format";
 import type { Dashboard } from "@/lib/types";
+
+/* ------------------------------------------------------------------ */
+/* Tuiles de Monitoring — compactes, pour caser 9 chiffres sans que la
+   section ne domine la page (retour client : trop de place pour peu de
+   texte). Deux formes : une tuile simple (icone + libelle + valeur), et une
+   paire de mini-lignes empilees dans le meme volume qu'une tuile simple
+   (ex : Actifs clean / Actifs a risque, l'un sur l'autre).             */
+/* ------------------------------------------------------------------ */
+function TuileSimple({
+  ton,
+  icone,
+  label,
+  valeur,
+  href,
+}: {
+  ton: keyof typeof TON_KPI;
+  icone: React.ReactNode;
+  label: string;
+  valeur: number | string;
+  href: string;
+}) {
+  const t = TON_KPI[ton];
+  return (
+    <Link
+      href={href}
+      className="flex flex-col justify-between gap-2.5 rounded-xl border border-border bg-surface px-3.5 py-3 shadow-card transition-colors hover:border-border-strong hover:bg-surface-2"
+    >
+      <div className="flex items-center gap-2">
+        <span
+          className={`flex size-6 shrink-0 items-center justify-center rounded-md [&_svg]:size-3 ${t.fond} ${t.texte}`}
+        >
+          {icone}
+        </span>
+        <span className="min-w-0 truncate text-[11.5px] font-medium text-ink-soft">{label}</span>
+      </div>
+      <div className={`tabular font-mono text-[22px] leading-none font-semibold ${t.valeur}`}>{valeur}</div>
+    </Link>
+  );
+}
+
+function MiniLigne({
+  ton,
+  label,
+  valeur,
+  href,
+}: {
+  ton: keyof typeof TON_KPI;
+  label: string;
+  valeur: number | string;
+  href: string;
+}) {
+  const t = TON_KPI[ton];
+  return (
+    <Link
+      href={href}
+      className="flex flex-1 items-center justify-between gap-2 rounded-lg border border-border bg-surface px-3 py-[7px] shadow-card transition-colors hover:border-border-strong hover:bg-surface-2"
+    >
+      <span className="min-w-0 truncate text-[11px] font-medium text-ink-soft">{label}</span>
+      <span className={`tabular shrink-0 font-mono text-[15px] font-semibold ${t.valeur}`}>{valeur}</span>
+    </Link>
+  );
+}
+
+function TuilePaire({
+  haut,
+  bas,
+}: {
+  haut: { ton: keyof typeof TON_KPI; label: string; valeur: number | string; href: string };
+  bas: { ton: keyof typeof TON_KPI; label: string; valeur: number | string; href: string };
+}) {
+  return (
+    <div className="flex flex-col gap-[5px]">
+      <MiniLigne {...haut} />
+      <MiniLigne {...bas} />
+    </div>
+  );
+}
 
 const LIBELLES_ETAPES: Record<string, { titre: string; lien: string; action: string }> = {
   actifs: {
@@ -191,76 +267,77 @@ function Contenu() {
 
       {!d.onboarding_termine && !masque && <Demarrage d={d} onMasquer={masquer} />}
 
-      {/* Monitoring : 9 tuiles, toutes cliquables vers la vue filtree
-         correspondante. Ordre et composition decides avec le client — cf.
-         plan Phase 3. Chiffres tous issus de calculer_perimetre_stats()
-         cote API : jamais de recalcul local ici. */}
-      <div className="monitoring-tuiles grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
-        <Kpi
-          ton="neutre"
-          icone={<IconServer />}
-          label="Total Actifs"
-          valeur={d.nb_actifs}
-          href="/actifs"
-        />
-        <Kpi
-          ton="faib"
-          icone={<IconCheck />}
-          label="Actifs clean"
-          valeur={d.nb_actifs_clean}
-          detail="Aucun renseignement non traité"
-          href="/actifs?etat=clean"
-          grand
-        />
-        <Kpi
-          ton="gold"
-          icone={<IconAlert />}
-          label="Actifs avec renseignements non traités"
-          valeur={d.nb_actifs_avec_non_traites}
-          href="/actifs?etat=non_traite"
-        />
-        <Kpi
-          ton="accent"
-          icone={<IconShield />}
-          label="Total Renseignements"
-          valeur={d.nb_renseignements}
-          href="/renseignements"
-        />
-        <Kpi
-          ton="gold"
-          icone={<IconClock />}
-          label="Renseignements non traités"
-          valeur={d.nb_ouverts}
-          href="/renseignements?statut=a_traiter,en_cours"
-        />
-        <Kpi
-          ton="crit"
-          icone={<IconAlert />}
-          label="Critiques"
-          valeur={d.par_criticite_ouverts.critique ?? 0}
-          href="/renseignements?criticite=critique&statut=a_traiter,en_cours"
-        />
-        <Kpi
-          ton="elev"
-          icone={<IconBars />}
-          label="Élevées"
-          valeur={d.par_criticite_ouverts.elevee ?? 0}
-          href="/renseignements?criticite=elevee&statut=a_traiter,en_cours"
-        />
-        <Kpi
-          ton="moy"
-          icone={<IconBars />}
-          label="Moyens"
-          valeur={d.par_criticite_ouverts.moyenne ?? 0}
-          href="/renseignements?criticite=moyenne&statut=a_traiter,en_cours"
-        />
-        <Kpi
-          ton="faib"
-          icone={<IconBars />}
-          label="Faible"
-          valeur={d.par_criticite_ouverts.faible ?? 0}
-          href="/renseignements?criticite=faible&statut=a_traiter,en_cours"
-        />
+      {/* Monitoring : deux blocs cote a cote — Actifs/Renseignements a
+         gauche (mix tuiles simples + paires empilees), repartition par
+         criticite en 2x2 a droite. Disposition et regroupement decides avec
+         le client. Chiffres tous issus de calculer_perimetre_stats() cote
+         API : jamais de recalcul local ici. Tuiles volontairement
+         compactes (retour client : trop de place pour peu de texte). */}
+      <div className="monitoring-tuiles grid gap-3.5 lg:grid-cols-2">
+        <div className="grid grid-cols-2 gap-2.5">
+          <TuileSimple ton="neutre" icone={<IconServer />} label="Total Actifs" valeur={d.nb_actifs} href="/actifs" />
+          <TuilePaire
+            haut={{ ton: "faib", label: "Actifs clean", valeur: d.nb_actifs_clean, href: "/actifs?etat=clean" }}
+            bas={{
+              ton: "gold",
+              label: "Actifs à risque",
+              valeur: d.nb_actifs_avec_non_traites,
+              href: "/actifs?etat=non_traite",
+            }}
+          />
+          <TuileSimple
+            ton="accent"
+            icone={<IconShield />}
+            label="Total Renseignements"
+            valeur={d.nb_renseignements}
+            href="/renseignements"
+          />
+          <TuilePaire
+            haut={{
+              ton: "faib",
+              label: "Renseignements traités",
+              valeur: d.nb_renseignements - d.nb_ouverts,
+              href: "/renseignements?statut=clos,non_applicable",
+            }}
+            bas={{
+              ton: "gold",
+              label: "Renseignements non traités",
+              valeur: d.nb_ouverts,
+              href: "/renseignements?statut=a_traiter,en_cours",
+            }}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-2.5">
+          <TuileSimple
+            ton="crit"
+            icone={<IconAlert />}
+            label="Critiques"
+            valeur={d.par_criticite_ouverts.critique ?? 0}
+            href="/renseignements?criticite=critique&statut=a_traiter,en_cours"
+          />
+          <TuileSimple
+            ton="elev"
+            icone={<IconBars />}
+            label="Élevées"
+            valeur={d.par_criticite_ouverts.elevee ?? 0}
+            href="/renseignements?criticite=elevee&statut=a_traiter,en_cours"
+          />
+          <TuileSimple
+            ton="moy"
+            icone={<IconBars />}
+            label="Moyens"
+            valeur={d.par_criticite_ouverts.moyenne ?? 0}
+            href="/renseignements?criticite=moyenne&statut=a_traiter,en_cours"
+          />
+          <TuileSimple
+            ton="faib"
+            icone={<IconBars />}
+            label="Faible"
+            valeur={d.par_criticite_ouverts.faible ?? 0}
+            href="/renseignements?criticite=faible&statut=a_traiter,en_cours"
+          />
+        </div>
       </div>
 
       <div className="grid gap-3.5 lg:grid-cols-12">

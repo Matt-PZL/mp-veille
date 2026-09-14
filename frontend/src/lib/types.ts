@@ -128,7 +128,14 @@ export type Dashboard = {
 };
 
 export type Utilisateur = { username: string; email: string };
-export type Preferences = { seuil_criticite: string; frequence: string };
+export type Preferences = {
+  seuil_criticite: string;
+  frequence: string;
+  afficher_compteurs_nav: boolean;
+};
+
+/** Source unique des pastilles de nav (AppShell) — cf. GET /dashboard/compteurs-nav. */
+export type CompteursNav = { a_traiter: number; actifs: number; traitements: number };
 export type StatsActifs = { total: number; technique: number; normatif: number; non_couverts: number };
 export type CompteursTraitement = Record<string, number>;
 export type ProduitCatalogue = { categorie: string; editeur: string; produit: string; versions: string[] };

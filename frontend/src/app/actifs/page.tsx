@@ -195,7 +195,7 @@ function Contenu() {
   };
 
   return (
-    <AppShell compteurs={{ actifs: stats?.total }}>
+    <AppShell>
       <PageHead
         titre="Gestion des actifs"
         sous="Votre inventaire pilote toute la veille : rien n'est remonté sur un actif non déclaré."

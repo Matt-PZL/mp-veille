@@ -27,6 +27,28 @@ _ORDRE_CRITICITE = {"critique": 0, "elevee": 1, "moyenne": 2, "faible": 3}
 _OUVERTS = ("a_traiter", "en_cours")
 
 
+@router.get("/compteurs-nav", response=dict)
+def compteurs_nav(request):
+    """Source UNIQUE des badges de la barre de navigation (AppShell les
+    recupere une fois au montage, quelle que soit la page ouverte).
+
+    Volontairement distinct de GET /traitements/compteurs : celui-la reflete
+    la page Traitement elle-meme (preuve d'audit, TOUS les Traitement, y
+    compris ceux dont l'actif a ete supprime) ; celui-ci reflete le perimetre
+    ACTUEL du client (calculer_perimetre_stats) — "combien de choses
+    demandent une action aujourd'hui", qui est ce qu'un badge de nav doit
+    montrer. Avant ce endpoint, chaque page fournissait son propre sous-
+    ensemble de compteurs a AppShell : un badge apparaissait ou disparaissait
+    selon la page ouverte, pas selon une vraie absence de donnee.
+    """
+    stats = calculer_perimetre_stats()
+    return {
+        "a_traiter": stats.nb_ouverts,
+        "actifs": stats.nb_actifs,
+        "traitements": stats.nb_renseignements,
+    }
+
+
 @router.get("", response=DashboardOut)
 def vue_ensemble(request):
     aujourdhui = timezone.localdate()

@@ -92,8 +92,9 @@ function ColonneActifs({
     );
   };
 
-  const groupe = (titre: string) => (
-    <div className="tree-groupe-titre px-[11px] pt-5 pb-2 font-display text-[13px] font-bold tracking-[0.04em] text-white uppercase">
+  const groupe = (titre: string, couleur: string) => (
+    <div className="tree-groupe-titre flex items-center gap-2 px-[11px] pt-5 pb-2 font-display text-[13px] font-bold tracking-[0.04em] text-tree-titre uppercase">
+      <span className="size-[7px] shrink-0 rounded-full" style={{ background: couleur }} />
       {titre}
     </div>
   );
@@ -153,7 +154,7 @@ function ColonneActifs({
         </span>
       </Link>
 
-      {groupe("Technique")}
+      {groupe("Technique", "var(--color-statut-demarre)")}
       <div className="tree-groupe ml-[15px] border-l border-border">
         {technique.length ? (
           technique.map((a) => ligne(a))
@@ -164,7 +165,7 @@ function ColonneActifs({
         )}
       </div>
 
-      {groupe("Normatif")}
+      {groupe("Normatif", "var(--color-faib)")}
       <div className="tree-groupe ml-[15px] border-l border-border">
         {normatif.length ? (
           normatif.map((a) => ligne(a))

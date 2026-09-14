@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { AppShell, PageHead } from "@/components/AppShell";
 import { Garde } from "@/components/Garde";
-import { Button, Card, CardHead, Label, Select, Spinner } from "@/components/ui";
+import { Button, Card, CardHead, Label, Select, Spinner, Toggle } from "@/components/ui";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { useUi, type Accent, type Nav } from "@/lib/ui-context";
@@ -200,6 +200,19 @@ function Contenu() {
                       <option value="quotidien">Quotidien</option>
                       <option value="hebdo">Hebdomadaire</option>
                     </Select>
+                  </div>
+                  <div className="mb-1 border-t border-border pt-4">
+                    <Label>Compteurs dans la navigation</Label>
+                    <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-surface-2 px-3.5 py-3">
+                      <p className="text-[12.5px] leading-relaxed text-ink-soft">
+                        Toujours afficher les pastilles (Renseignements 13, Actifs 2…), même à
+                        zéro. Désactivé, elles ne s&apos;affichent jamais.
+                      </p>
+                      <Toggle
+                        actif={prefs.afficher_compteurs_nav}
+                        onChange={(v) => setPrefs({ ...prefs, afficher_compteurs_nav: v })}
+                      />
+                    </div>
                   </div>
                   <div className="mt-5 flex items-center gap-3">
                     <Button type="submit" variante="primaire" disabled={envoi}>

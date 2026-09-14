@@ -117,6 +117,10 @@ class PreferenceNotification(models.Model):
         choices=[("immediat", "Immediat"), ("quotidien", "Quotidien"), ("hebdo", "Hebdomadaire")],
         default="quotidien",
     )
+    # Pastilles de compteur (Renseignements 13, Actifs 2...) dans la barre de
+    # navigation : toujours affichees ou jamais, au choix du client — cf.
+    # Profil > Apparence.
+    afficher_compteurs_nav = models.BooleanField(default=True)
 
 
 class RenseignementConsulte(models.Model):

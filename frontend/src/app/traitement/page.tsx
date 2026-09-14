@@ -94,7 +94,6 @@ function Contenu() {
 
   return (
     <AppShell
-      compteurs={{ traitements: total, aTraiter: compteurs.a_traiter }}
       side={
         <Side titre="Statuts">
           <Link

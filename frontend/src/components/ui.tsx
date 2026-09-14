@@ -10,6 +10,8 @@
  */
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import type { Criticite, Statut } from "@/lib/types";
 import { IconCheck, IconChevron, IconClose } from "./icons";
 
@@ -225,7 +227,7 @@ export function Empty({
 /* -------------------------------------------------------------------------
    Indicateurs
    ------------------------------------------------------------------------- */
-const TON_KPI: Record<string, { fond: string; texte: string; valeur: string }> = {
+export const TON_KPI: Record<string, { fond: string; texte: string; valeur: string }> = {
   crit: { fond: "bg-crit-soft", texte: "text-crit", valeur: "text-crit" },
   elev: { fond: "bg-elev-soft", texte: "text-elev", valeur: "text-elev" },
   moy: { fond: "bg-moy-soft", texte: "text-moy", valeur: "text-moy" },
@@ -355,10 +357,20 @@ export function Modal({
   onFermer: () => void;
   children: React.ReactNode;
 }) {
-  if (!ouvert) return null;
-  return (
+  // Portail vers document.body : sans lui, une modale ouverte depuis un
+  // ancetre en position:sticky (ex : la colonne Actifs, dans sa barre
+  // laterale collante) heritait du contexte d'empilement de cet ancetre —
+  // elle se retrouvait visuellement DERRIERE le contenu principal (rendu
+  // apres la sidebar, sans z-index concurrent) au lieu de flotter au-dessus
+  // de toute la page. `position: fixed` echappe au flux et au clipping des
+  // ancetres, mais PAS a leur contexte d'empilement s'ils en creent un.
+  const [monte, setMonte] = useState(false);
+  useEffect(() => setMonte(true), []);
+
+  if (!ouvert || !monte) return null;
+  return createPortal(
     <div
-      className="fixed inset-0 z-90 flex items-center justify-center overflow-y-auto bg-black/70 p-6 backdrop-blur-[3px]"
+      className="fixed inset-0 z-[999] flex items-center justify-center overflow-y-auto bg-black/70 p-6 backdrop-blur-[3px]"
       onClick={(e) => {
         if (e.target === e.currentTarget) onFermer();
       }}
@@ -375,7 +387,8 @@ export function Modal({
         <h2 className="mb-5 pr-8 font-display text-base font-bold tracking-tight">{titre}</h2>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -387,6 +400,41 @@ export function Label({ children }: { children: React.ReactNode }) {
     <label className="mb-1.5 block font-mono text-[10.5px] font-semibold tracking-[0.09em] text-ink-faint uppercase">
       {children}
     </label>
+  );
+}
+
+/** Interrupteur on/off — pour un reglage binaire (ex : Profil > afficher les
+ * compteurs de nav toujours / jamais), plutot qu'un Select a deux options. */
+export function Toggle({
+  actif,
+  onChange,
+  label,
+}: {
+  actif: boolean;
+  onChange: (v: boolean) => void;
+  label?: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={actif}
+      onClick={() => onChange(!actif)}
+      className="inline-flex items-center gap-2.5"
+    >
+      <span
+        className={`relative h-[22px] w-9 shrink-0 rounded-full transition-colors ${
+          actif ? "bg-accent" : "bg-surface-3"
+        }`}
+      >
+        <span
+          className={`absolute top-[3px] size-4 rounded-full bg-white shadow-card transition-[left] ${
+            actif ? "left-[19px]" : "left-[3px]"
+          }`}
+        />
+      </span>
+      {label && <span className="text-[13px] font-medium text-ink">{label}</span>}
+    </button>
   );
 }
 
