@@ -1,3 +1,4 @@
+from datetime import timedelta
 from pathlib import Path
 
 from celery.schedules import crontab
@@ -19,6 +20,9 @@ INSTALLED_APPS = [
     "django_htmx",
     "django_celery_beat",
     "django_celery_results",
+    "rest_framework",
+    "rest_framework_simplejwt",
+    "corsheaders",
     "apps.accounts",
     "apps.vitrine",
     "apps.bdp",
@@ -27,10 +31,12 @@ INSTALLED_APPS = [
     "apps.matching",
     "apps.ingestion",
     "apps.panel",
+    "apps.api",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -121,3 +127,28 @@ CELERY_BEAT_SCHEDULE = {
 # Le Matching ne lit jamais ces champs : il ne travaille que sur des identifiants
 # de taxonomie et de statut, non sensibles. Voir apps/bdc/fields.py.
 BDC_ENCRYPTION_KEY = config("BDC_ENCRYPTION_KEY")
+
+# --- API (apps.api) : couche REST/JWT pour le frontend Next.js -------------
+# Coexiste avec les vues Django historiques (apps.panel) pendant la migration
+# progressive — les deux interfaces lisent les memes modeles/regles metier.
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
+    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
+    "DEFAULT_THROTTLE_RATES": {"anon": "60/min"},
+}
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(hours=1),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=14),
+    "ROTATE_REFRESH_TOKENS": True,
+}
+
+# Origines autorisees a appeler l'API en cross-origin : le serveur de dev
+# Next.js (localhost:3000) et la VM elle-meme quand le frontend y est deploye.
+CORS_ALLOWED_ORIGINS = config(
+    "CORS_ALLOWED_ORIGINS",
+    default="http://localhost:3000,http://127.0.0.1:3000,http://192.168.1.24:3000",
+    cast=Csv(),
+)
