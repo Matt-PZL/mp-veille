@@ -37,7 +37,7 @@ logger = logging.getLogger("ingestion")
 NVD_API = "https://services.nvd.nist.gov/rest/json/cves/2.0"
 NVD_API_KEY = os.environ.get("NVD_API_KEY", "")
 _SEVERITE_NVD = {"CRITICAL": "critique", "HIGH": "elevee", "MEDIUM": "moyenne", "LOW": "faible"}
-_BACKFILL_JOURS = 365  # premier run de chaque source proactive (cf. module docstring)
+_BACKFILL_JOURS = 90  # premier run de chaque source proactive (cf. module docstring) — reduit de 365 a 90j suite au ralentissement observe pendant le premier backfill, aligne sur la profondeur deja utilisee sans token pour GitHub Advisories
 _NVD_FENETRE_MAX_JOURS = 120  # limite imposee par l'API NVD par requete
 
 DEBIAN_TRACKER = "https://security-tracker.debian.org/tracker/data/json"
