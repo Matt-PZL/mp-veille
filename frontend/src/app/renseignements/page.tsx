@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { AppShell, PageHead, Side } from "@/components/AppShell";
 import { Garde } from "@/components/Garde";
 import {
@@ -17,14 +17,16 @@ import {
   NatureTag,
 } from "@/components/ui";
 import { IconPlus, IconSearch, IconShield } from "@/components/icons";
+import { ModaleAjoutActif } from "@/components/ModaleAjoutActif";
 import { api } from "@/lib/api";
 import { depuis, pluriel, tronquer } from "@/lib/format";
-import type { ActifDuFeed, FeedItem } from "@/lib/types";
+import type { ActifDuFeed, FeedItem, RenseignementsStats } from "@/lib/types";
 
 const CRITICITES = [
   ["", "Toutes"],
   ["critique", "Critique"],
   ["elevee", "Élevée"],
+  ["moyenne", "Moyenne"],
   ["faible", "Faible"],
 ] as const;
 
@@ -39,13 +41,16 @@ function ColonneActifs({
   actifSel,
   triActifs,
   lien,
+  onAjoute,
 }: {
   actifs: ActifDuFeed[];
   actifSel: number | null;
   triActifs: string;
   lien: (p: Record<string, string | number | null>) => string;
+  onAjoute: () => void;
 }) {
   const [recherche, setRecherche] = useState("");
+  const [ajout, setAjout] = useState(false);
   const filtres = useMemo(() => {
     const q = recherche.trim().toLowerCase();
     return q ? actifs.filter((a) => a.libelle.toLowerCase().includes(q)) : actifs;
@@ -54,36 +59,41 @@ function ColonneActifs({
   const technique = filtres.filter((a) => a.type === "technique");
   const normatif = filtres.filter((a) => a.type === "normatif");
 
+  // Arborescence : le tronc vertical est le border-l du groupe (cf. plus
+  // bas) — un div ne s'etend que sur la hauteur de son contenu, donc il
+  // s'arrete naturellement apres la derniere ligne sans logique separee.
+  // Chaque ligne ajoute juste son coude horizontal ("├─"/"└─" visuel).
   const ligne = (a: ActifDuFeed) => {
     const sel = actifSel === a.id;
     return (
-      <Link
-        key={a.id}
-        href={lien({ actif: a.id })}
-        className={`relative flex items-center gap-2.5 rounded-lg px-[11px] py-[9px] text-[13px] transition-colors ${
-          sel
-            ? "bg-accent-soft font-semibold text-ink before:absolute before:top-[7px] before:bottom-[7px] before:left-0 before:w-[3px] before:rounded-r-[3px] before:bg-accent before:content-['']"
-            : "text-ink-soft hover:bg-surface-2 hover:text-ink"
-        }`}
-      >
-        <span className="min-w-0 flex-1 truncate">
-          {a.libelle}
-          {a.version && <span className="ml-1.5 font-mono text-[11.5px] font-normal text-ink-faint">{a.version}</span>}
-        </span>
-        <span
-          className={`shrink-0 rounded-full px-[7px] py-px font-mono text-[11px] ${
-            sel ? "bg-accent text-accent-ink" : "bg-surface-3 text-ink-faint"
+      <div key={a.id} className="tree-actif-noeud relative pl-4">
+        <span className="pointer-events-none absolute top-1/2 left-0 h-px w-[9px] bg-border" />
+        <Link
+          href={lien({ actif: a.id })}
+          className={`relative flex items-center gap-2.5 rounded-lg px-[9px] py-[9px] text-[13px] transition-colors ${
+            sel
+              ? "bg-accent-soft font-semibold text-ink before:absolute before:top-[7px] before:bottom-[7px] before:left-0 before:w-[3px] before:rounded-r-[3px] before:bg-accent before:content-['']"
+              : "text-ink-soft hover:bg-surface-2 hover:text-ink"
           }`}
         >
-          {a.nb}
-        </span>
-      </Link>
+          <span className="min-w-0 flex-1 truncate">
+            {a.libelle}
+            {a.version && <span className="ml-1.5 font-mono text-[11.5px] font-normal text-ink-faint">{a.version}</span>}
+          </span>
+          <span
+            className={`shrink-0 rounded-full px-[7px] py-px font-mono text-[11px] ${
+              sel ? "bg-accent text-accent-ink" : "bg-surface-3 text-ink-faint"
+            }`}
+          >
+            {a.nb}
+          </span>
+        </Link>
+      </div>
     );
   };
 
-  const groupe = (titre: string, couleur: string) => (
-    <div className="flex items-center gap-2 px-[11px] pt-4 pb-[7px] font-mono text-[10px] font-semibold tracking-[0.13em] text-ink-faint uppercase after:h-px after:flex-1 after:bg-border after:content-['']">
-      <span className="size-1.5 rounded-full" style={{ background: couleur }} />
+  const groupe = (titre: string) => (
+    <div className="tree-groupe-titre px-[11px] pt-5 pb-2 font-display text-[13px] font-bold tracking-[0.04em] text-white uppercase">
       {titre}
     </div>
   );
@@ -92,13 +102,14 @@ function ColonneActifs({
     <Side
       titre="Actifs"
       action={
-        <Link
-          href="/actifs"
+        <button
+          type="button"
+          onClick={() => setAjout(true)}
           className="inline-flex items-center gap-1.5 rounded-lg border border-accent bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:brightness-110"
         >
           <IconPlus className="size-3" />
           Ajouter
-        </Link>
+        </button>
       }
     >
       <div className="mb-2.5">
@@ -142,23 +153,33 @@ function ColonneActifs({
         </span>
       </Link>
 
-      {groupe("Technique", "var(--color-accent)")}
-      {technique.length ? (
-        technique.map(ligne)
-      ) : (
-        <span className="block px-[11px] py-[9px] text-xs text-ink-faint italic">
-          Aucun actif technique
-        </span>
-      )}
+      {groupe("Technique")}
+      <div className="tree-groupe ml-[15px] border-l border-border">
+        {technique.length ? (
+          technique.map((a) => ligne(a))
+        ) : (
+          <span className="block px-[11px] py-[9px] text-xs text-ink-faint italic">
+            Aucun actif technique
+          </span>
+        )}
+      </div>
 
-      {groupe("Normatif", "var(--color-violet)")}
-      {normatif.length ? (
-        normatif.map(ligne)
-      ) : (
-        <span className="block px-[11px] py-[9px] text-xs text-ink-faint italic">
-          Aucun référentiel
-        </span>
-      )}
+      {groupe("Normatif")}
+      <div className="tree-groupe ml-[15px] border-l border-border">
+        {normatif.length ? (
+          normatif.map((a) => ligne(a))
+        ) : (
+          <span className="block px-[11px] py-[9px] text-xs text-ink-faint italic">
+            Aucun référentiel
+          </span>
+        )}
+      </div>
+
+      <ModaleAjoutActif
+        ouvert={ajout}
+        onFermer={() => setAjout(false)}
+        onAjoute={onAjoute}
+      />
     </Side>
   );
 }
@@ -173,19 +194,31 @@ function Contenu() {
   const triActifs = params.get("tri_actifs") ?? "az";
 
   const [items, setItems] = useState<FeedItem[] | null>(null);
+  const [stats, setStats] = useState<RenseignementsStats | null>(null);
   const [actifs, setActifs] = useState<ActifDuFeed[]>([]);
 
-  useEffect(() => {
+  const chargerFeed = useCallback(() => {
     setItems(null);
+    setStats(null);
     api
       .feed({ actif: actifSel ?? undefined, criticite: criticite || undefined, tri })
-      .then(setItems)
-      .catch(() => setItems([]));
+      .then((r) => {
+        setItems(r.items);
+        setStats(r.stats);
+      })
+      .catch(() => {
+        setItems([]);
+        setStats(null);
+      });
   }, [actifSel, criticite, tri]);
 
-  useEffect(() => {
+  useEffect(chargerFeed, [chargerFeed]);
+
+  const chargerActifs = useCallback(() => {
     api.actifsDuFeed(triActifs).then(setActifs).catch(() => setActifs([]));
   }, [triActifs]);
+
+  useEffect(chargerActifs, [chargerActifs]);
 
   /** Construit une URL en conservant les autres filtres. */
   const lien = (modifs: Record<string, string | number | null>) => {
@@ -198,16 +231,27 @@ function Contenu() {
     return `/renseignements${s ? `?${s}` : ""}`;
   };
 
-  const nbATraiter = items?.filter((i) => !i.traitement || i.traitement.statut === "a_traiter").length ?? 0;
-  const nbCritiques = items?.filter((i) => i.renseignement.criticite === "critique").length ?? 0;
-  const nbNouveaux = items?.filter((i) => !i.renseignement.consulte).length ?? 0;
+  // Ces 4 chiffres viennent de `stats` (calcule serveur AVANT le filtre
+  // criticite/statut) : ils decrivent le perimetre choisi (l'actif, ou tout
+  // le client) dans son ensemble, jamais la liste `items` deja filtree —
+  // c'est ce qui garantit qu'ils ne bougent pas quand on change de criticite.
+  const nbTotal = stats?.nb_renseignements ?? items?.length ?? "—";
+  const nbATraiter = stats?.par_etape.a_traiter ?? 0;
+  const nbCritiques = stats?.par_criticite_ouverts.critique ?? 0;
+  const nbNouveaux = stats?.nb_non_consultes ?? 0;
 
   const libelleActif = actifs.find((a) => a.id === actifSel)?.libelle;
 
   return (
     <AppShell
       side={
-        <ColonneActifs actifs={actifs} actifSel={actifSel} triActifs={triActifs} lien={lien} />
+        <ColonneActifs
+          actifs={actifs}
+          actifSel={actifSel}
+          triActifs={triActifs}
+          lien={lien}
+          onAjoute={chargerActifs}
+        />
       }
       compteurs={{ aTraiter: nbATraiter, actifs: actifs.length }}
     >
@@ -224,7 +268,7 @@ function Contenu() {
         }
         stats={
           <>
-            <Stat valeur={items?.length ?? "—"} label="Total" />
+            <Stat valeur={nbTotal} label="Total" />
             <Stat ton="gold" valeur={nbATraiter} label="À traiter" />
             <Stat ton="crit" valeur={nbCritiques} label="Critiques" />
             <Stat ton="accent" valeur={nbNouveaux} label="Nouveaux" />
@@ -232,7 +276,7 @@ function Contenu() {
         }
       />
 
-      <div className="flex flex-wrap items-center gap-[7px]">
+      <div className="renseignements-barre-filtres flex flex-wrap items-center gap-[7px]">
         {TRIS.map(([v, label]) => (
           <Link
             key={v}
@@ -272,7 +316,7 @@ function Contenu() {
           </div>
 
           {items.length ? (
-            <div className="flex flex-col gap-3">
+            <div className="renseignements-liste flex flex-col gap-3">
               {items.map(({ renseignement: r, traitement: t, match }) => (
                 <Link
                   key={r.id}

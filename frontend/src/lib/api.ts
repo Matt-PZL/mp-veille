@@ -19,6 +19,7 @@ import type {
   ProduitCatalogue,
   Renseignement,
   RenseignementDetail,
+  RenseignementsListe,
   StatsActifs,
   TraitementDetail,
   TraitementItem,
@@ -109,8 +110,9 @@ export const api = {
   dashboard: () => requete<Dashboard>("/dashboard"),
 
   // ---- Renseignements ----
-  feed: (p: { actif?: number; type?: string; criticite?: string; tri?: string } = {}) =>
-    requete<FeedItem[]>(`/renseignements${qs(p)}`),
+  feed: (
+    p: { actif?: number; type?: string; criticite?: string; statut?: string; q?: string; tri?: string } = {}
+  ) => requete<RenseignementsListe>(`/renseignements${qs(p)}`),
   actifsDuFeed: (tri = "az") => requete<ActifDuFeed[]>(`/renseignements/actifs/liste${qs({ tri })}`),
   renseignement: (id: string) => requete<RenseignementDetail>(`/renseignements/${id}`),
   marquerConsulte: (id: string) =>
@@ -139,7 +141,8 @@ export const api = {
   urlPdf: (pk: number) => `${BASE}/api/traitements/${pk}/pdf`,
 
   // ---- Actifs ----
-  actifs: (p: { q?: string; type?: string } = {}) => requete<Actif[]>(`/actifs${qs(p)}`),
+  actifs: (p: { q?: string; type?: string; etat?: string } = {}) =>
+    requete<Actif[]>(`/actifs${qs(p)}`),
   statsActifs: () => requete<StatsActifs>("/actifs/stats"),
   creerActif: (donnees: Partial<Actif> & { type: string }) =>
     requete<Actif>("/actifs", { methode: "POST", corps: donnees }),

@@ -21,14 +21,14 @@ import {
   IconCalendar,
   IconCheck,
   IconClock,
-  IconEye,
   IconNews,
   IconPlus,
   IconRefresh,
+  IconServer,
+  IconShield,
 } from "@/components/icons";
 import { api } from "@/lib/api";
 import { dateCourte, depuis, pluriel, tronquer } from "@/lib/format";
-import { useAuth } from "@/lib/auth-context";
 import type { Dashboard } from "@/lib/types";
 
 const LIBELLES_ETAPES: Record<string, { titre: string; lien: string; action: string }> = {
@@ -121,7 +121,6 @@ function Demarrage({ d, onMasquer }: { d: Dashboard; onMasquer: () => void }) {
 }
 
 function Contenu() {
-  const { utilisateur } = useAuth();
   const [d, setD] = useState<Dashboard | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const [masque, setMasque] = useState(false);
@@ -157,7 +156,7 @@ function Contenu() {
       derniereCollecte={d.derniere_collecte}
     >
       <PageHead
-        titre={`Bonjour ${utilisateur?.username ?? ""}`}
+        titre="Vue d'ensemble"
         sous={
           d.nb_renseignements ? (
             <>
@@ -192,34 +191,75 @@ function Contenu() {
 
       {!d.onboarding_termine && !masque && <Demarrage d={d} onMasquer={masquer} />}
 
-      <div className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
+      {/* Monitoring : 9 tuiles, toutes cliquables vers la vue filtree
+         correspondante. Ordre et composition decides avec le client — cf.
+         plan Phase 3. Chiffres tous issus de calculer_perimetre_stats()
+         cote API : jamais de recalcul local ici. */}
+      <div className="monitoring-tuiles grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+        <Kpi
+          ton="neutre"
+          icone={<IconServer />}
+          label="Total Actifs"
+          valeur={d.nb_actifs}
+          href="/actifs"
+        />
+        <Kpi
+          ton="faib"
+          icone={<IconCheck />}
+          label="Actifs clean"
+          valeur={d.nb_actifs_clean}
+          detail="Aucun renseignement non traité"
+          href="/actifs?etat=clean"
+          grand
+        />
+        <Kpi
+          ton="gold"
+          icone={<IconAlert />}
+          label="Actifs avec renseignements non traités"
+          valeur={d.nb_actifs_avec_non_traites}
+          href="/actifs?etat=non_traite"
+        />
+        <Kpi
+          ton="accent"
+          icone={<IconShield />}
+          label="Total Renseignements"
+          valeur={d.nb_renseignements}
+          href="/renseignements"
+        />
+        <Kpi
+          ton="gold"
+          icone={<IconClock />}
+          label="Renseignements non traités"
+          valeur={d.nb_ouverts}
+          href="/renseignements?statut=a_traiter,en_cours"
+        />
         <Kpi
           ton="crit"
           icone={<IconAlert />}
           label="Critiques"
-          valeur={d.par_criticite.critique ?? 0}
-          detail={d.par_criticite.critique ? "À traiter en priorité absolue" : "Aucune action urgente"}
+          valeur={d.par_criticite_ouverts.critique ?? 0}
+          href="/renseignements?criticite=critique&statut=a_traiter,en_cours"
         />
         <Kpi
           ton="elev"
           icone={<IconBars />}
           label="Élevées"
-          valeur={d.par_criticite.elevee ?? 0}
-          detail="Non encore clôturées"
+          valeur={d.par_criticite_ouverts.elevee ?? 0}
+          href="/renseignements?criticite=elevee&statut=a_traiter,en_cours"
         />
         <Kpi
-          ton="accent"
-          icone={<IconEye />}
-          label="Non consultés"
-          valeur={d.nb_non_consultes}
-          detail="Jamais ouverts"
+          ton="moy"
+          icone={<IconBars />}
+          label="Moyens"
+          valeur={d.par_criticite_ouverts.moyenne ?? 0}
+          href="/renseignements?criticite=moyenne&statut=a_traiter,en_cours"
         />
         <Kpi
-          ton="gold"
-          icone={<IconClock />}
-          label="En retard"
-          valeur={d.nb_en_retard}
-          detail={d.nb_en_retard ? "Échéance dépassée" : "Aucune échéance dépassée"}
+          ton="faib"
+          icone={<IconBars />}
+          label="Faible"
+          valeur={d.par_criticite_ouverts.faible ?? 0}
+          href="/renseignements?criticite=faible&statut=a_traiter,en_cours"
         />
       </div>
 

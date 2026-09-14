@@ -77,6 +77,18 @@ export type FeedItem = {
   match: MatchInfo | null;
 };
 
+/** Stats du perimetre choisi (tout le client, ou l'actif filtre), calculees
+ * AVANT tout filtre d'affichage — ne bougent jamais quand on change criticite/statut. */
+export type RenseignementsStats = {
+  nb_renseignements: number;
+  nb_ouverts: number;
+  par_etape: Record<string, number>;
+  par_criticite_ouverts: Record<string, number>;
+  nb_non_consultes: number;
+};
+
+export type RenseignementsListe = { items: FeedItem[]; stats: RenseignementsStats };
+
 export type RenseignementDetail = {
   renseignement: Renseignement;
   traitement: TraitementDetail | null;
@@ -91,11 +103,15 @@ export type TraitementItem = {
 
 export type Dashboard = {
   nb_renseignements: number;
+  nb_ouverts: number;
   nb_actifs: number;
   nb_actifs_technique: number;
+  nb_actifs_clean: number;
+  nb_actifs_avec_non_traites: number;
   nb_referentiels: number;
   derniere_collecte: string | null;
   par_criticite: Record<string, number>;
+  par_criticite_ouverts: Record<string, number>;
   par_etape: Record<string, number>;
   nb_non_consultes: number;
   nb_en_retard: number;

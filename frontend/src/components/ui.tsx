@@ -42,9 +42,11 @@ export const TEXTE_SEV: Record<string, string> = {
 /* -------------------------------------------------------------------------
    Pastilles
    ------------------------------------------------------------------------- */
+// Couleurs de statut fixes (pas l'accent personnalisable) : "Demarre" doit
+// rester bleu, "À traiter" orange, quel que soit le theme d'accent choisi.
 const STATUT_STYLE: Record<Statut, string> = {
-  a_traiter: "bg-gold-soft text-gold border-gold border-dashed",
-  en_cours: "bg-accent-soft text-accent border-accent-line",
+  a_traiter: "bg-gold-soft text-gold border-gold",
+  en_cours: "bg-statut-demarre-soft text-statut-demarre border-statut-demarre",
   clos: "bg-faib-soft text-faib border-transparent",
   non_applicable: "bg-surface-3 text-ink-faint border-transparent",
 };
@@ -226,6 +228,7 @@ export function Empty({
 const TON_KPI: Record<string, { fond: string; texte: string; valeur: string }> = {
   crit: { fond: "bg-crit-soft", texte: "text-crit", valeur: "text-crit" },
   elev: { fond: "bg-elev-soft", texte: "text-elev", valeur: "text-elev" },
+  moy: { fond: "bg-moy-soft", texte: "text-moy", valeur: "text-moy" },
   accent: { fond: "bg-accent-soft", texte: "text-accent", valeur: "text-ink" },
   gold: { fond: "bg-gold-soft", texte: "text-gold", valeur: "text-ink" },
   faib: { fond: "bg-faib-soft", texte: "text-faib", valeur: "text-faib" },
@@ -239,16 +242,28 @@ export function Kpi({
   label,
   valeur,
   detail,
+  href,
+  grand = false,
 }: {
   ton?: keyof typeof TON_KPI;
   icone: React.ReactNode;
   label: string;
   valeur: number | string;
   detail?: string;
+  /** Rend la tuile cliquable — navigue vers la vue filtree correspondante. */
+  href?: string;
+  /** Mise en avant visuelle (ex : "Actifs clean") — valeur plus grande. */
+  grand?: boolean;
 }) {
   const t = TON_KPI[ton];
+  const Conteneur = href ? Link : "div";
   return (
-    <div className="rounded-2xl border border-border bg-surface px-[19px] py-[17px] shadow-card">
+    <Conteneur
+      {...(href ? { href } : {})}
+      className={`kpi-tuile rounded-2xl border border-border bg-surface px-[19px] py-[17px] shadow-card ${
+        href ? "block transition-colors hover:border-border-strong hover:bg-surface-2" : ""
+      }`}
+    >
       <div className="flex items-center gap-[9px]">
         <span
           className={`flex size-[30px] items-center justify-center rounded-lg [&_svg]:size-[15px] ${t.fond} ${t.texte}`}
@@ -257,11 +272,13 @@ export function Kpi({
         </span>
         <span className="text-[12.5px] font-medium text-ink-soft">{label}</span>
       </div>
-      <div className={`tabular mt-3 font-mono text-[32px] leading-tight font-semibold ${t.valeur}`}>
+      <div
+        className={`tabular mt-3 font-mono leading-tight font-semibold ${grand ? "text-[40px]" : "text-[32px]"} ${t.valeur}`}
+      >
         {valeur}
       </div>
       {detail && <div className="mt-[3px] text-[11.5px] text-ink-faint">{detail}</div>}
-    </div>
+    </Conteneur>
   );
 }
 

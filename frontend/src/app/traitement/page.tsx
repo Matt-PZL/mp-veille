@@ -23,8 +23,8 @@ import { dateCourte, depuis, tronquer } from "@/lib/format";
 import type { CompteursTraitement, TraitementItem } from "@/lib/types";
 
 const STATUTS = [
-  ["a_traiter", "À traiter", "border-[1.5px] border-dashed border-gold"],
-  ["en_cours", "Démarré", "bg-accent shadow-[0_0_0_3px_var(--color-accent-soft)]"],
+  ["a_traiter", "À traiter", "bg-gold shadow-[0_0_0_3px_var(--color-gold-soft)]"],
+  ["en_cours", "Démarré", "bg-statut-demarre shadow-[0_0_0_3px_var(--color-statut-demarre-soft)]"],
   ["clos", "Clos", "bg-faib shadow-[0_0_0_3px_var(--color-faib-soft)]"],
   ["non_applicable", "Non applicable", "bg-ink-faint"],
 ] as const;

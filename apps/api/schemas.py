@@ -73,6 +73,7 @@ class RenseignementsStats(Schema):
     nb_ouverts: int
     par_etape: dict[str, int]
     par_criticite_ouverts: dict[str, int]
+    nb_non_consultes: int
 
 
 class RenseignementsListe(Schema):

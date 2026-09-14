@@ -43,9 +43,9 @@ type Compteurs = { aTraiter?: number; traitements?: number; actifs?: number };
 const ONGLETS = [
   { href: "/", label: "Vue d'ensemble", Icone: IconDashboard, cle: null, separeAvant: false },
   { href: "/renseignements", label: "Renseignements", Icone: IconShield, cle: "aTraiter", separeAvant: false },
-  { href: "/traitement", label: "Traitement", Icone: IconClipboard, cle: "traitements", separeAvant: false },
+  { href: "/actifs", label: "Actifs", Icone: IconServer, cle: "actifs", separeAvant: false },
+  { href: "/traitement", label: "Traitement", Icone: IconClipboard, cle: "traitements", separeAvant: true },
   { href: "/actualites", label: "Actualités", Icone: IconNews, cle: null, separeAvant: false },
-  { href: "/actifs", label: "Actifs", Icone: IconServer, cle: "actifs", separeAvant: true },
 ] as const;
 
 /* ------------------------------------------------------------------ */

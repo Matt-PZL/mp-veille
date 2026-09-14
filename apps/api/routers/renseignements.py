@@ -68,6 +68,9 @@ def lister(
         if type in ("technique", "normatif"):
             items = [r for r in items if r.type == type]
 
+    consultes = set(RenseignementConsulte.objects.values_list("id_renseignement_bdp", flat=True))
+    nb_non_consultes = sum(1 for r in items if r.id_renseignement_bdp not in consultes)
+
     if criticite in dict(Renseignement.CRITICITE_CHOICES):
         items = [r for r in items if r.criticite == criticite]
 
@@ -90,8 +93,6 @@ def lister(
             or terme in r.description.lower()
             or terme in r.reference_courte.lower()
         ]
-
-    consultes = set(RenseignementConsulte.objects.values_list("id_renseignement_bdp", flat=True))
 
     if tri == "criticite":
         items.sort(key=lambda r: (_ORDRE_CRITICITE.get(r.criticite, 9), -r.decouvert_le.timestamp()))
@@ -122,6 +123,7 @@ def lister(
             "nb_ouverts": stats.nb_ouverts,
             "par_etape": stats.par_etape,
             "par_criticite_ouverts": stats.par_criticite_ouverts,
+            "nb_non_consultes": nb_non_consultes,
         },
     }
 
