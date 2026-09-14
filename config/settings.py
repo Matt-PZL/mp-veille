@@ -1,3 +1,4 @@
+from datetime import timedelta
 from pathlib import Path
 
 from celery.schedules import crontab
@@ -175,3 +176,28 @@ if not DEBUG:
 # Le Matching ne lit jamais ces champs : il ne travaille que sur des identifiants
 # de taxonomie et de statut, non sensibles. Voir apps/bdc/fields.py.
 BDC_ENCRYPTION_KEY = config("BDC_ENCRYPTION_KEY")
+
+CORS_ALLOWED_ORIGINS = config(
+    "CORS_ALLOWED_ORIGINS",
+    default="http://localhost:3000,http://127.0.0.1:3000,http://192.168.1.24:3000",
+    cast=Csv(),
+)
+
+# --- Journalisation de l'ingestion ---
+# Avant ceci, les echecs (reseau, parsing) dans apps/ingestion/tasks.py
+# etaient avales en silence : impossible de diagnostiquer une baisse de
+# collecte sans ca. INFO -> visible via 'docker compose logs worker'.
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {'class': 'logging.StreamHandler'},
+    },
+    'loggers': {
+        'ingestion': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}

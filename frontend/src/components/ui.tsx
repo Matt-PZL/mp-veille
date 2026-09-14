@@ -258,14 +258,13 @@ export function Kpi({
   grand?: boolean;
 }) {
   const t = TON_KPI[ton];
-  const Conteneur = href ? Link : "div";
-  return (
-    <Conteneur
-      {...(href ? { href } : {})}
-      className={`kpi-tuile rounded-2xl border border-border bg-surface px-[19px] py-[17px] shadow-card ${
-        href ? "block transition-colors hover:border-border-strong hover:bg-surface-2" : ""
-      }`}
-    >
+  // Deux branches explicites plutot qu'un composant polymorphe : TypeScript ne
+  // peut pas deduire que `href` est defini quand le conteneur est un Link.
+  const classe = `kpi-tuile rounded-2xl border border-border bg-surface px-[19px] py-[17px] shadow-card ${
+    href ? "block transition-colors hover:border-border-strong hover:bg-surface-2" : ""
+  }`;
+  const contenu = (
+    <>
       <div className="flex items-center gap-[9px]">
         <span
           className={`flex size-[30px] items-center justify-center rounded-lg [&_svg]:size-[15px] ${t.fond} ${t.texte}`}
@@ -280,7 +279,15 @@ export function Kpi({
         {valeur}
       </div>
       {detail && <div className="mt-[3px] text-[11.5px] text-ink-faint">{detail}</div>}
-    </Conteneur>
+    </>
+  );
+
+  return href ? (
+    <Link href={href} className={classe}>
+      {contenu}
+    </Link>
+  ) : (
+    <div className={classe}>{contenu}</div>
   );
 }
 

@@ -4,9 +4,17 @@ Taches Celery de collecte (boucle ~12h, cf. brief section 2).
 Chaque source alimente `normaliser_et_ecrire_bdp`, qui est le seul point
 d'ecriture dans la BDP (jamais d'ecrasement : versionning parent/enfant).
 Le declenchement du Matching se fait juste apres, dans `cycle_ingestion`.
+
+Toute source logge son resultat (nb traites, erreurs) via le logger
+"ingestion" — avant, les echecs reseau/parsing etaient avales en silence
+(`except: continue`/`return 0`), rendant impossible de diagnostiquer une
+baisse de collecte. Visible via `docker compose logs worker`.
 """
 
 import json
+import logging
+import os
+import re
 import time
 import urllib.error
 import urllib.parse
@@ -16,25 +24,51 @@ from datetime import datetime, timedelta
 from email.utils import parsedate_to_datetime
 
 from celery import shared_task
+from django.db import IntegrityError
+from django.db.models import Max
 from django.utils import timezone
 
-from apps.bdc.models import ActifClient
 from apps.bdp.models import Renseignement
 from apps.catalogue.models import ActifCatalogueProduit, ActifCatalogueVersion
 from apps.matching.services import calculer_matching
 
-NVD_API = "https://services.nvd.nist.gov/rest/json/cves/2.0"
-_SEVERITE_NVD = {"CRITICAL": "critique", "HIGH": "elevee", "MEDIUM": "moyenne", "LOW": "faible"}
+logger = logging.getLogger("ingestion")
 
-CERT_FR_INDEX = "https://www.cert.ssi.gouv.fr/avis/json/"
-CERT_FR_DETAIL = "https://www.cert.ssi.gouv.fr/avis/{ref}/json/"
-CERT_FR_PAGE = "https://www.cert.ssi.gouv.fr/avis/{ref}/"
+NVD_API = "https://services.nvd.nist.gov/rest/json/cves/2.0"
+NVD_API_KEY = os.environ.get("NVD_API_KEY", "")
+_SEVERITE_NVD = {"CRITICAL": "critique", "HIGH": "elevee", "MEDIUM": "moyenne", "LOW": "faible"}
+_BACKFILL_JOURS = 90  # premier run de chaque source proactive (cf. module docstring) — reduit de 365 a 90j suite au ralentissement observe pendant le premier backfill, aligne sur la profondeur deja utilisee sans token pour GitHub Advisories
+_NVD_FENETRE_MAX_JOURS = 120  # limite imposee par l'API NVD par requete
+
+DEBIAN_TRACKER = "https://security-tracker.debian.org/tracker/data/json"
+
+UBUNTU_USN = "https://ubuntu.com/security/notices.json"
+
+GITHUB_ADVISORIES = "https://api.github.com/advisories"
+GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
+_GHSA_BACKFILL_JOURS_SANS_TOKEN = 90  # 60 req/h sans token : 365j prendrait des heures
+_GHSA_BACKFILL_JOURS_AVEC_TOKEN = _BACKFILL_JOURS  # 5000 req/h avec token
+
+# CERT-FR publie deux flux JSON de meme forme : les avis (bulletins standards)
+# et les alertes (urgence superieure — exploitation active ou imminente).
+# Un seul coeur de collecte (_collecter_cert_fr) parametre par ces URLs.
+CERT_FR_AVIS_INDEX = "https://www.cert.ssi.gouv.fr/avis/json/"
+CERT_FR_AVIS_DETAIL = "https://www.cert.ssi.gouv.fr/avis/{ref}/json/"
+CERT_FR_AVIS_PAGE = "https://www.cert.ssi.gouv.fr/avis/{ref}/"
+CERT_FR_ALERTE_INDEX = "https://www.cert.ssi.gouv.fr/alerte/json/"
+CERT_FR_ALERTE_DETAIL = "https://www.cert.ssi.gouv.fr/alerte/{ref}/json/"
+CERT_FR_ALERTE_PAGE = "https://www.cert.ssi.gouv.fr/alerte/{ref}/"
 CERT_FR_LOOKBACK_JOURS = 30
 
 CNIL_RSS = "https://www.cnil.fr/fr/rss.xml"
 
 ENDOFLIFE_INDEX = "https://endoflife.date/api/v1/products"
 ENDOFLIFE_DETAIL = "https://endoflife.date/api/v1/products/{slug}"
+
+# CISA Known Exploited Vulnerabilities : catalogue des CVE dont l'exploitation
+# active est confirmee. Pas une source de nouvelles lignes — un enrichissement
+# des renseignements deja connus (NVD/CERT-FR) partageant le meme CVE.
+CISA_KEV = "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json"
 
 _UA = {"User-Agent": "veille-saas/0.1 (POC interne, contact: matt)"}
 
@@ -62,25 +96,43 @@ def normaliser_et_ecrire_bdp(item: dict) -> Renseignement:
     if not a_change:
         return existant
 
-    return Renseignement.objects.create(
-        parent=existant,
-        type=item["type"],
-        titre=item["titre"],
-        description=item["description"],
-        source=item["source"],
-        url_source=item.get("url_source", ""),
-        reference_externe=item.get("reference_externe", ""),
-        criticite=item.get("criticite", ""),
-        nature=item.get("nature", ""),
-        taxonomie_categorie=item.get("taxonomie_categorie", ""),
-        taxonomie_editeur=item.get("taxonomie_editeur", ""),
-        taxonomie_produit=item.get("taxonomie_produit", ""),
-        taxonomie_version=item.get("taxonomie_version", ""),
-        taxonomie_referentiel=item.get("taxonomie_referentiel", ""),
-        decouvert_le=item["decouvert_le"],
-        cvss_score=item.get("cvss_score"),
-        cvss_vector=item.get("cvss_vector", ""),
-    )
+    try:
+        return Renseignement.objects.create(
+            parent=existant,
+            type=item["type"],
+            titre=item["titre"],
+            description=item["description"],
+            source=item["source"],
+            url_source=item.get("url_source", ""),
+            reference_externe=item.get("reference_externe", ""),
+            criticite=item.get("criticite", ""),
+            nature=item.get("nature", ""),
+            taxonomie_categorie=item.get("taxonomie_categorie", ""),
+            taxonomie_editeur=item.get("taxonomie_editeur", ""),
+            taxonomie_produit=item.get("taxonomie_produit", ""),
+            taxonomie_version=item.get("taxonomie_version", ""),
+            taxonomie_referentiel=item.get("taxonomie_referentiel", ""),
+            decouvert_le=item["decouvert_le"],
+            cvss_score=item.get("cvss_score"),
+            cvss_vector=item.get("cvss_vector", ""),
+        )
+    except IntegrityError:
+        # Course avec un autre run (cycle planifie + declenchement manuel
+        # simultanes, par ex.) : quelqu'un a deja ecrit EXACTEMENT cette
+        # revision (source + reference_externe + decouvert_le, contrainte
+        # unique) entre notre lecture et notre ecriture. On relit plutot que
+        # de planter tout le cycle — c'est le garde-fou base evoque par le
+        # client ("pas de doublon"), la verification applicative ci-dessus
+        # n'etant pas atomique a elle seule.
+        logger.info(
+            "Doublon evite en base (source=%s, ref=%s) : deja ecrit par un autre run.",
+            item["source"], item.get("reference_externe", ""),
+        )
+        return Renseignement.objects.filter(
+            source=item["source"],
+            reference_externe=item.get("reference_externe", ""),
+            decouvert_le=item["decouvert_le"],
+        ).first()
 
 
 def _contenu_modifie(existant: Renseignement, item: dict) -> bool:
@@ -133,64 +185,180 @@ def _nvd_cvss(cve: dict):
     return None, ""
 
 
+def _nvd_headers():
+    h = dict(_UA)
+    if NVD_API_KEY:
+        h["apiKey"] = NVD_API_KEY
+    return h
+
+
+def _cpe_vendor_produit(cve: dict) -> tuple[str, str]:
+    """Vendor/produit du premier CPE affecte trouve dans les configurations
+    NVD (structure CPE 2.3 brute — differente du catalogue endoflife.date,
+    qui a sa propre `_vendor_depuis_cpe` pour un format different)."""
+    for config in cve.get("configurations", []):
+        for node in config.get("nodes", []):
+            for match in node.get("cpeMatch", []):
+                if not match.get("vulnerable", True):
+                    continue
+                criteria = match.get("criteria", "")
+                parts = criteria.split(":")
+                if criteria.startswith("cpe:2.3:") and len(parts) > 4:
+                    vendor, produit = parts[3], parts[4]
+                    if vendor not in ("", "*") and produit not in ("", "*"):
+                        return _humaniser_editeur(vendor), produit.replace("_", " ").replace("-", " ").title()
+    return "", ""
+
+
 @shared_task
 def collecter_nvd_cve():
-    """Interroge l'API publique NVD (CVE 2.0) pour chaque actif technique
-    declare par le client, normalise les resultats dans la BDP.
+    """Interroge l'API publique NVD (CVE 2.0) de facon PROACTIVE, sur une
+    fenetre de dates de publication — plus aucune dependance a la BDC
+    (ActifClient) : la BDP doit rester une base de renseignements autonome,
+    c'est le Matching qui la relie ensuite au perimetre d'un client, jamais
+    l'ingestion elle-meme (cf. module docstring).
 
-    Sans cle API, NVD limite a ~5 requetes / 30s : on espace les appels.
-    Une erreur reseau sur un actif ne doit pas interrompre les autres.
+    Fenetre determinee par ce qui est deja en base pour cette source : premier
+    run = backfill sur `_BACKFILL_JOURS` (365j), runs suivants = uniquement
+    les nouveautes depuis la derniere collecte — meme principe que
+    `_collecter_cert_fr`. Decoupee en tranches de `_NVD_FENETRE_MAX_JOURS`
+    (limite NVD par requete), chaque tranche paginee par `resultsPerPage`.
+
+    Sans cle API, NVD limite a ~5 requetes/30s. Avec NVD_API_KEY (var d'env,
+    gratuite et immediate sur nvd.nist.gov/developers/request-an-api-key),
+    50/30s. Une erreur reseau sur une tranche ne doit pas interrompre les
+    autres.
     """
-    actifs = list(ActifClient.objects.filter(type="technique").exclude(produit=""))
+    # Borne toujours a _BACKFILL_JOURS, meme si une ligne NVD plus ancienne
+    # traine deja en base (ex : d'anciennes entrees reactives, avant cette
+    # bascule proactive, sans limite de date) : sans ce plancher, un `derniere`
+    # ancien ferait remonter `depuis` bien avant la fenetre voulue — bug reel
+    # trouve pendant la verification (est reparti chercher des CVE de 2005).
+    plancher = timezone.now() - timedelta(days=_BACKFILL_JOURS)
+    derniere = Renseignement.objects.filter(source="NVD").aggregate(m=Max("decouvert_le"))["m"]
+    depuis = max(derniere, plancher) if derniere else plancher
+    jusqua = timezone.now()
+
     total = 0
+    erreurs = 0
+    premiere_requete = True
+    debut_tranche = depuis
 
-    for i, actif in enumerate(actifs):
-        if i:
-            time.sleep(6)
+    while debut_tranche < jusqua:
+        fin_tranche = min(debut_tranche + timedelta(days=_NVD_FENETRE_MAX_JOURS), jusqua)
+        start_index = 0
 
-        params = urllib.parse.urlencode({"keywordSearch": actif.produit, "resultsPerPage": 5})
-        req = urllib.request.Request(
-            f"{NVD_API}?{params}",
-            headers={"User-Agent": "veille-saas/0.1 (POC interne, contact: matt)"},
-        )
-        try:
-            with urllib.request.urlopen(req, timeout=15) as resp:
-                payload = json.load(resp)
-        except (urllib.error.URLError, TimeoutError, ValueError):
+        while True:
+            if not premiere_requete:
+                time.sleep(0.7 if NVD_API_KEY else 6.5)
+            premiere_requete = False
+
+            params = urllib.parse.urlencode({
+                "pubStartDate": debut_tranche.strftime("%Y-%m-%dT%H:%M:%S.000"),
+                "pubEndDate": fin_tranche.strftime("%Y-%m-%dT%H:%M:%S.000"),
+                "resultsPerPage": 2000,
+                "startIndex": start_index,
+            })
+            req = urllib.request.Request(f"{NVD_API}?{params}", headers=_nvd_headers())
+            try:
+                with urllib.request.urlopen(req, timeout=30) as resp:
+                    payload = json.load(resp)
+            except (urllib.error.URLError, TimeoutError, ValueError) as exc:
+                erreurs += 1
+                logger.warning(
+                    "NVD %s -> %s (index %d): echec requete (%s)",
+                    debut_tranche.date(), fin_tranche.date(), start_index, exc,
+                )
+                break
+
+            vulns = payload.get("vulnerabilities", [])
+            for vuln in vulns:
+                cve = vuln.get("cve", {})
+                cve_id = cve.get("id")
+                if not cve_id:
+                    continue
+                try:
+                    publie = datetime.fromisoformat(cve["published"])
+                except (KeyError, ValueError):
+                    publie = timezone.now()
+                if timezone.is_naive(publie):
+                    publie = timezone.make_aware(publie, timezone.get_default_timezone())
+
+                editeur, produit = _cpe_vendor_produit(cve)
+                score, vecteur = _nvd_cvss(cve)
+                description = _nvd_description(cve)[:2000] or "(pas de description disponible)"
+                normaliser_et_ecrire_bdp({
+                    "type": "technique",
+                    "titre": f"{produit or cve_id} — {_resume(description)}",
+                    "description": description,
+                    "source": "NVD",
+                    "url_source": f"https://nvd.nist.gov/vuln/detail/{cve_id}",
+                    "reference_externe": cve_id,
+                    "criticite": _nvd_severite(cve),
+                    "nature": "vulnerabilite",
+                    "taxonomie_editeur": editeur,
+                    "taxonomie_produit": produit,
+                    "decouvert_le": publie,
+                    "cvss_score": score,
+                    "cvss_vector": vecteur,
+                })
+                total += 1
+
+            start_index += len(vulns)
+            if not vulns or start_index >= payload.get("totalResults", 0):
+                break
+
+        logger.info("NVD: tranche %s -> %s terminee, %d CVE cumules", debut_tranche.date(), fin_tranche.date(), total)
+        debut_tranche = fin_tranche
+
+    logger.info(
+        "NVD: %d CVE traites (%d tranches en erreur), fenetre %s -> %s",
+        total, erreurs, depuis.date(), jusqua.date(),
+    )
+    return total
+
+
+@shared_task
+def enrichir_kev():
+    """Enrichit les renseignements deja connus (typiquement NVD, parfois
+    CERT-FR) avec le statut CISA KEV : ce catalogue liste les CVE dont
+    l'exploitation active est confirmee, un signal de priorite fort qu'une
+    simple note CVSS ne donne pas. N'ecrit JAMAIS de nouvelle ligne — pure
+    mise a jour des champs d'enrichissement (tags, niveau_confiance,
+    cve_associees) sur les Renseignement existants dont `reference_externe`
+    correspond au CVE.
+    """
+    try:
+        payload = _get_json(CISA_KEV)
+    except (urllib.error.URLError, TimeoutError, ValueError) as exc:
+        logger.warning("KEV: echec recuperation catalogue (%s)", exc)
+        return 0
+
+    total = 0
+    for vuln in payload.get("vulnerabilities", []):
+        cve_id = vuln.get("cveID")
+        if not cve_id:
             continue
 
-        for vuln in payload.get("vulnerabilities", []):
-            cve = vuln.get("cve", {})
-            cve_id = cve.get("id")
-            if not cve_id:
-                continue
-            try:
-                publie = datetime.fromisoformat(cve["published"])
-            except (KeyError, ValueError):
-                publie = timezone.now()
-            if timezone.is_naive(publie):
-                publie = timezone.make_aware(publie, timezone.get_default_timezone())
+        for r in Renseignement.objects.filter(reference_externe=cve_id):
+            change = False
+            if "KEV" not in r.tags:
+                r.tags = [*r.tags, "KEV"]
+                change = True
+            if cve_id not in r.cve_associees:
+                r.cve_associees = [*r.cve_associees, cve_id]
+                change = True
+            if r.niveau_confiance != "eleve":
+                r.niveau_confiance = "eleve"
+                change = True
+            if change:
+                r.save(update_fields=["tags", "cve_associees", "niveau_confiance"])
+                total += 1
 
-            score, vecteur = _nvd_cvss(cve)
-            description = _nvd_description(cve)[:2000] or "(pas de description disponible)"
-            normaliser_et_ecrire_bdp({
-                "type": "technique",
-                "titre": f"{actif.produit} — {_resume(description)}",
-                "description": description,
-                "source": "NVD",
-                "url_source": f"https://nvd.nist.gov/vuln/detail/{cve_id}",
-                "reference_externe": cve_id,
-                "criticite": _nvd_severite(cve),
-                "nature": "vulnerabilite",
-                "taxonomie_editeur": actif.editeur,
-                "taxonomie_produit": actif.produit,
-                "taxonomie_version": actif.version,
-                "decouvert_le": publie,
-                "cvss_score": score,
-                "cvss_vector": vecteur,
-            })
-            total += 1
-
+    logger.info(
+        "KEV: %d renseignements enrichis (catalogue de %d CVE exploitees)",
+        total, payload.get("count", 0),
+    )
     return total
 
 
@@ -214,27 +382,30 @@ def _certfr_criticite(risks: list) -> str:
     return "faible"
 
 
-@shared_task
-def collecter_cert_fr(lookback_jours: int = CERT_FR_LOOKBACK_JOURS):
-    """Collecte reelle des avis de securite CERT-FR (ANSSI) via l'export
-    JSON officiel (`/avis/json/` puis `/avis/<ref>/json/`).
+def _collecter_cert_fr(*, index_url: str, detail_tpl: str, page_tpl: str, label: str, lookback_jours: int):
+    """Coeur partage entre `collecter_cert_fr_avis` et
+    `collecter_cert_fr_alertes` — meme format JSON cote CERT-FR pour les deux
+    flux, seules les URLs (et donc la nature avis/alerte) changent.
 
-    Un avis peut couvrir plusieurs produits/editeurs (`affected_systems`) :
-    on cree un Renseignement par couple editeur+produit distinct pour que
-    le Matching (exact editeur+produit) puisse s'appliquer, exactement comme
-    pour un CVE NVD.
+    Un avis/alerte peut couvrir plusieurs produits/editeurs
+    (`affected_systems`) : on cree un Renseignement par couple editeur+produit
+    distinct pour que le Matching (exact editeur+produit) puisse s'appliquer,
+    exactement comme pour un CVE NVD.
 
-    Fenetre glissante de `lookback_jours` (30 par defaut) sur la date de
-    derniere revision, pour eviter de reparcourir en detail les ~17 000 avis
-    de l'historique CERT-FR a chaque cycle ; un avis deja connu et non
-    revise depuis n'est pas retelecharge."""
+    Fenetre glissante de `lookback_jours` sur la date de derniere revision,
+    pour eviter de reparcourir en detail tout l'historique CERT-FR a chaque
+    cycle ; un avis/alerte deja connu et non revise depuis n'est pas
+    retelecharge.
+    """
     try:
-        index = _get_json(CERT_FR_INDEX)
-    except (urllib.error.URLError, TimeoutError, ValueError):
+        index = _get_json(index_url)
+    except (urllib.error.URLError, TimeoutError, ValueError) as exc:
+        logger.warning("%s: echec recuperation index (%s)", label, exc)
         return 0
 
     seuil = timezone.now() - timedelta(days=lookback_jours)
     total = 0
+    erreurs = 0
 
     for entree in index:
         ref = entree.get("reference")
@@ -259,12 +430,14 @@ def collecter_cert_fr(lookback_jours: int = CERT_FR_LOOKBACK_JOURS):
 
         time.sleep(0.3)
         try:
-            detail = _get_json(CERT_FR_DETAIL.format(ref=ref))
-        except (urllib.error.URLError, TimeoutError, ValueError):
+            detail = _get_json(detail_tpl.format(ref=ref))
+        except (urllib.error.URLError, TimeoutError, ValueError) as exc:
+            erreurs += 1
+            logger.warning("%s %s: echec recuperation detail (%s)", label, ref, exc)
             continue
 
         criticite = _certfr_criticite(detail.get("risks", []))
-        url_avis = CERT_FR_PAGE.format(ref=ref)
+        url_avis = page_tpl.format(ref=ref)
         titre_avis = detail.get("title", "")
         description = (detail.get("summary") or titre_avis or "")[:2000] or (
             "(pas de description disponible)"
@@ -295,7 +468,7 @@ def collecter_cert_fr(lookback_jours: int = CERT_FR_LOOKBACK_JOURS):
             total += 1
 
         if not produits_vus:
-            # Avis sans produit structure (rare) : conserve quand meme,
+            # Avis/alerte sans produit structure (rare) : conserve quand meme,
             # visible dans Actualites, simplement non matche a un actif.
             normaliser_et_ecrire_bdp({
                 "type": "technique",
@@ -310,7 +483,34 @@ def collecter_cert_fr(lookback_jours: int = CERT_FR_LOOKBACK_JOURS):
             })
             total += 1
 
+    logger.info("%s: %d renseignements traites (%d erreurs de detail)", label, total, erreurs)
     return total
+
+
+@shared_task
+def collecter_cert_fr_avis(lookback_jours: int = CERT_FR_LOOKBACK_JOURS):
+    """Avis CERT-FR — bulletins de securite standards."""
+    return _collecter_cert_fr(
+        index_url=CERT_FR_AVIS_INDEX,
+        detail_tpl=CERT_FR_AVIS_DETAIL,
+        page_tpl=CERT_FR_AVIS_PAGE,
+        label="CERT-FR avis",
+        lookback_jours=lookback_jours,
+    )
+
+
+@shared_task
+def collecter_cert_fr_alertes(lookback_jours: int = CERT_FR_LOOKBACK_JOURS):
+    """Alertes CERT-FR — urgence superieure a un avis standard (exploitation
+    active ou imminente signalee par l'ANSSI). Meme mecanique de collecte que
+    les avis, cf. `_collecter_cert_fr`."""
+    return _collecter_cert_fr(
+        index_url=CERT_FR_ALERTE_INDEX,
+        detail_tpl=CERT_FR_ALERTE_DETAIL,
+        page_tpl=CERT_FR_ALERTE_PAGE,
+        label="CERT-FR alerte",
+        lookback_jours=lookback_jours,
+    )
 
 
 def _parser_rss(payload: bytes) -> list[dict]:
@@ -349,20 +549,24 @@ def collecter_referentiels_normatifs():
     """Collecte reelle des actualites de la CNIL (regulateur RGPD francais),
     taguees `taxonomie_referentiel="RGPD"` pour le Matching.
 
-    Limite connue : il n'existe pas, a ce jour, de flux public structure
-    equivalent pour NIS2 / ISO 27001 / DORA (ISO est payant ; NIS2/DORA sont
-    du texte legal EUR-Lex sans flux exploitable simplement) — a specifier
-    au cas par cas si un client declare l'un de ces referentiels."""
+    Limite connue, verifiee a nouveau lors de cette revision : il n'existe
+    toujours pas de flux public structure et gratuit equivalent pour
+    NIS2 / ISO 27001 / DORA (ISO est payant ; NIS2/DORA sont du texte legal
+    EUR-Lex/Legifrance sans flux exploitable simplement sans inscription
+    developpeur — portail PISTE pour Legifrance). A specifier au cas par cas
+    si le client veut aller plus loin sur ces referentiels."""
     try:
         req = urllib.request.Request(CNIL_RSS, headers=_UA)
         with urllib.request.urlopen(req, timeout=15) as resp:
             payload = resp.read()
-    except (urllib.error.URLError, TimeoutError):
+    except (urllib.error.URLError, TimeoutError) as exc:
+        logger.warning("CNIL: echec recuperation flux (%s)", exc)
         return 0
 
     try:
         items = _parser_rss(payload)
-    except ET.ParseError:
+    except ET.ParseError as exc:
+        logger.warning("CNIL: echec parsing RSS (%s)", exc)
         return 0
 
     total = 0
@@ -381,6 +585,7 @@ def collecter_referentiels_normatifs():
         })
         total += 1
 
+    logger.info("CNIL: %d renseignements normatifs traites", total)
     return total
 
 
@@ -472,11 +677,13 @@ def collecter_catalogue_actifs():
     le cherche, au lieu de dependre d'une liste figee tapee a la main."""
     try:
         index = _get_json(ENDOFLIFE_INDEX)
-    except (urllib.error.URLError, TimeoutError, ValueError):
+    except (urllib.error.URLError, TimeoutError, ValueError) as exc:
+        logger.warning("endoflife.date: echec recuperation index (%s)", exc)
         return {"produits": 0, "versions": 0}
 
     total_produits = 0
     total_versions = 0
+    erreurs = 0
 
     for entree in index.get("result", []):
         slug = entree.get("name")
@@ -486,7 +693,9 @@ def collecter_catalogue_actifs():
         time.sleep(0.15)
         try:
             detail = _get_json(ENDOFLIFE_DETAIL.format(slug=slug)).get("result", {})
-        except (urllib.error.URLError, TimeoutError, ValueError):
+        except (urllib.error.URLError, TimeoutError, ValueError) as exc:
+            erreurs += 1
+            logger.warning("endoflife.date %s: echec recuperation detail (%s)", slug, exc)
             continue
 
         vendor_slug = _vendor_depuis_cpe(detail.get("identifiers", []))
@@ -516,14 +725,297 @@ def collecter_catalogue_actifs():
             )
             total_versions += 1
 
+    logger.info(
+        "endoflife.date: %d produits, %d versions (%d produits en erreur)",
+        total_produits, total_versions, erreurs,
+    )
     return {"produits": total_produits, "versions": total_versions}
+
+
+@shared_task
+def collecter_debian_security():
+    """Debian Security Tracker : CVE par paquet Debian, avec statut par
+    version de la distro (open/resolved). Comme les autres sources
+    proactives, parcourt TOUT le tracker (~4000 paquets), sans regarder la
+    BDC — c'est exactement ce qui manquait pour des paquets comme OpenSSH,
+    jamais cherches par l'ancienne version reactive de la collecte NVD.
+
+    Ne retient que les CVE encore ouvertes sur au moins une version : le
+    tracker ne porte aucune date par entree (limite du format, documentee
+    ici plutot que devinee), filtrer par statut est le seul levier
+    disponible pour rester pertinent plutot que de remonter 25 ans
+    d'historique clos.
+    """
+    try:
+        catalogue = _get_json(DEBIAN_TRACKER)
+    except (urllib.error.URLError, TimeoutError, ValueError) as exc:
+        logger.warning("Debian Security Tracker: echec recuperation (%s)", exc)
+        return 0
+
+    total = 0
+    for paquet, cves in catalogue.items():
+        for cve_id, info in cves.items():
+            releases = info.get("releases", {})
+            if not any(r.get("status") == "open" for r in releases.values()):
+                continue
+
+            # Cle composite CVE::paquet : une meme CVE touche parfois plusieurs
+            # paquets Debian (ex : une lib partagee) — une cle nue aurait
+            # collabe ces occurrences sur une seule ligne et perdu le
+            # rattachement produit pour tous les paquets sauf le premier
+            # rencontre (bug reel trouve et corrige pendant la verification).
+            ref = f"{cve_id}::{paquet}"
+
+            # Pas de date fiable dans la source : on reutilise celle deja en
+            # base si cette entree est deja connue (pour que le
+            # dedoublonnage de normaliser_et_ecrire_bdp la retrouve), sinon
+            # "maintenant" pour une premiere ecriture.
+            existant = (
+                Renseignement.objects.filter(source="Debian Security Tracker", reference_externe=ref)
+                .order_by("-decouvert_le")
+                .first()
+            )
+            decouvert_le = existant.decouvert_le if existant else timezone.now()
+
+            description = (info.get("description") or "")[:2000] or "(pas de description disponible)"
+            normaliser_et_ecrire_bdp({
+                "type": "technique",
+                "titre": f"{paquet} — {_resume(description)}" if description else paquet,
+                "description": description,
+                "source": "Debian Security Tracker",
+                "url_source": f"https://security-tracker.debian.org/tracker/{cve_id}",
+                "reference_externe": ref,
+                "criticite": "moyenne",  # pas de score dans la source, urgence textuelle heterogene par release
+                "nature": "vulnerabilite",
+                "taxonomie_editeur": "Debian",
+                "taxonomie_produit": paquet,
+                "decouvert_le": decouvert_le,
+            })
+            total += 1
+
+    logger.info("Debian Security Tracker: %d renseignements traites (CVE encore ouvertes)", total)
+    return total
+
+
+@shared_task
+def collecter_ubuntu_usn():
+    """Ubuntu Security Notices (USN) — complement direct de Debian Security
+    Tracker pour les actifs Ubuntu specifiquement. Meme principe de fenetre
+    proactive que NVD : backfill `_BACKFILL_JOURS` au premier run, puis
+    uniquement les nouveautes depuis la derniere collecte."""
+    # Meme plancher defensif que NVD (cf. son commentaire) : ne jamais
+    # redescendre sous _BACKFILL_JOURS meme si une ligne plus ancienne existe.
+    plancher = timezone.now() - timedelta(days=_BACKFILL_JOURS)
+    derniere = Renseignement.objects.filter(source="Ubuntu USN").aggregate(m=Max("decouvert_le"))["m"]
+    seuil = max(derniere, plancher) if derniere else plancher
+
+    total = 0
+    erreurs = 0
+    offset = 0
+    LIMITE_PAGE = 20  # max autorise par l'API (422 au-dela, verifie en direct)
+
+    while True:
+        params = urllib.parse.urlencode({"limit": LIMITE_PAGE, "offset": offset})
+        try:
+            payload = _get_json(f"{UBUNTU_USN}?{params}")
+        except (urllib.error.URLError, TimeoutError, ValueError) as exc:
+            erreurs += 1
+            logger.warning("Ubuntu USN: echec recuperation page offset=%d (%s)", offset, exc)
+            break
+
+        notices = payload.get("notices", [])
+        if not notices:
+            break
+
+        arret = False
+        for notice in notices:
+            try:
+                publie = datetime.fromisoformat(notice["published"])
+            except (KeyError, ValueError):
+                continue
+            if timezone.is_naive(publie):
+                publie = timezone.make_aware(publie, timezone.get_default_timezone())
+            if publie < seuil:
+                arret = True
+                break
+
+            usn_id = notice.get("id", "")
+            titre = notice.get("title", "")
+            description = (notice.get("description") or notice.get("summary") or "")[:2000] or (
+                "(pas de description disponible)"
+            )
+
+            paquets_vus = set()
+            for paquets in notice.get("release_packages", {}).values():
+                for p in paquets:
+                    nom = p.get("name", "")
+                    if not nom or nom in paquets_vus:
+                        continue
+                    paquets_vus.add(nom)
+                    normaliser_et_ecrire_bdp({
+                        "type": "technique",
+                        "titre": f"{nom} — {titre}" if titre else nom,
+                        "description": description,
+                        "source": "Ubuntu USN",
+                        "url_source": f"https://ubuntu.com/security/notices/{usn_id}",
+                        "reference_externe": f"{usn_id}::{nom}",
+                        "criticite": "moyenne",
+                        "nature": "vulnerabilite",
+                        "taxonomie_editeur": "Canonical",
+                        "taxonomie_produit": nom,
+                        "decouvert_le": publie,
+                    })
+                    total += 1
+
+        if arret:
+            break
+        offset += LIMITE_PAGE
+        time.sleep(0.2)
+
+    logger.info("Ubuntu USN: %d renseignements traites (%d erreurs)", total, erreurs)
+    return total
+
+
+def _github_headers():
+    h = {"Accept": "application/vnd.github+json", "User-Agent": _UA["User-Agent"]}
+    if GITHUB_TOKEN:
+        h["Authorization"] = f"Bearer {GITHUB_TOKEN}"
+    return h
+
+
+def _lien_suivant(entete_link: str | None) -> str | None:
+    """Extrait l'URL rel="next" d'un en-tete HTTP Link (pagination par
+    curseur de l'API GitHub — pas d'offset/page classique)."""
+    if not entete_link:
+        return None
+    for morceau in entete_link.split(","):
+        if 'rel="next"' in morceau:
+            m = re.search(r"<([^>]+)>", morceau)
+            if m:
+                return m.group(1)
+    return None
+
+
+@shared_task
+def collecter_github_advisories():
+    """GitHub Security Advisories : couvre l'ecosysteme open-source (pip,
+    npm, Maven, Go, RubyGems...) largement hors radar CERT-FR/NVD/Debian.
+
+    60 requetes/heure sans authentification, 5000/h avec GITHUB_TOKEN (var
+    d'env, token gratuit sans permission particuliere) : backfill limite a
+    90 jours sans token, `_BACKFILL_JOURS` (365) avec. Pagination par
+    curseur (en-tete Link) ; la liste est deja triee par date de publication
+    decroissante donc pas besoin de fenetre de dates cote requete — on
+    s'arrete des qu'on sort de la fenetre ou qu'on retrouve un ghsa_id deja
+    connu."""
+    profondeur = _GHSA_BACKFILL_JOURS_AVEC_TOKEN if GITHUB_TOKEN else _GHSA_BACKFILL_JOURS_SANS_TOKEN
+    seuil = timezone.now() - timedelta(days=profondeur)
+
+    total = 0
+    erreurs = 0
+    url = f"{GITHUB_ADVISORIES}?per_page=100&sort=published&direction=desc"
+
+    while url:
+        req = urllib.request.Request(url, headers=_github_headers())
+        try:
+            with urllib.request.urlopen(req, timeout=20) as resp:
+                payload = json.loads(resp.read().decode("utf-8"))
+                lien_suivant = _lien_suivant(resp.headers.get("Link"))
+        except (urllib.error.URLError, TimeoutError, ValueError) as exc:
+            erreurs += 1
+            logger.warning("GitHub Advisories: echec requete (%s)", exc)
+            break
+
+        arret = False
+        for advisory in payload:
+            ghsa_id = advisory.get("ghsa_id")
+            if not ghsa_id:
+                continue
+            try:
+                publie = datetime.fromisoformat((advisory.get("published_at") or "").replace("Z", "+00:00"))
+            except ValueError:
+                continue
+            if publie < seuil:
+                arret = True
+                break
+            if Renseignement.objects.filter(
+                source="GitHub Advisories", reference_externe__startswith=ghsa_id
+            ).exists():
+                arret = True
+                break
+
+            severite = (advisory.get("severity") or "").upper()
+            cvss = (advisory.get("cvss_severities") or {}).get("cvss_v3") or {}
+            description = (advisory.get("summary") or advisory.get("description") or "")[:2000] or (
+                "(pas de description disponible)"
+            )
+
+            paquets_vus = set()
+            for vuln in advisory.get("vulnerabilities", []):
+                pkg = vuln.get("package") or {}
+                nom = pkg.get("name", "")
+                ecosysteme = pkg.get("ecosystem", "")
+                if not nom or nom in paquets_vus:
+                    continue
+                paquets_vus.add(nom)
+                normaliser_et_ecrire_bdp({
+                    "type": "technique",
+                    "titre": f"{nom} — {advisory.get('summary', '')}"[:500],
+                    "description": description,
+                    "source": "GitHub Advisories",
+                    "url_source": advisory.get("html_url", ""),
+                    "reference_externe": f"{ghsa_id}::{nom}",
+                    "criticite": _SEVERITE_NVD.get(severite, "moyenne"),
+                    "nature": "vulnerabilite",
+                    "taxonomie_categorie": ecosysteme,
+                    "taxonomie_produit": nom,
+                    "decouvert_le": publie,
+                    "cvss_score": cvss.get("score") or None,
+                    "cvss_vector": cvss.get("vector_string") or "",
+                })
+                total += 1
+
+            if not paquets_vus:
+                normaliser_et_ecrire_bdp({
+                    "type": "technique",
+                    "titre": (advisory.get("summary") or ghsa_id)[:500],
+                    "description": description,
+                    "source": "GitHub Advisories",
+                    "url_source": advisory.get("html_url", ""),
+                    "reference_externe": ghsa_id,
+                    "criticite": _SEVERITE_NVD.get(severite, "moyenne"),
+                    "nature": "vulnerabilite",
+                    "decouvert_le": publie,
+                    "cvss_score": cvss.get("score") or None,
+                    "cvss_vector": cvss.get("vector_string") or "",
+                })
+                total += 1
+
+        if arret:
+            break
+        url = lien_suivant
+        if url:
+            time.sleep(0.1 if GITHUB_TOKEN else 1.2)
+
+    logger.info(
+        "GitHub Advisories: %d renseignements traites (%d erreurs, profondeur %d jours)",
+        total, erreurs, profondeur,
+    )
+    return total
 
 
 @shared_task
 def cycle_ingestion():
     """Orchestre un cycle complet de collecte puis declenche le Matching."""
+    logger.info("=== Debut du cycle d'ingestion ===")
     collecter_nvd_cve()
-    collecter_cert_fr()
+    enrichir_kev()
+    collecter_cert_fr_avis()
+    collecter_cert_fr_alertes()
     collecter_referentiels_normatifs()
+    collecter_debian_security()
+    collecter_ubuntu_usn()
+    collecter_github_advisories()
     collecter_catalogue_actifs()
     calculer_matching()
+    logger.info("=== Fin du cycle d'ingestion ===")

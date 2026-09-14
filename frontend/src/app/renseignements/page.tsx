@@ -517,7 +517,6 @@ function Contenu() {
           onAjoute={chargerActifs}
         />
       }
-      compteurs={{ aTraiter: nbATraiter, actifs: actifs.length }}
     >
       <PageHead
         titre="Renseignements"

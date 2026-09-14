@@ -1,6 +1,7 @@
 import math
 import uuid
 
+from django.contrib.postgres.indexes import GinIndex
 from django.db import models
 
 
@@ -61,10 +62,10 @@ class Renseignement(models.Model):
     cvss_score = models.FloatField(null=True, blank=True)
     cvss_vector = models.CharField(max_length=100, blank=True, help_text="ex: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H")
 
-    # Enrichissement complementaire — rempli par lingestion quand la source
-    # le fournit (aucune ne le fait encore integralement aujourdhui : ces
-    # champs existent pour laffichage conditionnel cote front et seront
-    # peuples progressivement, source par source). Jamais obligatoires.
+    # Enrichissement complementaire — rempli par l'ingestion quand la source
+    # le fournit (KEV alimente tags/niveau_confiance/cve_associees ; les
+    # autres restent vides tant qu'aucune source ne les couvre). Jamais
+    # obligatoires, toujours affiches conditionnellement cote front.
     AUTEUR_TLP = [
         ("clear", "TLP:CLEAR"),
         ("green", "TLP:GREEN"),
@@ -78,7 +79,7 @@ class Renseignement(models.Model):
     ]
     auteur = models.CharField(max_length=200, blank=True, help_text="Analyste ou organisme auteur, si distinct de la source")
     niveau_confiance = models.CharField(max_length=16, choices=NIVEAU_CONFIANCE_CHOICES, blank=True)
-    tags = models.JSONField(default=list, blank=True, help_text="Mots-cles libres, ex: ['ransomware', 'zero-day']")
+    tags = models.JSONField(default=list, blank=True, help_text="Mots-cles libres, ex: ['ransomware', 'KEV']")
     secteur_concerne = models.CharField(max_length=200, blank=True, help_text="Secteur vise, si la source le precise")
     tlp = models.CharField(max_length=8, choices=AUTEUR_TLP, blank=True, help_text="Traffic Light Protocol")
     cve_associees = models.JSONField(default=list, blank=True, help_text="CVE additionnelles au-dela de reference_externe")
@@ -101,6 +102,26 @@ class Renseignement(models.Model):
         indexes = [
             models.Index(fields=["taxonomie_editeur", "taxonomie_produit"]),
             models.Index(fields=["taxonomie_referentiel"]),
+            # Le Matching filtre par ILIKE (icontains) sur ces 4 colonnes
+            # (apps/matching/services.py) : sans index trigram, ces requetes
+            # passent en scan sequentiel des que la BDP grossit — constate en
+            # direct en passant de ~750 a ~100 000 lignes (site ralenti,
+            # 106ms -> 11ms par requete apres ajout de ces index).
+            GinIndex(fields=["titre"], name="idx_rens_titre_trgm", opclasses=["gin_trgm_ops"]),
+            GinIndex(fields=["taxonomie_produit"], name="idx_rens_produit_trgm", opclasses=["gin_trgm_ops"]),
+            GinIndex(fields=["taxonomie_editeur"], name="idx_rens_editeur_trgm", opclasses=["gin_trgm_ops"]),
+            GinIndex(fields=["taxonomie_referentiel"], name="idx_rens_referentiel_trgm", opclasses=["gin_trgm_ops"]),
+        ]
+        constraints = [
+            # Garde-fou base contre le doublon exact : deux ecritures pour la
+            # meme source + meme reference + meme revision source ne peuvent
+            # plus coexister, meme en cas de course entre deux runs
+            # d'ingestion concurrents. Le versionning legitime (parent) reste
+            # possible : une revision differente change `decouvert_le`.
+            models.UniqueConstraint(
+                fields=["source", "reference_externe", "decouvert_le"],
+                name="renseignement_source_ref_revision_unique",
+            ),
         ]
 
     def __str__(self):

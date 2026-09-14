@@ -228,7 +228,6 @@ function Contenu() {
 
   return (
     <AppShell
-      compteurs={{ aTraiter, traitements: undefined, actifs: d.nb_actifs }}
       derniereCollecte={d.derniere_collecte}
     >
       <PageHead
