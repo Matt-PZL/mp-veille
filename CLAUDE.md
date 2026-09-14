@@ -6,6 +6,7 @@ la VM. Ce fichier est lu automatiquement en début de session ; le tenir à
 jour évite de refaire des heures d'investigation déjà faites.
 
 @CLAUDE.lucas.md
+@OBJECTIFS.md
 
 ## D'où vient cette branche
 
