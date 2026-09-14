@@ -29,7 +29,9 @@ from operator import or_
 
 from django.db.models import Q
 
-from apps.bdc.models import ActifClient
+from collections import Counter
+
+from apps.bdc.models import ActifClient, Traitement
 from apps.bdp.models import Renseignement
 
 from .normalisation import (
@@ -207,3 +209,91 @@ def calculer_matching(actifs=None, seuil: float = SEUIL_MINIMAL) -> list[Resulta
 
     resultats.sort(key=lambda r: (-r.confiance, -r.renseignement.decouvert_le.timestamp()))
     return resultats
+
+
+# --------------------------------------------------------------------------
+# Statistiques de perimetre — point d'entree unique.
+#
+# Avant ceci, dashboard.py / renseignements.py / traitement.py recalculaient
+# chacun leurs propres agregats, sur des populations differentes (certains
+# scopes sur le Matching, d'autres sur Traitement.objects.all() brut) : les
+# compteurs affiches divergaient selon la page. Toute agregation « combien de
+# renseignements / actifs / de quel statut » doit desormais passer par
+# calculer_perimetre_stats(), jamais etre recalculee localement dans un routeur.
+
+
+@dataclass(frozen=True)
+class PerimetreStats:
+    nb_renseignements: int
+    nb_ouverts: int
+    par_etape: dict[str, int]
+    par_criticite: dict[str, int]
+    par_criticite_ouverts: dict[str, int]
+    nb_actifs: int
+    nb_actifs_clean: int
+    nb_actifs_avec_non_traites: int
+
+
+def actifs_avec_renseignements_ouverts() -> set[int]:
+    """PKs des ActifClient couverts par au moins un renseignement pertinent
+    dont le traitement est encore ouvert (a_traiter/en_cours)."""
+    resultats = calculer_matching()
+    traitements = {t.id_renseignement_bdp: t for t in Traitement.objects.all()}
+    return {
+        r.actif.pk
+        for r in resultats
+        if getattr(traitements.get(r.renseignement.id_renseignement_bdp), "statut", "a_traiter")
+        in _OUVERTS
+    }
+
+
+_OUVERTS = ("a_traiter", "en_cours")
+
+
+def calculer_perimetre_stats(actif_id: int | None = None) -> PerimetreStats:
+    """Chiffres agreges sur le perimetre du client (calculer_matching(),
+    dedupliques), ou sur un seul actif si `actif_id` est fourni.
+
+    Filtrer par criticite/statut cote appelant ne doit JAMAIS repasser par
+    cette fonction avec un scope different : les stats retournees decrivent
+    toujours le perimetre choisi (tout le client, ou un seul actif) dans son
+    ensemble, independamment de tout filtre d'affichage applique ensuite a la
+    liste — c'est ce qui garantit qu'elles ne bougent pas quand on filtre.
+    """
+    resultats_total = calculer_matching()
+    resultats = (
+        resultats_total
+        if actif_id is None
+        else [r for r in resultats_total if r.actif.pk == actif_id]
+    )
+
+    pertinents = list(
+        {r.renseignement.id_renseignement_bdp: r.renseignement for r in resultats}.values()
+    )
+    traitements = {t.id_renseignement_bdp: t for t in Traitement.objects.all()}
+
+    def statut_de(r):
+        return getattr(traitements.get(r.id_renseignement_bdp), "statut", "a_traiter")
+
+    par_etape = Counter(statut_de(r) for r in pertinents)
+    ouverts = [r for r in pertinents if statut_de(r) in _OUVERTS]
+    par_criticite = Counter(r.criticite or "moyenne" for r in pertinents)
+    par_criticite_ouverts = Counter(r.criticite or "moyenne" for r in ouverts)
+
+    nb_actifs = ActifClient.objects.count()
+    nb_actifs_clean = nb_actifs_avec_non_traites = 0
+    if actif_id is None:
+        actifs_ouverts = actifs_avec_renseignements_ouverts()
+        nb_actifs_avec_non_traites = len(actifs_ouverts)
+        nb_actifs_clean = nb_actifs - nb_actifs_avec_non_traites
+
+    return PerimetreStats(
+        nb_renseignements=len(pertinents),
+        nb_ouverts=len(ouverts),
+        par_etape=dict(par_etape),
+        par_criticite=dict(par_criticite),
+        par_criticite_ouverts=dict(par_criticite_ouverts),
+        nb_actifs=nb_actifs,
+        nb_actifs_clean=nb_actifs_clean,
+        nb_actifs_avec_non_traites=nb_actifs_avec_non_traites,
+    )

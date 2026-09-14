@@ -16,8 +16,8 @@ from ninja import Query, Router
 from apps.api.schemas import (
     MessageOut,
     RenseignementDetail,
-    RenseignementListItem,
     RenseignementOut,
+    RenseignementsListe,
 )
 from apps.api.serializers import (
     cvss_axes,
@@ -29,7 +29,7 @@ from apps.api.serializers import (
 )
 from apps.bdc.models import ActifClient, RenseignementConsulte, Traitement
 from apps.bdp.models import Renseignement
-from apps.matching.services import calculer_matching
+from apps.matching.services import calculer_matching, calculer_perimetre_stats
 
 router = Router()
 
@@ -37,21 +37,29 @@ _ORDRE_CRITICITE = {"critique": 0, "elevee": 1, "moyenne": 2, "faible": 3}
 _ORDRE_STATUT = {"a_traiter": 0, "en_cours": 1, "clos": 2, "non_applicable": 3}
 
 
-@router.get("", response=list[RenseignementListItem])
+@router.get("", response=RenseignementsListe)
 def lister(
     request,
     actif: int | None = Query(None),
     type: str | None = Query(None),
     criticite: str | None = Query(None),
+    statut: str | None = Query(None),
+    q: str | None = Query(None),
     tri: str = Query("date"),
 ):
     """Feed filtre sur le perimetre du client.
 
     Un seul passage de Matching : il etait relance a chaque besoin dans les
     anciennes vues, alors qu'il parcourt la BDP.
+
+    `stats` est calcule sur le perimetre choisi (l'actif selectionne, ou tout
+    le client) AVANT tout filtre d'affichage (criticite/statut/q) : filtrer
+    la liste ne doit jamais faire bouger les chiffres affiches a cote — c'est
+    le contrat que ce endpoint garantit desormais explicitement.
     """
     resultats = calculer_matching()
     paliers = paliers_par_renseignement(resultats)
+    stats = calculer_perimetre_stats(actif_id=actif)
 
     if actif is not None:
         items = [r.renseignement for r in resultats if r.actif.pk == actif]
@@ -64,6 +72,25 @@ def lister(
         items = [r for r in items if r.criticite == criticite]
 
     traitements = {t.id_renseignement_bdp: t for t in Traitement.objects.select_related("actif")}
+
+    if statut:
+        statuts_voulus = {s.strip() for s in statut.split(",") if s.strip()}
+        items = [
+            r
+            for r in items
+            if getattr(traitements.get(r.id_renseignement_bdp), "statut", "a_traiter") in statuts_voulus
+        ]
+
+    if q:
+        terme = q.lower()
+        items = [
+            r
+            for r in items
+            if terme in r.titre.lower()
+            or terme in r.description.lower()
+            or terme in r.reference_courte.lower()
+        ]
+
     consultes = set(RenseignementConsulte.objects.values_list("id_renseignement_bdp", flat=True))
 
     if tri == "criticite":
@@ -88,7 +115,15 @@ def lister(
                 "match": match_info(paliers.get(r.id_renseignement_bdp)),
             }
         )
-    return sortie
+    return {
+        "items": sortie,
+        "stats": {
+            "nb_renseignements": stats.nb_renseignements,
+            "nb_ouverts": stats.nb_ouverts,
+            "par_etape": stats.par_etape,
+            "par_criticite_ouverts": stats.par_criticite_ouverts,
+        },
+    }
 
 
 @router.get("/actualites", response=list[RenseignementOut])

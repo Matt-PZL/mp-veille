@@ -19,7 +19,7 @@ from apps.api.schemas import DashboardOut
 from apps.api.serializers import paliers_par_renseignement, renseignement_out
 from apps.bdc.models import ActifClient, RenseignementConsulte, Traitement
 from apps.bdp.models import Renseignement
-from apps.matching.services import calculer_matching
+from apps.matching.services import calculer_matching, calculer_perimetre_stats
 
 router = Router()
 
@@ -32,6 +32,9 @@ def vue_ensemble(request):
     aujourdhui = timezone.localdate()
     resultats = calculer_matching()
     paliers = paliers_par_renseignement(resultats)
+    # Seule source des chiffres agreges (voir apps/matching/services.py) : ne
+    # jamais recalculer par_criticite/par_etape/nb_* localement ici.
+    stats = calculer_perimetre_stats()
 
     tous = list(Renseignement.objects.all())
     traitements = {t.id_renseignement_bdp: t for t in Traitement.objects.select_related("actif")}
@@ -43,8 +46,6 @@ def vue_ensemble(request):
         return getattr(traitements.get(r.id_renseignement_bdp), "statut", "a_traiter")
 
     ouverts = [r for r in pertinents if statut_de(r) in _OUVERTS]
-    par_criticite = Counter(r.criticite or "moyenne" for r in ouverts)
-    par_etape = Counter(statut_de(r) for r in pertinents)
     non_consultes = [r for r in pertinents if r.id_renseignement_bdp not in consultes]
 
     # --- Sante de la surveillance ---
@@ -124,13 +125,17 @@ def vue_ensemble(request):
     derniers = sorted(pertinents, key=lambda r: r.decouvert_le, reverse=True)[:6]
 
     return {
-        "nb_renseignements": len(pertinents),
-        "nb_actifs": ActifClient.objects.count(),
+        "nb_renseignements": stats.nb_renseignements,
+        "nb_ouverts": stats.nb_ouverts,
+        "nb_actifs": stats.nb_actifs,
         "nb_actifs_technique": nb_technique,
+        "nb_actifs_clean": stats.nb_actifs_clean,
+        "nb_actifs_avec_non_traites": stats.nb_actifs_avec_non_traites,
         "nb_referentiels": nb_referentiels,
         "derniere_collecte": max((r.cree_le for r in tous), default=None),
-        "par_criticite": dict(par_criticite),
-        "par_etape": dict(par_etape),
+        "par_criticite": stats.par_criticite,
+        "par_criticite_ouverts": stats.par_criticite_ouverts,
+        "par_etape": stats.par_etape,
         "nb_non_consultes": len(non_consultes),
         "nb_en_retard": nb_en_retard,
         "taux_cloture": taux_cloture,

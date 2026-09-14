@@ -21,7 +21,7 @@ from apps.api.schemas import (
 )
 from apps.api.serializers import actif_out
 from apps.bdc.models import ActifClient, HistoriqueActif, Traitement
-from apps.matching.services import calculer_matching
+from apps.matching.services import actifs_avec_renseignements_ouverts, calculer_matching
 
 router = Router()
 
@@ -36,10 +36,22 @@ def _pks_couverts() -> set[int]:
 
 
 @router.get("", response=list[ActifOut])
-def lister(request, q: str | None = Query(None), type: str | None = Query(None)):
+def lister(
+    request,
+    q: str | None = Query(None),
+    type: str | None = Query(None),
+    etat: str | None = Query(None),
+):
+    """`etat=clean` / `etat=non_traite` : partitionne sur le meme calcul que
+    les tuiles Actifs clean / Actifs avec renseignements non traites de Vue
+    d'ensemble (apps.matching.services.actifs_avec_renseignements_ouverts)."""
     qs = ActifClient.objects.all()
     if type in ("technique", "normatif"):
         qs = qs.filter(type=type)
+
+    if etat in ("clean", "non_traite"):
+        ouverts = actifs_avec_renseignements_ouverts()
+        qs = qs.exclude(pk__in=ouverts) if etat == "clean" else qs.filter(pk__in=ouverts)
 
     actifs = sorted(qs, key=lambda a: str(a))
     if q:

@@ -127,6 +127,14 @@ CORS_ALLOWED_ORIGINS = config(
 )
 CORS_ALLOW_CREDENTIALS = True
 
+# Chrome/Edge recents bloquent silencieusement (ERR_BLOCKED_BY_CLIENT) toute
+# requete JS depuis une page vers une IP privee (Private Network Access),
+# sauf si le serveur repond explicitement qu il l autorise. Notre front et
+# notre API tournent tous deux sur le LAN (192.168.1.x) : sans ce flag, la
+# verification de session ("/auth/moi") echoue en boucle sans jamais lever
+# d erreur visible cote reseau.
+CORS_ALLOW_PRIVATE_NETWORK = True
+
 # Le front lit le cookie CSRF en JS pour le renvoyer en en-tete : il ne peut
 # donc pas etre httpOnly. Le cookie de SESSION, lui, le reste.
 CSRF_COOKIE_HTTPONLY = False

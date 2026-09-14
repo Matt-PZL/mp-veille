@@ -25,7 +25,10 @@ import type {
   Utilisateur,
 } from "./types";
 
-const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+// Meme origine que la page : le proxy defini dans next.config.ts relaie
+// vers Django cote serveur. On ne cible plus jamais le backend directement
+// depuis le navigateur (voir next.config.ts pour le pourquoi).
+const BASE = "";
 
 /** Erreur portant le detail renvoye par l'API (erreurs par champ en 422). */
 export class ApiError extends Error {

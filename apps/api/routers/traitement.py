@@ -21,7 +21,7 @@ from apps.api.schemas import MessageOut, TraitementDetail, TraitementListItem, T
 from apps.api.serializers import renseignement_out, traitement_detail
 from apps.bdc.models import HistoriqueTraitement, Traitement
 from apps.bdp.models import Renseignement
-from apps.matching.services import calculer_matching
+from apps.matching.services import calculer_matching, calculer_perimetre_stats
 
 router = Router()
 
@@ -123,17 +123,28 @@ def lister(
 
 @router.get("/compteurs", response=dict)
 def compteurs(request):
+    """Meme source que Vue d'ensemble et Renseignements
+    (calculer_perimetre_stats) : avant ceci, ce endpoint comptait
+    Traitement.objects.all() brut (y compris des traitements dont l'actif a
+    ete supprime), un total different de celui des deux autres pages pour
+    la meme notion de "combien de renseignements a traiter"."""
     from django.utils import timezone
 
+    stats = calculer_perimetre_stats()
     base = {code: 0 for code, _ in Traitement.STATUT_CHOICES}
-    for t in Traitement.objects.all():
-        base[t.statut] = base.get(t.statut, 0) + 1
+    base.update(stats.par_etape)
+
+    pertinents_ids = {r.renseignement.id_renseignement_bdp for r in calculer_matching()}
+    en_retard = Traitement.objects.filter(
+        id_renseignement_bdp__in=pertinents_ids,
+        echeance__lt=timezone.localdate(),
+        statut__in=_OUVERTS,
+    ).count()
+
     return {
         **base,
-        "total": Traitement.objects.count(),
-        "en_retard": Traitement.objects.filter(
-            echeance__lt=timezone.localdate(), statut__in=_OUVERTS
-        ).count(),
+        "total": stats.nb_renseignements,
+        "en_retard": en_retard,
     }
 
 

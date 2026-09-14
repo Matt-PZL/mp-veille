@@ -64,6 +64,22 @@ class RenseignementListItem(Schema):
     match: MatchInfo | None
 
 
+class RenseignementsStats(Schema):
+    """Stats du perimetre choisi (tout le client, ou un seul actif) —
+    calculees AVANT tout filtre d'affichage (criticite, statut...), donc
+    stables quel que soit le filtre applique a `items` a cote."""
+
+    nb_renseignements: int
+    nb_ouverts: int
+    par_etape: dict[str, int]
+    par_criticite_ouverts: dict[str, int]
+
+
+class RenseignementsListe(Schema):
+    items: list[RenseignementListItem]
+    stats: RenseignementsStats
+
+
 class RenseignementDetail(Schema):
     renseignement: RenseignementOut
     traitement: "TraitementDetail | None"
@@ -188,12 +204,16 @@ class EcheanceOut(Schema):
 
 class DashboardOut(Schema):
     nb_renseignements: int
+    nb_ouverts: int
     nb_actifs: int
     nb_actifs_technique: int
+    nb_actifs_clean: int
+    nb_actifs_avec_non_traites: int
     nb_referentiels: int
     derniere_collecte: datetime | None
 
     par_criticite: dict[str, int]
+    par_criticite_ouverts: dict[str, int]
     par_etape: dict[str, int]
     nb_non_consultes: int
     nb_en_retard: int
