@@ -66,9 +66,14 @@ services:
       # commande (development pour `next dev`, production pour `next build`).
       # Le figer a "development" cassait le build de production.
       - WATCHPACK_POLLING=true
-      # Le navigateur appelle l'API depuis la machine hote, pas depuis le
-      # reseau Docker : l'URL doit donc rester localhost, pas "web".
-      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      # Le navigateur n'appelle QUE sa propre origine : c'est le serveur Next
+      # qui relaie vers Django (rewrite dans next.config.ts). Cela contourne
+      # les protections "Private Network Access" de Chrome/Edge, qui bloquent
+      # un fetch navigateur vers une IP privee.
+      - NEXT_PUBLIC_API_URL=
+      # Cible du relais, cote reseau Docker : "web" et non "localhost", qui
+      # designerait le conteneur frontend lui-meme.
+      - API_INTERNAL_URL=http://web:8000
     depends_on: [web]
     networks: [internal]
 
