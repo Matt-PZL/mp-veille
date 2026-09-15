@@ -1,0 +1,13 @@
+Django>=5.0,<5.1
+psycopg[binary]>=3.1
+celery>=5.3
+redis>=5.0
+django-celery-beat>=2.6
+django-celery-results>=2.5
+cryptography>=42
+python-decouple>=3.8
+django-ninja>=1.3
+django-cors-headers>=4.4
+gunicorn>=22
+whitenoise>=6.7
+reportlab>=4.2
