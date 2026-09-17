@@ -51,7 +51,7 @@ function Contenu() {
         }
         actions={
           <Link
-            href="/renseignements"
+            href="/app/renseignements"
             className="inline-flex items-center gap-[7px] rounded-lg border border-border bg-surface-2 px-[15px] py-2 text-[13px] font-semibold text-ink-soft transition-colors hover:bg-surface-3 hover:text-ink"
           >
             <IconShield className="size-3.5" />

@@ -1,0 +1,179 @@
+/* ===========================================================================
+   Corps de la vitrine — sections publiques sous le hero.
+
+   Palette propre, claire, independante de data-theme : comme le hero, ces
+   sections doivent presenter le meme visage a tout visiteur anonyme, sans
+   suivre la preference sombre/claire enregistree par un compte deja connecte
+   au panel (cf. hero.module.css, meme raisonnement).
+   =========================================================================== */
+
+.section {
+  /* Compense la barre de navigation collante (64px) : sans ça, un lien
+     d'ancre depose le haut de la section exactement sous elle, masqué. */
+  scroll-margin-top: 64px;
+
+  --s-fond: #ffffff;
+  --s-fond-douce: #f6f7f9;
+  --s-ink: #0c0d10;
+  --s-soft: #565b66;
+  --s-faint: #8991a0;
+  --s-border: #e4e7ec;
+
+  --s-critique: #c9332e;
+  --s-elevee: #b5641b;
+  --s-normatif: #6d3aba;
+  --s-accent: #1b7f47;
+  --s-accent-vif: #3ee686;
+
+  position: relative;
+  background: var(--s-fond);
+  color: var(--s-ink);
+  font-family: var(--font-plex-sans), system-ui, sans-serif;
+}
+.sectionDouce { background: var(--s-fond-douce); }
+
+.conteneur {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 5.5rem max(1.25rem, calc((100% - 1240px) / 2));
+}
+
+/* ---------------------------------------------------------------------------
+   En-tete de section — etiquette HUD, titre, chapeau, CTA
+   --------------------------------------------------------------------------- */
+.oeil {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 1.1rem;
+  padding: 0.32rem 0.6rem;
+  border: 1px solid color-mix(in srgb, var(--s-accent) 30%, transparent);
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--s-accent) 7%, transparent);
+  color: var(--s-accent);
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.entete { max-width: 42rem; }
+.entete.centre { max-width: 38rem; margin-left: auto; margin-right: auto; text-align: center; }
+.entete.centre .oeil { margin-left: auto; margin-right: auto; }
+
+.titre {
+  margin: 0 0 1rem;
+  font-family: var(--font-archivo), Arial, sans-serif;
+  font-size: clamp(1.7rem, 2.8vw, 2.3rem);
+  font-weight: 800;
+  line-height: 1.16;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.chapo {
+  margin: 0;
+  max-width: 46ch;
+  color: var(--s-soft);
+  font-size: 1rem;
+  line-height: 1.7;
+}
+.entete.centre .chapo { max-width: none; margin-left: auto; margin-right: auto; }
+
+.cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 1.75rem;
+  color: var(--s-accent);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.cta svg { width: 15px; height: 15px; transition: transform 0.16s ease; }
+.cta:hover svg { transform: translateX(3px); }
+
+.ctaBouton {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 1.75rem;
+  padding: 0.75rem 1.4rem;
+  border-radius: 8px;
+  background: var(--s-ink);
+  color: #fff;
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: filter 0.18s ease;
+}
+.ctaBouton:hover { filter: brightness(1.2); }
+
+/* ---------------------------------------------------------------------------
+   Cartes 3 colonnes — section « problème »
+   --------------------------------------------------------------------------- */
+.grille3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.25rem;
+  margin-top: 3rem;
+}
+
+.carte {
+  padding: 1.6rem 1.5rem;
+  border: 1px solid var(--s-border);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(12, 13, 15, 0.04);
+}
+
+.carteIcone {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  margin-bottom: 1.1rem;
+  border-radius: 10px;
+}
+.carteIcone svg { width: 21px; height: 21px; }
+.carteIcone[data-teinte="critique"] { background: color-mix(in srgb, var(--s-critique) 12%, transparent); color: var(--s-critique); }
+.carteIcone[data-teinte="elevee"]   { background: color-mix(in srgb, var(--s-elevee) 12%, transparent); color: var(--s-elevee); }
+.carteIcone[data-teinte="normatif"] { background: color-mix(in srgb, var(--s-normatif) 12%, transparent); color: var(--s-normatif); }
+
+.carteTitre {
+  margin: 0 0 0.85rem;
+  font-family: var(--font-archivo), Arial, sans-serif;
+  font-size: 1.08rem;
+  font-weight: 700;
+}
+
+.carteListe {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.carteListe li {
+  position: relative;
+  padding-left: 1.1rem;
+  color: var(--s-soft);
+  font-size: 0.89rem;
+  line-height: 1.5;
+}
+.carteListe li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--s-faint);
+}
+
+@media (max-width: 860px) {
+  .grille3 { grid-template-columns: 1fr; }
+  .conteneur { padding-top: 4rem; padding-bottom: 4rem; }
+}

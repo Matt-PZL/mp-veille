@@ -222,7 +222,7 @@ function CarteRenseignement({ item }: { item: FeedItem }) {
 
   return (
     <Link
-      href={`/renseignements/${r.id}`}
+      href={`/app/renseignements/${r.id}`}
       className={`relative block overflow-hidden rounded-2xl border border-border bg-surface py-4 pr-[18px] pl-[21px] shadow-card transition-colors before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:content-[''] hover:border-border-strong ${
         {
           critique: "before:bg-crit",
@@ -279,15 +279,27 @@ function CarteRenseignement({ item }: { item: FeedItem }) {
             </span>
             <span className="text-[12.5px] font-medium text-ink">{r.source}</span>
             {r.url_source && (
-              <a
-                href={r.url_source}
-                target="_blank"
-                rel="noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                className="text-[11.5px] text-accent hover:underline"
+              // span, pas <a> : deja imbrique dans le <Link> de la carte, un
+              // lien dans un lien serait du HTML invalide (meme raison que
+              // "Lire la suite" plus haut).
+              <span
+                role="link"
+                tabIndex={0}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  window.open(r.url_source, "_blank", "noopener,noreferrer");
+                }}
+                onKeyDown={(e) => {
+                  if (e.key !== "Enter" && e.key !== " ") return;
+                  e.preventDefault();
+                  e.stopPropagation();
+                  window.open(r.url_source, "_blank", "noopener,noreferrer");
+                }}
+                className="cursor-pointer text-[11.5px] text-accent hover:underline"
               >
                 Voir l&apos;avis d&apos;origine →
-              </a>
+              </span>
             )}
           </div>
           {enrichissement.length > 0 ? (
@@ -492,7 +504,7 @@ function Contenu() {
       else p.set(k, String(v));
     }
     const s = p.toString();
-    return `/renseignements${s ? `?${s}` : ""}`;
+    return `/app/renseignements${s ? `?${s}` : ""}`;
   };
 
   // Ces 4 chiffres viennent de `stats` (calcule serveur AVANT le filtre
@@ -523,7 +535,7 @@ function Contenu() {
         sous={
           <>
             Filtré sur vos actifs déclarés. Le flux complet est dans{" "}
-            <Link href="/actualites" className="text-accent">
+            <Link href="/app/actualites" className="text-accent">
               Actualités
             </Link>
             .
@@ -593,7 +605,7 @@ function Contenu() {
                     action={
                       !actifs.length ? (
                         <Link
-                          href="/actifs"
+                          href="/app/actifs"
                           className="inline-flex items-center gap-[7px] rounded-lg border border-accent bg-accent px-[15px] py-2 text-[13px] font-semibold text-accent-ink"
                         >
                           <IconPlus className="size-3.5" />
@@ -611,7 +623,7 @@ function Contenu() {
                         Aucun renseignement ne concerne vos actifs déclarés.
                         <br />
                         Le flux brut reste consultable dans{" "}
-                        <Link href="/actualites" className="text-accent">
+                        <Link href="/app/actualites" className="text-accent">
                           Actualités
                         </Link>
                         .

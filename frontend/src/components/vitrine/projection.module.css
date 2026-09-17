@@ -1,0 +1,112 @@
+.grille {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3rem;
+  margin-top: 3rem;
+}
+
+.colonneTitre {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 1.1rem;
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8991a0;
+}
+
+.logoGrille {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+.logoTuile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 1.1rem 0.6rem;
+  border: 1px solid var(--s-border, #e4e7ec);
+  border-radius: 12px;
+  background: #fff;
+}
+.logoTuile svg { width: 24px; height: 24px; fill: #0c0d10; }
+.logoTuileTexte {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #565b66;
+  text-align: center;
+}
+.sigle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: #eaecef;
+  color: #565b66;
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: 0.6rem;
+  font-weight: 700;
+}
+
+.badgeGrille {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+.badge {
+  padding: 0.55rem 1rem;
+  border: 1px solid var(--s-border, #e4e7ec);
+  border-radius: 999px;
+  background: #fff;
+  color: #0c0d10;
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+/* --- bénéfices --- */
+.beneficesGrille {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1.1rem;
+  margin-top: 4.5rem;
+  padding-top: 3.5rem;
+  border-top: 1px solid var(--s-border, #e4e7ec);
+}
+
+.benefice { text-align: left; }
+.beneficeIcone {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  margin-bottom: 0.9rem;
+  border-radius: 10px;
+  background: rgba(62, 230, 134, 0.14);
+  color: #1b7f47;
+}
+.beneficeIcone svg { width: 18px; height: 18px; }
+.beneficeTitre {
+  margin: 0 0 0.4rem;
+  font-family: var(--font-archivo), Arial, sans-serif;
+  font-size: 0.98rem;
+  font-weight: 700;
+}
+.beneficeTexte { margin: 0; font-size: 0.85rem; line-height: 1.55; color: #565b66; }
+
+@media (max-width: 860px) {
+  .grille { grid-template-columns: 1fr; gap: 2.5rem; }
+  .beneficesGrille { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+  .logoGrille { grid-template-columns: repeat(2, 1fr); }
+  .beneficesGrille { grid-template-columns: 1fr; }
+}

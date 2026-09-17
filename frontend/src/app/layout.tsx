@@ -26,11 +26,9 @@ const plexMono = IBM_Plex_Mono({
   display: "swap",
 });
 
-// Tout le panel est derriere une authentification et affiche des donnees
-// vivantes : le prerendu statique n'y a aucun sens (il figerait au build un
-// contenu qui depend de la session). On force donc le rendu a la demande.
-export const dynamic = "force-dynamic";
-
+// Le rendu a la demande (force-dynamic) ne concerne que le panel
+// authentifie : il est declare dans app/app/layout.tsx, pas ici, pour que
+// les routes publiques (site vitrine, connexion) restent pre-rendables.
 export const metadata: Metadata = {
   title: "Veille — cyber & normative",
   description: "Panel de veille sur vos actifs techniques et vos référentiels normatifs.",

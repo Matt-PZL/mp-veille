@@ -1,0 +1,621 @@
+/* ===========================================================================
+   Hero « detection » — grammaire visuelle de reconnaissance appliquee aux
+   actifs et aux renseignements.
+
+   Trois regles structurantes, posees ici une fois pour toutes :
+
+   1. L'ordre d'empilement est declare dans un seul bloc (« Calques »). Aucun
+      z-index n'est defini ailleurs dans ce fichier.
+   2. Tout le decor est inerte au pointeur. Seules deux choses captent la
+      souris : la zone de detection d'une cible, et les boutons.
+   3. Le hero porte sa propre palette sombre. Il ne lit pas les tokens de
+      globals.css, qui basculent en clair avec data-theme : ce hero reste
+      sombre quel que soit le theme du reste du site.
+   =========================================================================== */
+
+.hero {
+  /* Palette : c'est l'echelle de criticite du produit (--color-crit, --elev,
+     --moy, --faib, --violet de globals.css), remontee en luminance. Un bloom
+     a besoin de canaux proches de la saturation pour produire une vraie
+     lumiere ; les valeurs du panel, calibrees pour du texte sur fond mat,
+     rendraient un halo gris. Meme echelle, meme semantique, plus d'energie. */
+  --h-fond: #06070a;
+  --h-ink: #eef0f3;
+  --h-soft: #8d95a3;
+  --h-faint: #59606c;
+  --h-trait: #aab1bb;
+
+  --h-critique: #ff5c54;
+  --h-elevee: #ff9a3c;
+  --h-moyenne: #f2c44e;
+  --h-faible: #3ee686;
+  --h-normatif: #b27bff;
+
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  min-height: 640px;
+  height: min(100svh, 980px);
+
+  /* Partage horizontal en colonnes explicites plutot qu'en pourcentages
+     concurrents. Une colonne de texte et une colonne de scene separees par une
+     gouttiere ne peuvent pas se recouvrir, quelle que soit la largeur — alors
+     qu'un `max-width` sur le texte et un `left: 41%` sur la scene finissent
+     toujours par se croiser a une taille intermediaire. La premiere colonne
+     reprend le centrage du site sur 1240px. */
+  display: grid;
+  grid-template-columns:
+    max(1.5rem, calc((100% - 1240px) / 2))
+    minmax(0, 30rem)
+    2.5rem
+    minmax(0, 1fr);
+
+  background: var(--h-fond);
+  color: var(--h-ink);
+  /* Les formulaires et scrollbars eventuels restent coherents avec le fond. */
+  color-scheme: dark;
+  font-family: var(--font-plex-sans), system-ui, sans-serif;
+}
+
+/* La cible active prend la couleur de sa criticite via cette variable, lue
+   par le cadre, le logo et la fiche : une seule source pour tout l'etat. */
+.cible[data-criticite="critique"] { --h-teinte: var(--h-critique); }
+.cible[data-criticite="elevee"]   { --h-teinte: var(--h-elevee); }
+.cible[data-criticite="moyenne"]  { --h-teinte: var(--h-moyenne); }
+.cible[data-criticite="faible"]   { --h-teinte: var(--h-faible); }
+.cible[data-criticite="normatif"] { --h-teinte: var(--h-normatif); }
+
+/* ---------------------------------------------------------------------------
+   Calques — unique endroit du fichier ou un z-index est defini.
+   --------------------------------------------------------------------------- */
+/* Le canvas est hors grille (absolu) : il couvre le hero de bord a bord,
+   gouttiere comprise. Les deux autres calques sont des cellules de grille. */
+/* width/height explicites : un canvas est un element remplace, `inset: 0` ne
+   suffit pas a l'etirer — il garderait sa taille intrinseque de 300x150 et
+   n'occuperait qu'un coin du hero. */
+.ambiance {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+/* La ligne est fixee explicitement : en placement automatique, la scene etant
+   posee avant le texte dans le DOM mais sur une colonne plus a droite, le
+   texte serait renvoye sur une seconde ligne — et le hero se retrouverait
+   empile au lieu d'etre cote a cote. */
+.scene    { position: relative; grid-area: 1 / 4; z-index: 1; pointer-events: none; }
+.copie    { position: relative; grid-area: 1 / 2; z-index: 2; pointer-events: none; }
+
+/* Dans la scene : cadres au repos, reticule au-dessus, cible affichee encore
+   au-dessus pour que sa fiche passe devant ses voisines. */
+.cible { z-index: 1; }
+.reticule { z-index: 2; }
+.cible[data-affiche="true"] { z-index: 3; }
+
+/* Porte-filtres : present dans le DOM pour que url(#…) resolve, invisible. */
+.defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+/* ---------------------------------------------------------------------------
+   Colonne de texte
+   --------------------------------------------------------------------------- */
+.copie {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100%;
+}
+
+.hud {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  align-self: flex-start;
+  margin: 0 0 1.5rem;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid color-mix(in srgb, var(--h-faible) 34%, transparent);
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--h-faible) 8%, transparent);
+  color: var(--h-faible);
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+}
+
+.hudPoint {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  /* Un vrai halo : une ombre est un flou gaussien, pas une approximation. */
+  box-shadow: 0 0 7px currentColor;
+  animation: pouls 1.6s steps(1, end) infinite;
+}
+
+.titre {
+  margin: 0 0 1.15rem;
+  font-family: var(--font-archivo), Arial, sans-serif;
+  font-size: clamp(1.95rem, 3.5vw, 2.9rem);
+  font-weight: 800;
+  line-height: 1.12;
+  letter-spacing: -0.022em;
+  text-wrap: balance;
+}
+
+.chapo {
+  margin: 0 0 1.9rem;
+  max-width: 44ch;
+  color: var(--h-soft);
+  font-size: 0.97rem;
+  line-height: 1.7;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  /* Seule zone interactive de la colonne de texte. */
+  pointer-events: auto;
+}
+
+.bouton {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.68rem 1.25rem;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font-size: 0.87rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+.bouton:focus-visible { outline: 2px solid var(--h-faible); outline-offset: 3px; }
+
+.boutonPrimaire { background: var(--h-faible); color: #042313; }
+.boutonPrimaire:hover { background: color-mix(in srgb, var(--h-faible) 86%, #fff); }
+
+.boutonSecondaire {
+  background: rgba(255, 255, 255, 0.045);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: var(--h-soft);
+}
+.boutonSecondaire:hover { border-color: rgba(255, 255, 255, 0.3); color: var(--h-ink); }
+
+/* ---------------------------------------------------------------------------
+   HUD de survol du bouton d'inscription
+
+   Meme grammaire que la fiche de detection (.fiche) : bordure, fond et halo,
+   entete mono en majuscules. Bordure blanche plutot que teintee par criticite
+   — ce HUD ne rapporte pas un etat de detection, juste une action possible.
+   --------------------------------------------------------------------------- */
+.boutonEnveloppe { position: relative; display: inline-flex; }
+
+.boutonHud {
+  position: absolute;
+  bottom: calc(100% + 14px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  width: max-content;
+  max-width: 15rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: 6px;
+  background: rgba(4, 5, 7, 0.94);
+  box-shadow: 0 0 26px -4px rgba(255, 255, 255, 0.3), 0 12px 36px rgba(0, 0, 0, 0.55);
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  text-align: left;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s ease, transform 0.22s ease;
+}
+.boutonEnveloppe:hover .boutonHud,
+.boutonEnveloppe:focus-within .boutonHud {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.boutonHudEntete {
+  display: block;
+  margin-bottom: 0.3rem;
+  color: #fff;
+  font-size: 0.57rem;
+  letter-spacing: 0.08em;
+  opacity: 0.85;
+}
+
+.boutonHudStatut {
+  display: block;
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+/* ---------------------------------------------------------------------------
+   Scene
+
+   Elle occupe la moitie droite : les cibles ne peuvent donc pas tomber sous le
+   texte, et aucun voile n'a besoin de les masquer. L'assombrissement cote
+   texte est peint dans le canvas, sous les cibles — c'est ce qui supprime le
+   calque flottant qui, sinon, intercepte le survol.
+   --------------------------------------------------------------------------- */
+/* Les marges reservent la place des etiquettes et des fiches, qui debordent de
+   la boite d'une cible. Les coordonnees normalisees de scene.ts s'etalent donc
+   sur toute la plage 0..1 sans qu'une cible de bord ne sorte du hero. */
+.scene {
+  margin: 6% 5% 9% 0;
+  max-width: 1100px;
+}
+
+.cibles {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cible {
+  position: absolute;
+  left: calc(var(--x) * 100%);
+  top: calc(var(--y) * 100%);
+  width: 78px;
+  height: 78px;
+  margin: -39px 0 0 -39px;
+}
+
+/* Zone de detection : un carre transparent, large, pose au-dessus du visuel.
+   C'est lui — et rien d'autre — qui capte la souris. Le cadre, le logo,
+   l'etiquette et la fiche restent inertes, donc aucun survol ne se perd sur
+   une bordure ou un halo. */
+.zone {
+  position: absolute;
+  inset: -10px;
+  border-radius: 10px;
+  pointer-events: auto;
+}
+
+/* --- cadre de ciblage a coins ouverts --- */
+.cadre {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  color: var(--h-trait);
+  opacity: 0.5;
+  transform: scale(1.14);
+  transition: opacity 0.3s ease, transform 0.42s cubic-bezier(0.18, 1.3, 0.3, 1), color 0.3s ease;
+}
+
+.cible[data-affiche="true"] .cadre {
+  color: var(--h-teinte);
+  opacity: 1;
+  transform: scale(1);
+  /* Bloom SVG reel (deux passes de flou gaussien fusionnees), applique
+     uniquement a la cible verrouillee : c'est la detection qui allume, et la
+     region de filtre reste limitee a une cible a la fois. */
+  filter: url(#cyrens-bloom);
+}
+
+.coin {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: square;
+  vector-effect: non-scaling-stroke;
+}
+
+/* --- logo --- */
+.marque {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.logo {
+  width: 30px;
+  height: 30px;
+  fill: var(--h-trait);
+  opacity: 0.82;
+  transition: fill 0.3s ease, opacity 0.3s ease;
+}
+.cible[data-affiche="true"] .logo { fill: #fff; opacity: 1; }
+
+/* Referentiels normatifs : pas de logo officiel, une pastille mono. */
+.sigle {
+  color: var(--h-trait);
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-align: center;
+  opacity: 0.85;
+  transition: color 0.3s ease;
+}
+.cible[data-affiche="true"] .sigle { color: #fff; }
+
+/* Ligne de lecture qui parcourt le logo au verrouillage — pilotee par GSAP,
+   dans la sequence de detection. */
+.balayageLogo {
+  position: absolute;
+  left: -12%;
+  right: -12%;
+  top: 0;
+  height: 11px;
+  opacity: 0;
+  background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.92), transparent);
+}
+
+/* --- etiquette --- */
+.etiquette {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--h-soft);
+  transition: color 0.3s ease;
+}
+.cible[data-affiche="true"] .etiquette { color: #fff; }
+
+.version {
+  margin-left: 0.4em;
+  font-weight: 400;
+  font-style: normal;
+  color: var(--h-faint);
+}
+
+/* ---------------------------------------------------------------------------
+   Fiche de detection
+
+   Placement horizontal et vertical corrige a la mesure (cf. HeroDetection) :
+   --decalage recentre la fiche quand elle depasserait la scene, data-dessus
+   la bascule au-dessus quand il n'y a plus de place en bas. Rien n'est fige
+   dans la donnee.
+   --------------------------------------------------------------------------- */
+.fiche {
+  position: absolute;
+  top: calc(100% + 30px);
+  left: 50%;
+  transform: translateX(calc(-50% + var(--decalage, 0px)));
+  width: max-content;
+  max-width: 15rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--h-teinte);
+  border-radius: 6px;
+  background: rgba(4, 5, 7, 0.94);
+  /* Diffusion large et sombre : le halo colore doit teinter le fond autour de
+     la fiche, pas seulement border la bordure. */
+  box-shadow: 0 0 26px -4px color-mix(in srgb, var(--h-teinte) 45%, transparent),
+    0 12px 36px rgba(0, 0, 0, 0.55);
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  text-align: left;
+  opacity: 0;
+  /* Masquee a l'opacite, pas en visibility : les dix fiches restent dans
+     l'arbre d'accessibilite, donc un lecteur d'ecran parcourt tout le
+     perimetre au lieu de n'entendre que la cible allumee a cet instant. */
+  pointer-events: none;
+  transition: opacity 0.26s ease;
+}
+.fiche[data-dessus="true"] { top: auto; bottom: calc(100% + 30px); }
+
+.cible[data-affiche="true"] .fiche {
+  opacity: 1;
+  /* Seule la fiche ouverte est selectionnable : une reference CVE doit
+     pouvoir se copier. */
+  pointer-events: auto;
+  transition: opacity 0.3s ease;
+}
+
+/* Revelation orchestree : les trois lignes arrivent decalees. Le deplacement
+   porte sur les enfants, jamais sur .fiche, pour que la mesure de placement
+   lise une boite stable. */
+.ficheEntete,
+.ficheStatut,
+.ficheDetail {
+  opacity: 0;
+  transform: translateY(5px);
+  transition: opacity 0.34s ease, transform 0.44s cubic-bezier(0.2, 0.85, 0.25, 1);
+}
+.cible[data-affiche="true"] .ficheEntete { opacity: 1; transform: none; transition-delay: 0.05s; }
+.cible[data-affiche="true"] .ficheStatut { opacity: 1; transform: none; transition-delay: 0.13s; }
+.cible[data-affiche="true"] .ficheDetail { opacity: 1; transform: none; transition-delay: 0.2s; }
+
+.ficheEntete {
+  margin-bottom: 0.4rem;
+  color: var(--h-teinte);
+  font-size: 0.57rem;
+  letter-spacing: 0.08em;
+}
+
+.ficheStatut {
+  position: relative;
+  isolation: isolate;
+  display: block;
+  color: var(--h-teinte);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.015em;
+}
+
+/* Le glow du texte : un duplicata reellement floute (filter: blur) compose en
+   screen derriere le glyphe net. C'est un bloom, pas un empilement de
+   text-shadow qui se contente d'epaissir le contour. */
+.statutHalo {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  color: var(--h-teinte);
+  filter: blur(6px);
+  opacity: 0.9;
+  mix-blend-mode: screen;
+}
+
+.ficheDetail {
+  display: block;
+  margin-top: 0.15rem;
+  color: var(--h-soft);
+  font-size: 0.66rem;
+  line-height: 1.45;
+}
+
+.ficheSource {
+  display: block;
+  margin-top: 0.35rem;
+  color: var(--h-faint);
+  font-size: 0.6rem;
+  letter-spacing: 0.04em;
+}
+
+/* Point clignotant de l'etat « analyse en cours ». */
+.pointAnalyse {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin-left: 0.35em;
+  vertical-align: 0.1em;
+  background: currentColor;
+  box-shadow: 0 0 6px currentColor;
+  animation: pouls 1.1s steps(1, end) infinite;
+}
+
+/* ---------------------------------------------------------------------------
+   Reticule
+   --------------------------------------------------------------------------- */
+.reticule {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+.reticuleSvg {
+  display: block;
+  width: 46px;
+  height: 46px;
+  margin: -23px 0 0 -23px;
+  overflow: visible;
+  color: var(--h-faible);
+  filter: url(#cyrens-bloom);
+}
+.reticuleTrait {
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+.reticulePoint { fill: currentColor; }
+
+/* ---------------------------------------------------------------------------
+   Curseur personnalise
+
+   Le reticule remplace le curseur systeme : la souris EST le reticule le
+   temps du survol du hero. Reserve aux dispositifs a pointeur fin et avec
+   survol (une souris ou un trackpad, pas un doigt), a la disposition large
+   (le reticule est masque sous 1100px) et hors preference de mouvement
+   reduit — trois conditions deja utilisees cote JS pour n'attacher le suivi
+   qu'a ce meme public.
+
+   `.zone` et `.bouton` sont repris explicitement : les feuilles de style par
+   defaut du navigateur posent leur propre curseur sur les liens et zones
+   cliquables, qui gagnerait sinon sur le `cursor: none` herite du hero.
+   --------------------------------------------------------------------------- */
+@media (min-width: 1101px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .hero,
+  .zone,
+  .bouton {
+    cursor: none;
+  }
+}
+
+@keyframes pouls {
+  50% { opacity: 0; }
+}
+
+/* ---------------------------------------------------------------------------
+   Sous 1100px la colonne de texte et la scene n'ont plus assez de place cote a
+   cote : la scene passe au-dessus, le texte s'ancre en bas. Il reste ancre a
+   gauche, jamais centre.
+
+   Le seuil est a 1100 et non a 900 : a 1024 (tablette en paysage) les deux
+   colonnes tiennent encore geometriquement, mais la scene tombe a moins de
+   400px et les cibles se marchent dessus.
+   --------------------------------------------------------------------------- */
+@media (max-width: 1100px) {
+  /* La grille est abandonnee : le hero redevient un bloc, le canvas garde son
+     bord a bord, et la scene passe en calque absolu au-dessus du texte. */
+  .hero {
+    display: block;
+    height: auto;
+    min-height: 100svh;
+  }
+
+  /* Bande haute mesuree en svh et non en pourcentage : la hauteur du hero
+     depend ici de son texte, une hauteur relative suivrait donc le contenu au
+     lieu de l'ecran. */
+  .scene {
+    position: absolute;
+    inset: 4svh 6% auto 6%;
+    height: 46svh;
+    margin: 0;
+    max-width: none;
+  }
+
+  /* Scene compacte : cinq cibles seulement, a leurs coordonnees propres. */
+  .cible {
+    left: calc(var(--xm) * 100%);
+    top: calc(var(--ym) * 100%);
+    width: 58px;
+    height: 58px;
+    margin: -29px 0 0 -29px;
+  }
+  .cible[data-compact="false"] { display: none; }
+
+  .logo { width: 23px; height: 23px; }
+  .etiquette { font-size: 0.66rem; }
+  .hud { font-size: 0.64rem; }
+  .fiche { max-width: 13.5rem; top: calc(100% + 22px); }
+  .fiche[data-dessus="true"] { bottom: calc(100% + 22px); }
+
+  /* Sans souris, le reticule n'a plus d'interlocuteur : le parcours continue
+     de reveler les fiches, mais le curseur lui-meme disparait. */
+  .reticule { display: none; }
+
+  /* Le retrait haut reserve la bande de la scene ; l'ancrage en bas garde le
+     titre pres du pouce quand le texte est plus court que l'ecran. */
+  .copie {
+    justify-content: flex-end;
+    min-height: 100svh;
+    padding: 52svh max(1.25rem, 5vw) 3rem;
+  }
+  .titre { font-size: clamp(1.6rem, 6vw, 2.4rem); }
+}
+
+/* ---------------------------------------------------------------------------
+   Mouvement reduit : la scene se fige sur une image composee — une cible
+   verrouillee, sa fiche ouverte. Le propos passe entierement, sans mouvement.
+   --------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .hudPoint,
+  .pointAnalyse {
+    animation: none;
+  }
+  .cadre,
+  .fiche,
+  .ficheEntete,
+  .ficheStatut,
+  .ficheDetail,
+  .logo,
+  .etiquette,
+  .sigle,
+  .bouton,
+  .reticule {
+    transition-duration: 0.01ms;
+    transition-delay: 0s;
+  }
+}

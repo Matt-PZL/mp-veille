@@ -1,0 +1,83 @@
+/* ===========================================================================
+   Barre de navigation du site vitrine.
+
+   Toujours sombre et fixe en tete de page, quel que soit ce qui defile en
+   dessous (hero sombre, sections claires) : c'est ce qui lui permet de rester
+   lisible sur les deux fonds sans logique de bascule au scroll.
+   =========================================================================== */
+
+.barre {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.5rem;
+  min-height: 64px;
+  padding: 0.6rem max(1.25rem, calc((100% - 1240px) / 2));
+  background: rgba(6, 7, 10, 0.82);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-family: var(--font-plex-sans), system-ui, sans-serif;
+}
+
+.logo {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 0.5rem;
+  color: #fff;
+  font-family: var(--font-archivo), Arial, sans-serif;
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+}
+.logo:hover { color: #fff; }
+
+.liens {
+  display: flex;
+  align-items: center;
+  gap: 1.75rem;
+  margin: 0;
+}
+
+.lien {
+  color: rgba(238, 240, 243, 0.72);
+  font-size: 0.87rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.18s ease;
+}
+.lien:hover { color: #fff; }
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-left: auto;
+}
+
+.bouton {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 1.1rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  color: #0c0d10;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: filter 0.18s ease, transform 0.12s ease;
+}
+.bouton:hover { filter: brightness(0.94); }
+.bouton:active { transform: translateY(1px); }
+.bouton:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+.boutonInscription { background: #fff; }
+.boutonConnexion { background: #3ee686; }
+
+@media (max-width: 760px) {
+  .liens { display: none; }
+}

@@ -1,0 +1,176 @@
+/* ===========================================================================
+   Section « solution » — mise en page et captures illustratives du produit.
+
+   Les captures ne sont pas des pixels reels de l'application : ce sont des
+   reconstitutions fideles à la grammaire du panel (memes libelles de nature,
+   memes paliers de criticite), peuplees de donnees de demonstration. Plus
+   sobre a maintenir qu'une vraie capture, et jamais perimee visuellement.
+   =========================================================================== */
+
+.grille {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  gap: 3.5rem;
+  align-items: start;
+  margin-top: 3rem;
+}
+
+.etapes {
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+  margin: 2rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.etape { display: flex; gap: 0.9rem; }
+.etapeChiffre {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #0c0d10;
+  color: #fff;
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+.etapeTexte { padding-top: 0.15rem; font-size: 0.9rem; line-height: 1.55; color: var(--s-soft, #565b66); }
+.etapeTexte strong { color: var(--s-ink, #0c0d10); }
+
+/* --- cadre de capture, chrome de navigateur minimal --- */
+.cadre {
+  border: 1px solid var(--s-border, #e4e7ec);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 20px 60px -20px rgba(12, 13, 15, 0.22);
+  overflow: hidden;
+}
+
+.cadreBarre {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 0.7rem;
+  border-bottom: 1px solid var(--s-border, #e4e7ec);
+  background: #f6f7f9;
+}
+.cadrePoint { width: 8px; height: 8px; border-radius: 50%; background: #d7dae0; }
+
+.onglets {
+  display: flex;
+  gap: 0.3rem;
+  margin-left: 0.6rem;
+}
+.onglet {
+  padding: 0.3rem 0.65rem;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #8991a0;
+  font-family: var(--font-plex-sans), system-ui, sans-serif;
+  font-size: 0.74rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.16s ease, color 0.16s ease;
+}
+.onglet:hover { color: #0c0d10; }
+.ongletActif { background: #0c0d10; color: #fff; }
+.ongletActif:hover { color: #fff; }
+
+.capture { padding: 1.1rem; min-height: 300px; }
+
+/* --- Dashboard --- */
+.kpiLigne { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.7rem; margin-bottom: 0.9rem; }
+.kpi {
+  padding: 0.8rem 0.85rem;
+  border: 1px solid var(--s-border, #e4e7ec);
+  border-radius: 10px;
+  background: #f6f7f9;
+}
+.kpiLabel { font-size: 0.68rem; color: #8991a0; }
+.kpiValeur { margin-top: 0.3rem; font-family: var(--font-plex-mono), ui-monospace, monospace; font-size: 1.35rem; font-weight: 700; }
+.kpiValeur[data-teinte="critique"] { color: #c9332e; }
+.kpiValeur[data-teinte="elevee"] { color: #b5641b; }
+.kpiValeur[data-teinte="ok"] { color: #1b7f47; }
+
+.barreLigne { display: flex; align-items: center; gap: 0.7rem; padding: 0.45rem 0; font-size: 0.78rem; }
+.barreLabel { width: 92px; flex-shrink: 0; color: #565b66; }
+.barrePiste { flex: 1; height: 7px; border-radius: 999px; background: #eaecef; overflow: hidden; }
+.barreValeur { display: block; height: 100%; border-radius: 999px; }
+.barreChiffre { width: 20px; text-align: right; font-family: var(--font-plex-mono), ui-monospace, monospace; font-weight: 600; }
+
+/* --- Liste des renseignements --- */
+.tableLigne {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.65rem 0.2rem;
+  border-bottom: 1px solid var(--s-border, #e4e7ec);
+  font-size: 0.8rem;
+}
+.tableLigne:last-child { border-bottom: none; }
+.tableLibelle { font-weight: 600; }
+.tableDetail { display: block; margin-top: 0.15rem; font-size: 0.72rem; color: #8991a0; }
+.tag {
+  padding: 0.2rem 0.5rem;
+  border-radius: 5px;
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.tag[data-nature="vulnerabilite"] { background: rgba(201, 51, 46, 0.1); color: #c9332e; }
+.tag[data-nature="correctif"] { background: rgba(27, 127, 71, 0.1); color: #1b7f47; }
+.tag[data-nature="reglementaire"] { background: rgba(109, 58, 186, 0.1); color: #6d3aba; }
+.tag[data-nature="information"] { background: #eaecef; color: #565b66; }
+.point { width: 7px; height: 7px; border-radius: 50%; justify-self: center; }
+.point[data-criticite="critique"] { background: #c9332e; }
+.point[data-criticite="elevee"] { background: #b5641b; }
+.point[data-criticite="moyenne"] { background: #96731a; }
+.point[data-criticite="faible"] { background: #1b7f47; }
+
+/* --- Vue actif --- */
+.actifEntete { display: flex; align-items: center; gap: 0.7rem; padding-bottom: 0.9rem; margin-bottom: 0.9rem; border-bottom: 1px solid var(--s-border, #e4e7ec); }
+.actifPastille {
+  display: flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border-radius: 9px;
+  background: #0c0d10; color: #fff;
+  font-family: var(--font-plex-mono), ui-monospace, monospace; font-size: 0.72rem; font-weight: 700;
+}
+.actifNom { font-weight: 700; font-size: 0.92rem; }
+.actifVersion { font-size: 0.74rem; color: #8991a0; }
+
+/* --- Filtres --- */
+.filtreGroupe { margin-bottom: 1.1rem; }
+.filtreLabel {
+  display: block; margin-bottom: 0.5rem;
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: 0.63rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  color: #8991a0;
+}
+.puces { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.puce {
+  padding: 0.32rem 0.7rem;
+  border: 1px solid var(--s-border, #e4e7ec);
+  border-radius: 999px;
+  background: #f6f7f9;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #565b66;
+}
+.puceActive { border-color: transparent; background: #0c0d10; color: #fff; }
+
+@media (max-width: 900px) {
+  .grille { grid-template-columns: 1fr; gap: 2rem; }
+}
+@media (max-width: 560px) {
+  .kpiLigne { grid-template-columns: 1fr; }
+  .tableLigne { grid-template-columns: 1fr auto; }
+  .tableLigne .point { display: none; }
+}

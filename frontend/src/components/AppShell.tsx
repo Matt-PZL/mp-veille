@@ -41,11 +41,11 @@ import {
 } from "./icons";
 
 const ONGLETS = [
-  { href: "/", label: "Vue d'ensemble", Icone: IconDashboard, cle: null, separeAvant: false },
-  { href: "/renseignements", label: "Renseignements", Icone: IconShield, cle: "aTraiter", separeAvant: false },
-  { href: "/actifs", label: "Actifs", Icone: IconServer, cle: "actifs", separeAvant: false },
-  { href: "/traitement", label: "Traitement", Icone: IconClipboard, cle: "traitements", separeAvant: true },
-  { href: "/actualites", label: "Actualités", Icone: IconNews, cle: null, separeAvant: false },
+  { href: "/app", label: "Vue d'ensemble", Icone: IconDashboard, cle: null, separeAvant: false },
+  { href: "/app/renseignements", label: "Renseignements", Icone: IconShield, cle: "aTraiter", separeAvant: false },
+  { href: "/app/actifs", label: "Actifs", Icone: IconServer, cle: "actifs", separeAvant: false },
+  { href: "/app/traitement", label: "Traitement", Icone: IconClipboard, cle: "traitements", separeAvant: true },
+  { href: "/app/actualites", label: "Actualités", Icone: IconNews, cle: null, separeAvant: false },
 ] as const;
 
 /* ------------------------------------------------------------------ */
@@ -54,7 +54,7 @@ const ONGLETS = [
 
 function Marque() {
   return (
-    <Link href="/" className="flex shrink-0 items-center gap-2.5">
+    <Link href="/app" className="flex shrink-0 items-center gap-2.5">
       <span className="flex size-7 items-center justify-center rounded-[9px] bg-accent font-display text-sm font-extrabold text-accent-ink">
         V
       </span>
@@ -68,7 +68,7 @@ function Recherche({ className = "" }: { className?: string }) {
   return (
     <button
       type="button"
-      onClick={() => router.push("/actualites")}
+      onClick={() => router.push("/app/actualites")}
       className={`flex items-center gap-2.5 rounded-lg border border-border bg-surface-2 px-[11px] py-[7px] text-[13px] text-ink-faint transition-colors hover:border-border-strong ${className}`}
     >
       <IconSearch className="size-[15px]" />
@@ -158,7 +158,7 @@ function Preferences({
               {utilisateur?.email || utilisateur?.username}
             </div>
             <Link
-              href="/profil"
+              href="/app/profil"
               onClick={() => setMenu(null)}
               className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] text-ink-soft transition-colors hover:bg-surface-2 hover:text-ink"
             >
@@ -262,7 +262,7 @@ export function AppShell({
   // ouvert par-dessus la page qu'on vient d'ouvrir.
   useEffect(() => setTiroir(false), [chemin]);
 
-  const estActif = (href: string) => (href === "/" ? chemin === "/" : chemin.startsWith(href));
+  const estActif = (href: string) => (href === "/app" ? chemin === "/app" : chemin.startsWith(href));
   const CLE_VERS_COMPTEUR: Record<string, keyof CompteursNav> = {
     aTraiter: "a_traiter",
     traitements: "traitements",

@@ -60,7 +60,7 @@ function Contenu() {
       else p.set(k, v);
     }
     const s = p.toString();
-    return `/traitement${s ? `?${s}` : ""}`;
+    return `/app/traitement${s ? `?${s}` : ""}`;
   };
 
   const total = compteurs.total ?? 0;
@@ -271,7 +271,7 @@ function Contenu() {
                     </p>
                   )}
                   <Link
-                    href={`/renseignements/${t.id_renseignement}`}
+                    href={`/app/renseignements/${t.id_renseignement}`}
                     className="inline-flex items-center gap-[7px] rounded-lg border border-accent bg-accent px-[15px] py-2 text-[13px] font-semibold text-accent-ink"
                   >
                     Ouvrir le traitement
@@ -289,7 +289,7 @@ function Contenu() {
                 Aucun renseignement n&apos;a encore été pris en charge.
                 <br />
                 Ouvrez-en un depuis{" "}
-                <Link href="/renseignements" className="text-accent">
+                <Link href="/app/renseignements" className="text-accent">
                   Renseignements
                 </Link>{" "}
                 pour poser un premier statut.
@@ -325,7 +325,7 @@ function Contenu() {
                 .map(({ traitement: t, renseignement: r }) => (
                   <Link
                     key={t.id}
-                    href={`/renseignements/${t.id_renseignement}`}
+                    href={`/app/renseignements/${t.id_renseignement}`}
                     className="flex items-baseline gap-2.5 border-b border-border px-4 py-[11px] text-[12.5px] text-ink-soft last:border-b-0 hover:bg-surface-2 hover:text-ink"
                   >
                     <span className="shrink-0 font-mono text-[11px] font-semibold text-crit">

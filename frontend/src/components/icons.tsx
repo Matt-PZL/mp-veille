@@ -183,6 +183,14 @@ export const IconCalendar = (p: Props) => (
   </Svg>
 );
 
+export const IconTarget = (p: Props) => (
+  <Svg {...p}>
+    <circle cx="12" cy="12" r="8.5" />
+    <circle cx="12" cy="12" r="4.5" />
+    <circle cx="12" cy="12" r="0.6" fill="currentColor" />
+  </Svg>
+);
+
 export const IconRefresh = (p: Props) => (
   <Svg {...p}>
     <path d="M21 12a9 9 0 1 1-6.2-8.6" />

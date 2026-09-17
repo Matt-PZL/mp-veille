@@ -232,7 +232,7 @@ function Contenu() {
     <AppShell>
       <div className="mx-auto w-full max-w-[760px]">
         <Link
-          href="/renseignements"
+          href="/app/renseignements"
           className="mb-[18px] inline-flex items-center gap-[7px] text-[13px] text-ink-soft hover:text-ink"
         >
           <IconChevron className="size-3.5 rotate-180" />

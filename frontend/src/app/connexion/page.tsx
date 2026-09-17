@@ -14,7 +14,7 @@ export default function PageConnexion() {
   const [envoi, setEnvoi] = useState(false);
 
   useEffect(() => {
-    if (!chargement && utilisateur) router.replace("/");
+    if (!chargement && utilisateur) router.replace("/app");
   }, [chargement, utilisateur, router]);
 
   async function soumettre(e: React.FormEvent) {
@@ -23,7 +23,7 @@ export default function PageConnexion() {
     setEnvoi(true);
     try {
       await connexion(username, password);
-      router.replace("/");
+      router.replace("/app");
     } catch (err) {
       setErreur(err instanceof Error ? err.message : "La connexion a échoué.");
     } finally {

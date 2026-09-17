@@ -1,6 +1,6 @@
 # Cyrens
 
-Plateforme SaaS de veille et renseignement cybersécurité destinée aux RSSI et aux équipes cyber.
+Plateforme SaaS de veille et renseignement cybersécurité destinée aux équipes cyber.
 
 ## Objectif
 
