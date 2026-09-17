@@ -10,6 +10,7 @@ import {
   Card,
   CardHead,
   Empty,
+  ErreurChamp,
   Input,
   Kpi,
   Label,
@@ -17,7 +18,7 @@ import {
   Select,
   Spinner,
 } from "@/components/ui";
-import { IconAlert, IconClock, IconDoc, IconDownload, IconPlus, IconServer, IconTrash, IconUp } from "@/components/icons";
+import { IconAlert, IconClock, IconDoc, IconDownload, IconPlus, IconServer, IconShield, IconTrash, IconUp } from "@/components/icons";
 import { ModaleAjoutActif } from "@/components/ModaleAjoutActif";
 import { api } from "@/lib/api";
 import { depuis } from "@/lib/format";
@@ -36,10 +37,12 @@ function ModaleVersion({
   const [version, setVersion] = useState("");
   const [versions, setVersions] = useState<string[]>([]);
   const [envoi, setEnvoi] = useState(false);
+  const [erreur, setErreur] = useState("");
 
   useEffect(() => {
     if (!actif) return;
     setVersion(actif.version);
+    setErreur("");
     api
       .catalogue(actif.produit)
       .then((r) => {
@@ -56,11 +59,15 @@ function ModaleVersion({
       <form
         onSubmit={async (e) => {
           e.preventDefault();
+          setErreur("");
           setEnvoi(true);
           try {
             await api.monterVersion(actif.id, version);
             onFait();
             onFermer();
+          } catch (err) {
+            // 422 quand la version demandee recreerait un actif deja declare.
+            setErreur(err instanceof Error ? err.message : "Échec de l'enregistrement.");
           } finally {
             setEnvoi(false);
           }
@@ -84,6 +91,7 @@ function ModaleVersion({
           ) : (
             <Input value={version} onChange={(e) => setVersion(e.target.value)} placeholder="Saisir la version" />
           )}
+          <ErreurChamp>{erreur}</ErreurChamp>
         </div>
         <Button type="submit" variante="primaire" disabled={envoi}>
           {envoi ? "Enregistrement…" : "Enregistrer"}
@@ -168,7 +176,9 @@ function Contenu() {
   const [stats, setStats] = useState<StatsActifs | null>(null);
   const [historique, setHistorique] = useState<HistoriqueActif[]>([]);
   const [type, setType] = useState(typeInitial);
-  const [recherche, setRecherche] = useState("");
+  // Initialise depuis ?q= : la recherche globale de la barre superieure
+  // aiguille ici avec le terme deja saisi.
+  const [recherche, setRecherche] = useState(params.get("q") ?? "");
   const [ajout, setAjout] = useState(false);
   const [versionDe, setVersionDe] = useState<Actif | null>(null);
   const [retraitDe, setRetraitDe] = useState<Actif | null>(null);
@@ -180,6 +190,11 @@ function Contenu() {
   }, [type, etat]);
 
   useEffect(charger, [charger]);
+
+  // Une nouvelle recherche lancee depuis la barre alors qu'on est deja sur
+  // cette page ne remonte pas le composant : il faut suivre l'URL.
+  const qUrl = params.get("q") ?? "";
+  useEffect(() => setRecherche(qUrl), [qUrl]);
 
   const filtres = useMemo(() => {
     if (!actifs) return null;
@@ -243,6 +258,33 @@ function Contenu() {
                 {label}
               </button>
             ))}
+
+            {/* Exports : de simples liens, pas de fetch. Le navigateur
+                telecharge lui-meme et le cookie de session suit, puisqu'on
+                reste sur la meme origine. Les filtres courants partent en
+                querystring pour que le fichier reflete l'ecran. */}
+            <div className="ml-auto flex gap-1.5">
+              {(
+                [
+                  ["csv", "CSV", "Exporter la liste filtrée au format CSV (Excel)"],
+                  ["pdf", "PDF", "Exporter la liste filtrée au format PDF"],
+                ] as const
+              ).map(([format, label, titre]) => (
+                <a
+                  key={format}
+                  href={api.urlExportActifs(format, {
+                    q: recherche.trim() || undefined,
+                    type: type || undefined,
+                    etat: etat || undefined,
+                  })}
+                  title={titre}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-2 px-[13px] py-1.5 text-[12.5px] font-semibold text-ink-soft transition-colors hover:border-accent hover:bg-accent-soft hover:text-accent"
+                >
+                  <IconDownload className="size-3.5" />
+                  {label}
+                </a>
+              ))}
+            </div>
           </div>
 
           <Card>
@@ -267,25 +309,40 @@ function Contenu() {
                       <span className="ml-2 font-mono text-[11.5px] font-normal text-ink-faint">{a.version}</span>
                     )}
                   </span>
-                  {!a.couvert && (
-                    <span
-                      className="shrink-0 cursor-help rounded-md border border-gold bg-gold-soft px-2.5 py-[2.5px] font-mono text-[9.5px] font-semibold tracking-[0.07em] text-gold uppercase"
-                      title="Aucune source ne couvre cet actif pour l'instant — ce n'est pas une garantie d'absence de vulnérabilité, seulement une absence de collecte."
+                  {/* « Version » est toujours rendu, seulement masque
+                      (invisible) sur un actif normatif : il garde ainsi sa
+                      largeur et « Retirer » reste aligne d'une ligne a
+                      l'autre, ce que ne faisait pas un rendu conditionnel.
+                      Aucune largeur codee en dur : elle se deduit du libelle. */}
+                  <div className="flex shrink-0 items-center gap-2">
+                    {/* Raccourci vers le feed deja filtre sur cet actif : evite
+                        de refaire la selection a la main dans la colonne de
+                        gauche des Renseignements. */}
+                    <Link
+                      href={`/app/renseignements?actif=${a.id}`}
+                      title={`Voir les renseignements concernant ${a.libelle}`}
+                      aria-label={`Voir les renseignements concernant ${a.libelle}`}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-[5px] text-[11.5px] font-semibold text-ink-soft transition-colors hover:border-accent hover:bg-accent-soft hover:text-accent"
                     >
-                      Non couvert
-                    </span>
-                  )}
-                  <div className="flex shrink-0 gap-1.5">
-                    {a.type === "technique" && (
-                      <button
-                        type="button"
-                        onClick={() => setVersionDe(a)}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-[5px] text-[11.5px] font-semibold text-ink-soft hover:border-border-strong hover:text-ink"
-                      >
-                        <IconUp className="size-3" />
-                        Version
-                      </button>
-                    )}
+                      <IconShield className="size-3" />
+                      Renseignements
+                    </Link>
+
+                    {/* disabled suffit a sortir le bouton masque du parcours
+                        clavier : pas besoin de tabIndex. */}
+                    <button
+                      type="button"
+                      aria-hidden={a.type !== "technique"}
+                      disabled={a.type !== "technique"}
+                      onClick={() => setVersionDe(a)}
+                      className={`inline-flex items-center justify-center gap-1.5 rounded-lg border border-border px-2.5 py-[5px] text-[11.5px] font-semibold text-ink-soft hover:border-border-strong hover:text-ink ${
+                        a.type !== "technique" ? "invisible" : ""
+                      }`}
+                    >
+                      <IconUp className="size-3" />
+                      Version
+                    </button>
+
                     <button
                       type="button"
                       onClick={() => setRetraitDe(a)}

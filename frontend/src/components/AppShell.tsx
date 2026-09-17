@@ -63,20 +63,223 @@ function Marque() {
   );
 }
 
+/** Une reference de vulnerabilite : CVE-2024-1234, avec ou sans espaces. */
+const MOTIF_CVE = /^cve[-\s]?\d{4}[-\s]?\d{4,}$/i;
+
+type Suggestion = {
+  genre: "actif" | "renseignement";
+  cle: string;
+  libelle: string;
+  detail: string;
+  href: string;
+};
+
+/** Ou mene une saisie libre quand on valide sans choisir de suggestion. */
+function destinationParDefaut(terme: string): string {
+  const t = terme.trim();
+  return MOTIF_CVE.test(t)
+    ? `/app/actualites?q=${encodeURIComponent(t.toUpperCase().replace(/\s/g, "-"))}`
+    : `/app/actifs?q=${encodeURIComponent(t)}`;
+}
+
+/**
+ * Recherche globale de la barre superieure.
+ *
+ * Elle propose des suggestions des deux natures — actifs declares et
+ * renseignements de la base — parce qu'un terme seul ne permet pas de deviner
+ * l'intention : « kubernetes » peut viser l'actif comme les CVE qui le
+ * concernent. Une pastille de couleur dit de quoi il s'agit, et l'utilisateur
+ * tranche. La saisie validee sans choisir retombe sur un aiguillage par
+ * defaut (reference CVE -> Actualites, sinon Actifs).
+ */
 function Recherche({ className = "" }: { className?: string }) {
   const router = useRouter();
+  const champ = useRef<HTMLInputElement>(null);
+  const zone = useRef<HTMLDivElement>(null);
+  const [terme, setTerme] = useState("");
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [chargement, setChargement] = useState(false);
+  const [ouvert, setOuvert] = useState(false);
+  const [surligne, setSurligne] = useState(-1);
+
+  // Interrogation differee : sans ce delai, chaque frappe declencherait deux
+  // requetes, dont une qui parcourt la base de renseignements.
+  useEffect(() => {
+    const t = terme.trim();
+    if (t.length < 2) {
+      setSuggestions([]);
+      setChargement(false);
+      return;
+    }
+    setChargement(true);
+    let annule = false;
+    const minuteur = setTimeout(async () => {
+      const [actifs, renseignements] = await Promise.all([
+        api.actifs({ q: t }).catch(() => []),
+        api.actualites({ q: t, limite: 6 }).catch(() => []),
+      ]);
+      if (annule) return;
+      setSuggestions([
+        ...actifs.slice(0, 4).map((a) => ({
+          genre: "actif" as const,
+          cle: `a${a.id}`,
+          libelle: a.libelle,
+          detail: [a.editeur, a.version].filter(Boolean).join(" · "),
+          href: `/app/actifs?q=${encodeURIComponent(a.libelle)}`,
+        })),
+        ...renseignements.slice(0, 6).map((r) => ({
+          genre: "renseignement" as const,
+          cle: `r${r.id}`,
+          libelle: r.titre,
+          detail: [r.reference || r.source, r.criticite_label].filter(Boolean).join(" · "),
+          href: `/app/renseignements/${r.id}`,
+        })),
+      ]);
+      setSurligne(-1);
+      setChargement(false);
+    }, 220);
+    return () => {
+      annule = true;
+      clearTimeout(minuteur);
+    };
+  }, [terme]);
+
+  // Fermeture au clic en dehors.
+  useEffect(() => {
+    if (!ouvert) return;
+    function dehors(e: MouseEvent) {
+      if (!zone.current?.contains(e.target as Node)) setOuvert(false);
+    }
+    document.addEventListener("pointerdown", dehors);
+    return () => document.removeEventListener("pointerdown", dehors);
+  }, [ouvert]);
+
+  // La touche « / » donne le focus, comme l'annonce le raccourci affiche —
+  // sauf si l'utilisateur est deja en train de saisir ailleurs.
+  useEffect(() => {
+    function auClavier(e: KeyboardEvent) {
+      if (e.key !== "/") return;
+      const cible = e.target;
+      if (
+        cible instanceof HTMLInputElement ||
+        cible instanceof HTMLTextAreaElement ||
+        cible instanceof HTMLSelectElement
+      ) {
+        return;
+      }
+      e.preventDefault();
+      champ.current?.focus();
+    }
+    document.addEventListener("keydown", auClavier);
+    return () => document.removeEventListener("keydown", auClavier);
+  }, []);
+
+  function aller(href: string) {
+    setTerme("");
+    setSuggestions([]);
+    setOuvert(false);
+    champ.current?.blur();
+    router.push(href);
+  }
+
+  function lancer(e: React.FormEvent) {
+    e.preventDefault();
+    if (surligne >= 0 && suggestions[surligne]) {
+      aller(suggestions[surligne].href);
+      return;
+    }
+    if (terme.trim()) aller(destinationParDefaut(terme));
+  }
+
+  function naviguer(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Escape") {
+      setOuvert(false);
+      champ.current?.blur();
+      return;
+    }
+    if (!suggestions.length) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setOuvert(true);
+      setSurligne((i) => (i + 1) % suggestions.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setSurligne((i) => (i <= 0 ? suggestions.length - 1 : i - 1));
+    }
+  }
+
+  const listeVisible = ouvert && terme.trim().length >= 2;
+
   return (
-    <button
-      type="button"
-      onClick={() => router.push("/app/actualites")}
-      className={`flex items-center gap-2.5 rounded-lg border border-border bg-surface-2 px-[11px] py-[7px] text-[13px] text-ink-faint transition-colors hover:border-border-strong ${className}`}
-    >
-      <IconSearch className="size-[15px]" />
-      <span className="flex-1 text-left max-xl:hidden">Rechercher un actif, une CVE…</span>
-      <kbd className="rounded border border-border bg-bg px-1.5 py-px font-mono text-[10.5px] max-xl:hidden">
-        /
-      </kbd>
-    </button>
+    <div ref={zone} className={`relative ${className}`}>
+      <form
+        onSubmit={lancer}
+        role="search"
+        className="flex items-center gap-2.5 rounded-lg border border-border bg-surface-2 px-[11px] py-[7px] transition-colors focus-within:border-accent hover:border-border-strong"
+      >
+        <IconSearch className="size-[15px] shrink-0 text-ink-faint" />
+        <input
+          ref={champ}
+          value={terme}
+          onChange={(e) => {
+            setTerme(e.target.value);
+            setOuvert(true);
+          }}
+          onFocus={() => setOuvert(true)}
+          onKeyDown={naviguer}
+          placeholder="Rechercher un actif, une CVE…"
+          aria-label="Rechercher un actif ou un renseignement"
+          aria-expanded={listeVisible}
+          autoComplete="off"
+          className="min-w-0 flex-1 bg-transparent text-[13px] text-ink outline-none placeholder:text-ink-faint max-xl:hidden"
+        />
+        {!terme && (
+          <kbd className="shrink-0 rounded border border-border bg-bg px-1.5 py-px font-mono text-[10.5px] text-ink-faint max-xl:hidden">
+            /
+          </kbd>
+        )}
+      </form>
+
+      {listeVisible && (
+        <div className="absolute top-[calc(100%+6px)] right-0 left-0 z-50 max-h-[min(70vh,420px)] overflow-y-auto rounded-xl border border-border bg-surface p-1.5 shadow-pop max-xl:w-[320px]">
+          {chargement && !suggestions.length ? (
+            <p className="px-2.5 py-3 text-[12.5px] text-ink-faint">Recherche…</p>
+          ) : suggestions.length ? (
+            suggestions.map((s, i) => (
+              <button
+                key={s.cle}
+                type="button"
+                onMouseEnter={() => setSurligne(i)}
+                onClick={() => aller(s.href)}
+                className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors ${
+                  i === surligne ? "bg-accent-soft" : "hover:bg-surface-2"
+                }`}
+              >
+                <span
+                  className={`shrink-0 rounded-full px-2 py-[2.5px] text-[9.5px] font-bold tracking-[0.05em] uppercase ${
+                    s.genre === "actif"
+                      ? "bg-faib-soft text-faib"
+                      : "bg-violet-soft text-violet"
+                  }`}
+                >
+                  {s.genre === "actif" ? "Actif" : "Renseignement"}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[13px] font-medium text-ink">{s.libelle}</span>
+                  {s.detail && (
+                    <span className="block truncate font-mono text-[11px] text-ink-faint">{s.detail}</span>
+                  )}
+                </span>
+              </button>
+            ))
+          ) : (
+            <p className="px-2.5 py-3 text-[12.5px] text-ink-faint">
+              Aucun résultat pour « {terme.trim()} ».
+            </p>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 

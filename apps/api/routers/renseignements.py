@@ -8,6 +8,7 @@ ecrire, il se contente de consommer ses resultats.
 
 from __future__ import annotations
 
+import re
 from uuid import UUID
 
 from django.shortcuts import get_object_or_404
@@ -32,6 +33,10 @@ from apps.bdp.models import Renseignement
 from apps.matching.services import calculer_matching, calculer_perimetre_stats
 
 router = Router()
+
+# Une reference de vulnerabilite : CVE-2024-1234, GHSA-xxxx, DSA-1234-1…
+# Sert a n'elargir la recherche au champ `reference_externe` que dans ce cas.
+MOTIF_REFERENCE = re.compile(r"^(cve|ghsa|dsa|dla|usn|certfr)[-\s]", re.IGNORECASE)
 
 _ORDRE_CRITICITE = {"critique": 0, "elevee": 1, "moyenne": 2, "faible": 3}
 _ORDRE_STATUT = {"a_traiter": 0, "en_cours": 1, "clos": 2, "non_applicable": 3}
@@ -143,7 +148,23 @@ def actualites(
     if q:
         from django.db.models import Q
 
-        qs = qs.filter(Q(titre__icontains=q) | Q(source__icontains=q) | Q(description__icontains=q))
+        # Recherche volontairement restreinte au titre.
+        #
+        # Chercher aussi dans `description` remontait des resultats hors sujet
+        # (« kubernetes » sortait une faille MLRun dont le paragraphe mentionne
+        # Kubernetes en passant) et imposait un parcours complet de la table :
+        # seul `titre` porte un index trigram.
+        #
+        # Le "OU" est le piege a connaitre : un seul champ non indexe dedans
+        # et PostgreSQL abandonne TOUS les index de la clause. On isole donc
+        # `reference_externe` (non indexe) dans une branche a part, empruntee
+        # uniquement quand le terme ressemble vraiment a une reference de
+        # vulnerabilite — cas rare et volontaire. Le cas courant reste sur le
+        # seul index du titre.
+        if MOTIF_REFERENCE.match(q):
+            qs = qs.filter(Q(reference_externe__icontains=q) | Q(titre__icontains=q))
+        else:
+            qs = qs.filter(titre__icontains=q)
 
     consultes = set(RenseignementConsulte.objects.values_list("id_renseignement_bdp", flat=True))
     return [
