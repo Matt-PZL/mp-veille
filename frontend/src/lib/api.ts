@@ -155,6 +155,10 @@ export const api = {
   retirerActif: (pk: number, purger: boolean) =>
     requete<{ detail: string }>(`/actifs/${pk}${qs({ purger })}`, { methode: "DELETE" }),
   historiqueActifs: () => requete<HistoriqueActif[]>("/actifs/historique"),
+  /** Telechargement direct via <a href> : le navigateur gere la sauvegarde,
+      et le cookie de session part tout seul (meme origine). */
+  urlExportActifs: (format: "csv" | "pdf", p: { q?: string; type?: string; etat?: string } = {}) =>
+    `${BASE}/api/actifs/export/${format}${qs(p)}`,
 
   // ---- Journal d'actions (panneau Historique, Renseignements) ----
   journal: (p: { type?: string; decalage?: number; limite?: number } = {}) =>

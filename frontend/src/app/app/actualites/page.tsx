@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import { AppShell, PageHead } from "@/components/AppShell";
 import { Garde } from "@/components/Garde";
 import { Button, Card, Empty, Input, NatureTag, Spinner } from "@/components/ui";
@@ -26,10 +27,22 @@ const BORD_SEV: Record<string, string> = {
 };
 
 function Contenu() {
+  const params = useSearchParams();
+  // ?q= : la recherche globale de la barre superieure aiguille ici pour une
+  // reference de type CVE, avec le terme deja applique.
+  const qUrl = params.get("q") ?? "";
+
   const [items, setItems] = useState<Renseignement[] | null>(null);
   const [type, setType] = useState("");
-  const [saisie, setSaisie] = useState("");
-  const [q, setQ] = useState("");
+  const [saisie, setSaisie] = useState(qUrl);
+  const [q, setQ] = useState(qUrl);
+
+  // Une nouvelle recherche lancee alors qu'on est deja sur cette page ne
+  // remonte pas le composant : il faut suivre l'URL.
+  useEffect(() => {
+    setSaisie(qUrl);
+    setQ(qUrl);
+  }, [qUrl]);
 
   useEffect(() => {
     setItems(null);
@@ -172,7 +185,9 @@ function Contenu() {
 export default function PageActualites() {
   return (
     <Garde>
-      <Contenu />
+      <Suspense fallback={<Spinner />}>
+        <Contenu />
+      </Suspense>
     </Garde>
   );
 }
